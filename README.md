@@ -2,6 +2,7 @@
 [![License][licence-badge]][licence-url]
 [![Python Versions][python-version-badge]][python-version-url]
 [![Test Status][test-badge]][test-url]
+[![Test Coverage][test-cov-badge]][test-cov-url]
 
 [download-badge]: https://static.pepy.tech/personalized-badge/pydantic-xml?period=month&units=international_system&left_color=grey&right_color=orange&left_text=Downloads/month
 [download-url]: https://pepy.tech/project/pydantic-xml
@@ -11,7 +12,8 @@
 [python-version-url]: https://pypi.org/project/pydantic-xml
 [test-badge]: https://github.com/dapper91/pydantic-xml/actions/workflows/test.yml/badge.svg?branch=master
 [test-url]: https://github.com/dapper91/pydantic-xml/actions/workflows/test.yml
-
+[test-cov-badge]: https://codecov.io/gh/dapper91/pydantic-xml/branch/master/graph/badge.svg
+[test-cov-url]: https://codecov.io/gh/dapper91/pydantic-xml
 
 # pydantic-xml
 
