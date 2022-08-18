@@ -24,7 +24,7 @@ classifiers = [
 ]
 
 [tool.poetry.dependencies]
-python = "^3.9"
+python = "^3.8"
 lxml = {version = "^4.9.1", optional = true}
 pydantic = "^1.9.0"
 
