@@ -1,0 +1,54 @@
+[tool.poetry]
+name = "pydantic-xml"
+version = "0.1.0"
+description = "pydantic xml serialization/deserialization extension"
+authors = ["Dmitry Pershin <dapper1291@gmail.com>"]
+license = "Unlicense"
+readme = "README.md"
+homepage = "https://github.com/dapper91/pydantic-xml"
+repository = "https://github.com/dapper91/pydantic-xml"
+documentation = "https://github.com/dapper91/pydantic-xml"
+keywords = [
+    'pydantic', 'xml', 'serialization', 'deserialization', 'parsing', 'lxml',
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "Natural Language :: English",
+    "License :: Public Domain",
+    "Topic :: Software Development :: Libraries",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+]
+
+[tool.poetry.dependencies]
+python = "^3.8"
+lxml = {version = "^4.9.1", optional = true}
+pydantic = "^1.9.0"
+
+[tool.poetry.extras]
+lxml = ['lxml']
+
+[tool.poetry.dev-dependencies]
+lxml-stubs = "^0.4.0"
+mypy = "^0.971"
+pre-commit = "^2.20.0"
+pytest = "^7.1.2"
+pytest-cov = "^3.0.0"
+xmldiff = "^2.4"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.mypy]
+allow_redefinition = true
+disallow_incomplete_defs = true
+disallow_untyped_decorators = false
+disallow_untyped_defs = true
+no_implicit_optional = true
+show_error_codes = true
+strict_equality = true
+warn_unused_ignores = true
