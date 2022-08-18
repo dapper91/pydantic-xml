@@ -28,8 +28,10 @@ jobs:
         poetry install --no-root -E lxml
     - name: Run pre-commit hooks
       run: poetry run pre-commit run --hook-stage merge-commit --all-files
-    - name: Run tests
-      run: PYTHONPATH="$(pwd):$PYTHONPATH" poetry run py.test --cov=pydantic-xml --cov-report=xml tests
+    - name: Run tests (lxml)
+      run: PYTHONPATH="$(pwd):$PYTHONPATH" poetry run py.test tests
+    - name: Run tests (std)
+      run: PYTHONPATH="$(pwd):$PYTHONPATH" FORCE_STD_XML=true poetry run py.test --cov=pydantic_xml --cov-report=xml tests
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v1
       with:
