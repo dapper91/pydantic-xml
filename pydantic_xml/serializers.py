@@ -3,7 +3,7 @@ import dataclasses as dc
 import datetime as dt
 from copy import deepcopy
 from decimal import Decimal
-from enum import IntEnum
+from enum import Enum, IntEnum
 from inspect import isclass
 from typing import Any, Dict, List, Mapping, Optional, Sized, Type
 
@@ -37,6 +37,8 @@ class XmlEncoder:
             return str(obj).lower()
         if isinstance(obj, (dt.datetime, dt.date, dt.time)):
             return obj.isoformat()
+        if isinstance(obj, Enum):
+            return self.encode(obj.value)
 
         return self.default(obj)
 
