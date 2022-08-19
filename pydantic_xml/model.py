@@ -177,11 +177,13 @@ class BaseXmlModel(pd.BaseModel, metaclass=XmlModelMeta):
 
     def __init_subclass__(
             cls,
+            *args: Any,
             tag: Optional[str] = None,
             ns: Optional[str] = None,
             nsmap: Optional[NsMap] = None,
             inherit_ns: bool = False,
             ns_attrs: bool = False,
+            **kwargs: Any,
     ):
         """
         Initializes a subclass.
@@ -192,6 +194,8 @@ class BaseXmlModel(pd.BaseModel, metaclass=XmlModelMeta):
         :param inherit_ns: if `True` and ns argument is not provided - inherits namespace from the outer model
         :param ns_attrs: use namespaced attributes
         """
+
+        super().__init_subclass__(*args, **kwargs)
 
         cls.__xml_tag__ = tag
         cls.__xml_ns__ = ns
