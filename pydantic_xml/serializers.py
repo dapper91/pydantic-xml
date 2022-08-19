@@ -168,6 +168,14 @@ class Serializer(abc.ABC):
             ctx = dc.replace(ctx, entity_name=field_info.path, entity_ns=field_info.ns, entity_nsmap=field_info.nsmap)
         else:
             field_location = Location.MISSING
+            ctx = dc.replace(
+                ctx,
+                parent_ns=ctx.entity_ns or ctx.parent_ns,
+                parent_nsmap=merge_nsmaps(ctx.entity_nsmap, ctx.parent_nsmap),
+                entity_name=None,
+                entity_ns=None,
+                entity_nsmap=None,
+            )
 
         if field_location is Location.WRAPPED:
             return WrappedSerializerFactory.build(model, model_field, ctx)
@@ -284,7 +292,7 @@ class ModelSerializerFactory:
                 ctx: Serializer.Context,
         ):
             field_name = model_field.name if model_field else None
-            name = ctx.entity_name or model.__xml_tag__ or field_name or model.__class__.__name__
+            name = ctx.entity_name or model.__xml_tag__ or field_name or model.__name__
             ns = ctx.entity_ns or model.__xml_ns__ or (ctx.parent_ns if model.__xml_inherit_ns__ else None)
             nsmap = merge_nsmaps(ctx.entity_nsmap, model.__xml_nsmap__, ctx.parent_nsmap)
             is_root = model.__custom_root_type__
@@ -519,9 +527,12 @@ class HomogeneousSerializerFactory:
             nsmap = merge_nsmaps(ctx.entity_nsmap, ctx.parent_nsmap)
 
             self.element_name = QName.from_alias(tag=name, ns=ns, nsmap=nsmap).uri
+
+            item_field = deepcopy(model_field.sub_fields[0])
+            item_field.name = model_field.name
             self.serializer = self.build_field_serializer(
                 model,
-                model_field.sub_fields[0],
+                item_field,
                 dc.replace(
                     ctx,
                     parent_is_root=True,
@@ -605,19 +616,24 @@ class HeterogeneousSerializerFactory:
             nsmap = merge_nsmaps(ctx.entity_nsmap, ctx.parent_nsmap)
 
             self.element_name = QName.from_alias(tag=name, ns=ns, nsmap=nsmap).uri
-            self.serializers = [
-                self.build_field_serializer(
-                    model,
-                    sub_field,
-                    dc.replace(
-                        ctx,
-                        parent_is_root=True,
-                        parent_ns=ns,
-                        parent_nsmap=nsmap,
+
+            self.serializers = []
+            for sub_field in model_field.sub_fields:
+                sub_field = deepcopy(sub_field)
+                sub_field.name = model_field.name
+
+                self.serializers.append(
+                    self.build_field_serializer(
+                        model,
+                        sub_field,
+                        dc.replace(
+                            ctx,
+                            parent_is_root=True,
+                            parent_ns=ns,
+                            parent_nsmap=nsmap,
+                        ),
                     ),
                 )
-                for sub_field in model_field.sub_fields
-            ]
 
         def serialize(
                 self, element: etree.Element, value: List[Any], *, encoder: XmlEncoder, skip_empty: bool = False,

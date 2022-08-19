@@ -198,13 +198,17 @@ def test_mapping_namespace_inheritance(ns_attrs, expected_attr_ns):
 
 
 @pytest.mark.parametrize(
-    'inherit_ns, model_ns, submodel_ns, element_ns, expected_model_ns, expected_submodel_ns',
+    'inherit_ns, model_ns, submodel_ns, element_ns, expected_model_ns, expected_submodel_ns, expected_element_ns',
     [
-        (True, 'tst1', 'tst2', 'tst3', 'tst1', 'tst3'),
+        (True, 'tst1', 'tst2', 'tst3', 'tst1', 'tst3', 'tst2'),
+        (True, 'tst1', None, 'tst3', 'tst1', 'tst3', 'tst3'),
+        (True, 'tst1', None, None, 'tst1', 'tst1', 'tst1'),
+        (False, 'tst1', None, 'tst3', 'tst1', 'tst3', None),
+        (False, None, None, None, None, None, None),
     ],
 )
 def test_homogeneous_collections_namespace_inheritance(
-    inherit_ns, model_ns, submodel_ns, element_ns, expected_model_ns, expected_submodel_ns,
+    inherit_ns, model_ns, submodel_ns, element_ns, expected_model_ns, expected_submodel_ns, expected_element_ns,
 ):
     class TestSubModel(BaseXmlModel, ns=submodel_ns, inherit_ns=inherit_ns):
         element: float = element()
@@ -220,15 +224,16 @@ def test_homogeneous_collections_namespace_inheritance(
     xml = '''
         <{ns_pref1}model1 xmlns:tst1="http://test1.org" xmlns:tst2="http://test2.org" xmlns:tst3="http://test3.org">
             <{ns_pref2}model2>
-                <{ns_pref2}element>1.1</{ns_pref2}element>
+                <{ns_pref3}element>1.1</{ns_pref3}element>
             </{ns_pref2}model2>
             <{ns_pref2}model2>
-                <{ns_pref2}element>2.2</{ns_pref2}element>
+                <{ns_pref3}element>2.2</{ns_pref3}element>
             </{ns_pref2}model2>
         </{ns_pref1}model1>
     '''.format(
         ns_pref1=f"{expected_model_ns}:" if expected_model_ns else "",
         ns_pref2=f"{expected_submodel_ns}:" if expected_submodel_ns else "",
+        ns_pref3=f"{expected_element_ns}:" if expected_element_ns else "",
     )
 
     actual_obj = RootModel.from_xml(xml)
