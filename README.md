@@ -42,8 +42,8 @@ class Company(BaseXmlModel):
 
 ```xml
 <Company trade-name="SpaceX">
-    <website>https://www.spacex.com</website>
     company description text
+    <website>https://www.spacex.com</website>
 </Company>
 ```
 
