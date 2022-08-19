@@ -2,8 +2,9 @@ from typing import Any, ClassVar, Dict, Optional, Tuple, Type, Union
 
 import pydantic as pd
 import pydantic.fields
+import pydantic.generics
 
-from . import config, serializers
+from . import config, errors, serializers
 from .backend import etree
 from .utils import NsMap, register_nsmap
 
@@ -173,15 +174,17 @@ class BaseXmlModel(pd.BaseModel, metaclass=XmlModelMeta):
     __xml_nsmap__: ClassVar[Optional[NsMap]]
     __xml_inherit_ns__: ClassVar[bool]
     __xml_ns_attrs__: ClassVar[bool]
-    __xml_serializer__: serializers.ModelSerializerFactory.RootSerializer
+    __xml_serializer__: ClassVar[Optional[serializers.ModelSerializerFactory.RootSerializer]]
 
     def __init_subclass__(
             cls,
+            *args: Any,
             tag: Optional[str] = None,
             ns: Optional[str] = None,
             nsmap: Optional[NsMap] = None,
             inherit_ns: bool = False,
             ns_attrs: bool = False,
+            **kwargs: Any,
     ):
         """
         Initializes a subclass.
@@ -192,6 +195,8 @@ class BaseXmlModel(pd.BaseModel, metaclass=XmlModelMeta):
         :param inherit_ns: if `True` and ns argument is not provided - inherits namespace from the outer model
         :param ns_attrs: use namespaced attributes
         """
+
+        super().__init_subclass__(*args, **kwargs)
 
         cls.__xml_tag__ = tag
         cls.__xml_ns__ = ns
@@ -207,7 +212,7 @@ class BaseXmlModel(pd.BaseModel, metaclass=XmlModelMeta):
         cls.__xml_serializer__ = serializers.ModelSerializerFactory.from_model(cls)
 
     @classmethod
-    def from_xml_tree(cls: Type['BaseXmlModel'], root: etree.Element) -> 'BaseXmlModel':
+    def from_xml_tree(cls, root: etree.Element) -> 'BaseXmlModel':
         """
         Deserializes an xml element tree to an object of `cls` type.
 
@@ -215,6 +220,7 @@ class BaseXmlModel(pd.BaseModel, metaclass=XmlModelMeta):
         :return: deserialized object
         """
 
+        assert cls.__xml_serializer__ is not None
         obj = cls.__xml_serializer__.deserialize(root)
 
         return cls.parse_obj(obj)
@@ -246,6 +252,7 @@ class BaseXmlModel(pd.BaseModel, metaclass=XmlModelMeta):
 
         encoder = encoder or serializers.DEFAULT_ENCODER
 
+        assert self.__xml_serializer__ is not None
         root = self.__xml_serializer__.serialize(None, self, encoder=encoder, skip_empty=skip_empty)
 
         if self.__xml_nsmap__ and (default_ns := self.__xml_nsmap__.get('')):
@@ -270,3 +277,42 @@ class BaseXmlModel(pd.BaseModel, metaclass=XmlModelMeta):
         """
 
         return etree.tostring(self.to_xml_tree(encoder=encoder, skip_empty=skip_empty), **kwargs)
+
+
+class BaseGenericXmlModel(BaseXmlModel, pd.generics.GenericModel):
+    """
+    Base pydantic-xml generic model.
+    """
+
+    def __class_getitem__(cls, params: Union[Type[Any], Tuple[Type[Any], ...]]) -> Type[Any]:
+        model = super().__class_getitem__(params)
+        model.__xml_tag__ = cls.__xml_tag__
+        model.__xml_ns__ = cls.__xml_ns__
+        model.__xml_nsmap__ = cls.__xml_nsmap__
+        model.__xml_inherit_ns__ = cls.__xml_inherit_ns__
+        model.__xml_ns_attrs__ = cls.__xml_ns_attrs__
+        model.__init_serializer__()
+
+        return model
+
+    @classmethod
+    def __init_serializer__(cls) -> None:
+        # checks that the model is not generic
+        if not getattr(cls, '__concrete__', True):
+            cls.__xml_serializer__ = None
+        else:
+            super().__init_serializer__()
+
+    @classmethod
+    def from_xml_tree(cls, root: etree.Element) -> 'BaseXmlModel':
+        """
+        Deserializes an xml element tree to an object of `cls` type.
+
+        :param root: xml element to deserialize the object from
+        :return: deserialized object
+        """
+
+        if cls.__xml_serializer__ is None:
+            raise errors.ModelError(f"{cls.__name__} model is generic")
+
+        return super().from_xml_tree(root)
