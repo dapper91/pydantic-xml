@@ -381,7 +381,7 @@ class ModelSerializerFactory:
             return cls.RootSerializer(model_field, sub_model, ctx)
         elif field_location is Location.ATTRIBUTE:
             raise errors.ModelFieldError(
-                model.__class__.__name__, model_field.name, "attributes of model type are not supported",
+                model.__name__, model_field.name, "attributes of model type are not supported",
             )
         else:
             raise AssertionError("unreachable")
@@ -483,12 +483,12 @@ class MappingSerializerFactory:
         value_type = value_field.type_
         if PydanticShapeType.from_shape(value_field.shape) is not PydanticShapeType.SCALAR:
             raise errors.ModelFieldError(
-                model.__class__.__name__, model_field.name, "mapping value should be of scalar type",
+                model.__name__, model_field.name, "mapping value should be of scalar type",
             )
 
         if isclass(value_type) and issubclass(value_type, pxml.BaseXmlModel):
             raise errors.ModelFieldError(
-                model.__class__.__name__, model_field.name, "mapping value types can't be models",
+                model.__name__, model_field.name, "mapping value types can't be models",
             )
 
         if field_location is Location.ELEMENT:
@@ -497,7 +497,7 @@ class MappingSerializerFactory:
             return cls.AttributesSerializer(model, model_field, ctx)
         elif field_location is Location.ATTRIBUTE:
             raise errors.ModelFieldError(
-                model.__class__.__name__, model_field.name, "attributes of mapping type are not supported",
+                model.__name__, model_field.name, "attributes of mapping type are not supported",
             )
         else:
             raise AssertionError("unreachable")
@@ -569,12 +569,12 @@ class HomogeneousSerializerFactory:
             PydanticShapeType.HETEROGENEOUS,
         ):
             raise errors.ModelFieldError(
-                model.__class__.__name__, model_field.name, "collection elements can't be of collection type",
+                model.__name__, model_field.name, "collection elements can't be of collection type",
             )
 
         if is_root and field_location is Location.MISSING:
             raise errors.ModelFieldError(
-                model.__class__.__name__, model_field.name, "root model collections should be marked as elements",
+                model.__name__, model_field.name, "root model collections should be marked as elements",
             )
 
         if field_location is Location.ELEMENT:
@@ -583,7 +583,7 @@ class HomogeneousSerializerFactory:
             return cls.ElementSerializer(model, model_field, ctx)
         elif field_location is Location.ATTRIBUTE:
             raise errors.ModelFieldError(
-                model.__class__.__name__, model_field.name, "attributes of collection type are not supported",
+                model.__name__, model_field.name, "attributes of collection type are not supported",
             )
         else:
             raise AssertionError("unreachable")
@@ -657,12 +657,12 @@ class HeterogeneousSerializerFactory:
                 PydanticShapeType.HETEROGENEOUS,
             ):
                 raise errors.ModelFieldError(
-                    model.__class__.__name__, model_field.name, "collection elements can't be of collection type",
+                    model.__name__, model_field.name, "collection elements can't be of collection type",
                 )
 
             if is_root and field_location is Location.MISSING:
                 raise errors.ModelFieldError(
-                    model.__class__.__name__, model_field.name, "root model collections should be marked as elements",
+                    model.__name__, model_field.name, "root model collections should be marked as elements",
                 )
 
         if field_location is Location.ELEMENT:
@@ -671,7 +671,7 @@ class HeterogeneousSerializerFactory:
             return cls.ElementSerializer(model, model_field, ctx)
         elif field_location is Location.ATTRIBUTE:
             raise errors.ModelFieldError(
-                model.__class__.__name__, model_field.name, "attributes of collection type are not supported",
+                model.__name__, model_field.name, "attributes of collection type are not supported",
             )
         else:
             raise AssertionError("unreachable")
