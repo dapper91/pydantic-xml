@@ -20,6 +20,14 @@
 pydantic xml extension
 
 
+## Installation
+
+```commandline
+pip install pydantic-xml[lxml]
+```
+
+* **lxml** - use `lxml` instead of standard `xml.etree.ElementTree` library
+
 ## Quickstart
 
 `pydantic-xml` is a pydantic extension implementing model xml serialization/deserialization.
@@ -269,6 +277,26 @@ print(company)
 
 
 ### Namespace resolution:
+
+#### Default namespace
+
+To parse xml documents with a declared default namespace add it to `nsmap`  with an empty key.
+Look at the following example:
+
+```xml
+<headquarters xmlns="http://www.test.com/hq">
+    <country>US</country>
+    <state>California</state>
+    <city>Hawthorne</city>
+</headquarters>
+```
+
+```python
+class Headquarters(BaseXmlModel, tag='headquarters', nsmap={'': 'http://www.test.com/hq'}):
+    country: str = element()
+    state: str = element()
+    city: str = element()
+```
 
 **TBD**
 
