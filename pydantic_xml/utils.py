@@ -45,7 +45,7 @@ class QName:
         :return: qualified name
         """
 
-        return QName(tag=tag, ns=nsmap.get(ns) if ns and nsmap else None)
+        return QName(tag=tag, ns=nsmap.get(ns or '') if nsmap else None)
 
     @property
     def uri(self) -> str:

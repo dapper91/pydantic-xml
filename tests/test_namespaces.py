@@ -6,6 +6,37 @@ from helpers import assert_xml_equal
 from pydantic_xml import BaseXmlModel, attr, element, wrapped
 
 
+def test_default_namespaces():
+    class TestSubMode2(BaseXmlModel):
+        element: str = element()
+
+    class TestSubModel1(BaseXmlModel):
+        submodel2: TestSubMode2 = element(nsmap={'': 'http://test2.org'})
+
+    class TestModel(BaseXmlModel, tag='model'):
+        submodel1: TestSubModel1 = element(nsmap={'': 'http://test1.org'})
+
+    xml = '''
+    <model>
+        <submodel1 xmlns="http://test1.org">
+            <submodel2 xmlns="http://test2.org">
+                <element>value</element>
+            </submodel2>
+        </submodel1>
+    </model>
+    '''
+
+    actual_obj = TestModel.from_xml(xml)
+    expected_obj = TestModel(
+        submodel1=TestSubModel1(submodel2=TestSubMode2(element='value')),
+    )
+
+    assert actual_obj == expected_obj
+
+    actual_xml = actual_obj.to_xml()
+    assert_xml_equal(actual_xml, xml)
+
+
 @pytest.mark.parametrize(
     'model_ns, element_ns, expected_model_ns, expected_element_ns',
     [
