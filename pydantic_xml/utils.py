@@ -35,17 +35,23 @@ class QName:
         return cls(tag=m[3], ns=m[2])
 
     @classmethod
-    def from_alias(cls, tag: str, ns: Optional[str] = None, nsmap: Optional[NsMap] = None) -> 'QName':
+    def from_alias(
+            cls, tag: str, ns: Optional[str] = None, nsmap: Optional[NsMap] = None, is_attr: bool = False,
+    ) -> 'QName':
         """
         Creates `QName` from namespace alias.
 
         :param tag: entity tag
         :param ns: xml namespace alias
         :param nsmap: xml namespace mapping
+        :param is_attr: is the tag of attribute type
         :return: qualified name
         """
 
-        return QName(tag=tag, ns=nsmap.get(ns or '') if nsmap else None)
+        if not is_attr or ns is not None:
+            ns = nsmap.get(ns or '') if nsmap else None
+
+        return QName(tag=tag, ns=ns)
 
     @property
     def uri(self) -> str:

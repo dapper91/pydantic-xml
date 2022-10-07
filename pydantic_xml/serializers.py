@@ -221,7 +221,7 @@ class PrimitiveTypeSerializerFactory:
             ns = ctx.entity_ns or (ctx.parent_ns if ns_attrs else None)
             nsmap = ctx.parent_nsmap
 
-            self.attr_name = QName.from_alias(tag=name, ns=ns, nsmap=nsmap).uri
+            self.attr_name = QName.from_alias(tag=name, ns=ns, nsmap=nsmap, is_attr=True).uri
 
         def serialize(
                 self, element: etree.Element, value: Any, *, encoder: XmlEncoder, skip_empty: bool = False,
