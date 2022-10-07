@@ -7,7 +7,9 @@ from pydantic_xml import BaseXmlModel, attr, element, wrapped
 
 
 def test_default_namespaces():
-    class TestSubMode2(BaseXmlModel):
+    class TestSubMode2(BaseXmlModel, nsmap={'tst': 'http://test3.org'}):
+        attr1: int = attr()
+        attr2: int = attr(ns='tst')
         element: str = element()
 
     class TestSubModel1(BaseXmlModel):
@@ -19,7 +21,7 @@ def test_default_namespaces():
     xml = '''
     <model>
         <submodel1 xmlns="http://test1.org">
-            <submodel2 xmlns="http://test2.org">
+            <submodel2 xmlns="http://test2.org" xmlns:tst="http://test3.org" attr1="1" tst:attr2="2">
                 <element>value</element>
             </submodel2>
         </submodel1>
@@ -28,7 +30,7 @@ def test_default_namespaces():
 
     actual_obj = TestModel.from_xml(xml)
     expected_obj = TestModel(
-        submodel1=TestSubModel1(submodel2=TestSubMode2(element='value')),
+        submodel1=TestSubModel1(submodel2=TestSubMode2(element='value', attr1=1, attr2=2)),
     )
 
     assert actual_obj == expected_obj
