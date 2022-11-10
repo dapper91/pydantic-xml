@@ -1,4 +1,4 @@
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 from helpers import assert_xml_equal
 
@@ -30,6 +30,7 @@ def test_wrapped_submodel_extraction():
 
     class TestModel(BaseXmlModel, tag='model1'):
         data: TestSubModel = wrapped('model2/model3', element())
+        empty: Optional[TestSubModel] = wrapped('model2/model4', element())
 
     xml = '''
     <model1>

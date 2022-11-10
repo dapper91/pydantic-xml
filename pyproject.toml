@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pydantic-xml"
-version = "0.2.2"
+version = "0.3.0"
 description = "pydantic xml serialization/deserialization extension"
 authors = ["Dmitry Pershin <dapper1291@gmail.com>"]
 license = "Unlicense"
@@ -21,6 +21,7 @@ classifiers = [
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
 ]
 
 [tool.poetry.dependencies]

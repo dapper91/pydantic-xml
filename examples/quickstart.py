@@ -45,8 +45,14 @@ document = '''
 </Company>
 '''
 
+NSMAP = {
+    'co': 'http://www.test.com/contact',
+    'hq': 'http://www.test.com/hq',
+    'pd': 'http://www.test.com/prod',
+}
 
-class Headquarters(BaseXmlModel, ns='hq', nsmap={'hq': 'http://www.test.com/hq'}):
+
+class Headquarters(BaseXmlModel, ns='hq', nsmap=NSMAP):
     country: str = element()
     state: str = element()
     city: str = element()
@@ -62,12 +68,12 @@ class Industries(BaseXmlModel):
     __root__: Set[str] = element(tag='Industry')
 
 
-class Social(BaseXmlModel, ns_attrs=True, inherit_ns=True):
+class Social(BaseXmlModel, ns_attrs=True, ns='co', nsmap=NSMAP):
     type: str = attr()
     url: str
 
 
-class Product(BaseXmlModel, ns_attrs=True, inherit_ns=True):
+class Product(BaseXmlModel, ns_attrs=True, ns='pd', nsmap=NSMAP):
     status: Literal['running', 'development'] = attr()
     launched: Optional[int] = attr()
     title: str
@@ -89,7 +95,7 @@ class COO(Person):
     position: Literal['COO'] = attr()
 
 
-class Company(BaseXmlModel, tag='Company', nsmap={'pd': 'http://www.test.com/prod'}):
+class Company(BaseXmlModel, tag='Company', nsmap=NSMAP):
     class CompanyType(str, Enum):
         PRIVATE = 'Private'
         PUBLIC = 'Public'
@@ -109,7 +115,7 @@ class Company(BaseXmlModel, tag='Company', nsmap={'pd': 'http://www.test.com/pro
         'contacts/socials',
         element(tag='social', default_factory=list),
         ns='co',
-        nsmap={'co': 'http://www.test.com/contact'},
+        nsmap=NSMAP,
     )
 
     products: Tuple[Product, ...] = element(tag='product', ns='pd')
