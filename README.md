@@ -192,8 +192,14 @@ from pydantic import conint, HttpUrl
 
 from pydantic_xml import BaseXmlModel, attr, element, wrapped
 
+NSMAP = {
+    'co': 'http://www.test.com/contact',
+    'hq': 'http://www.test.com/hq',
+    'pd': 'http://www.test.com/prod',
+}
 
-class Headquarters(BaseXmlModel, ns='hq', nsmap={'hq': 'http://www.test.com/hq'}):
+
+class Headquarters(BaseXmlModel, ns='hq', nsmap=NSMAP):
     country: str = element()
     state: str = element()
     city: str = element()
@@ -209,12 +215,12 @@ class Industries(BaseXmlModel):
     __root__: Set[str] = element(tag='Industry')
 
 
-class Social(BaseXmlModel, ns_attrs=True, inherit_ns=True):
+class Social(BaseXmlModel, ns_attrs=True, ns='co', nsmap=NSMAP):
     type: str = attr()
     url: str
 
 
-class Product(BaseXmlModel, ns_attrs=True, inherit_ns=True):
+class Product(BaseXmlModel, ns_attrs=True, ns='pd', nsmap=NSMAP):
     status: Literal['running', 'development'] = attr()
     launched: Optional[int] = attr()
     title: str
@@ -236,7 +242,7 @@ class COO(Person):
     position: Literal['COO'] = attr()
 
 
-class Company(BaseXmlModel, tag='Company', nsmap={'pd': 'http://www.test.com/prod'}):
+class Company(BaseXmlModel, tag='Company', nsmap=NSMAP):
     class CompanyType(str, Enum):
         PRIVATE = 'Private'
         PUBLIC = 'Public'
@@ -254,9 +260,9 @@ class Company(BaseXmlModel, tag='Company', nsmap={'pd': 'http://www.test.com/pro
     headquarters: Headquarters
     socials: List[Social] = wrapped(
         'contacts/socials',
-        element(tag='social', default_factory=set),
+        element(tag='social', default_factory=list),
         ns='co',
-        nsmap={'co': 'http://www.test.com/contact'}
+        nsmap=NSMAP,
     )
 
     products: Tuple[Product, ...] = element(tag='product', ns='pd')
@@ -427,6 +433,108 @@ print(request.json(indent=4))
 }
 ```
 
+
+### Self-referencing models:
+
+`pydantic` library supports [self-referencing models](https://pydantic-docs.helpmanual.io/usage/postponed_annotations/#self-referencing-models).
+`pydantic-xml` supports it either.
+
+*request.xml:*
+
+```xml
+<Directory Name="root" Mode="rwxr-xr-x">
+    <Directory Name="etc" Mode="rwxr-xr-x">
+        <File Name="passwd" Mode="-rw-r--r--"/>
+        <File Name="hosts" Mode="-rw-r--r--"/>
+        <Directory Name="ssh" Mode="rwxr-xr-x"/>
+    </Directory>
+    <Directory Name="bin" Mode="rwxr-xr-x"/>
+    <Directory Name="usr" Mode="rwxr-xr-x">
+        <Directory Name="bin" Mode="rwxr-xr-x"/>
+    </Directory>
+</Directory>
+```
+
+*main.py:*
+
+```python
+from typing import List, Optional
+
+import pydantic_xml as pxml
+
+
+class File(pxml.BaseXmlModel, tag="File"):
+    name: str = pxml.attr(name='Name')
+    mode: str = pxml.attr(name='Mode')
+
+
+class Directory(pxml.BaseXmlModel, tag="Directory"):
+    name: str = pxml.attr(name='Name')
+    mode: str = pxml.attr(name='Mode')
+    dirs: Optional[List['Directory']] = pxml.element(tag='Directory')
+    files: Optional[List[File]] = pxml.element(tag='File', default_factory=list)
+
+
+with open('request.xml') as file:
+    xml = file.read()
+
+root = Directory.from_xml(xml)
+print(root.json(indent=4))
+
+```
+
+*output:*
+
+```json
+{
+    "name": "root",
+    "mode": "rwxr-xr-x",
+    "dirs": [
+        {
+            "name": "etc",
+            "mode": "rwxr-xr-x",
+            "dirs": [
+                {
+                    "name": "ssh",
+                    "mode": "rwxr-xr-x",
+                    "dirs": [],
+                    "files": []
+                }
+            ],
+            "files": [
+                {
+                    "name": "passwd",
+                    "mode": "-rw-r--r--"
+                },
+                {
+                    "name": "hosts",
+                    "mode": "-rw-r--r--"
+                }
+            ]
+        },
+        {
+            "name": "bin",
+            "mode": "rwxr-xr-x",
+            "dirs": [],
+            "files": []
+        },
+        {
+            "name": "usr",
+            "mode": "rwxr-xr-x",
+            "dirs": [
+                {
+                    "name": "bin",
+                    "mode": "rwxr-xr-x",
+                    "dirs": [],
+                    "files": []
+                }
+            ],
+            "files": []
+        }
+    ],
+    "files": []
+}
+```
 
 ### JSON
 

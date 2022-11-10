@@ -1,3 +1,5 @@
+from typing import Optional
+
 import pytest
 from helpers import assert_xml_equal
 
@@ -11,6 +13,7 @@ def test_submodel_element_extraction():
 
     class TestModel(BaseXmlModel, tag='model1'):
         model2: TestSubModel
+        model3: Optional[TestSubModel] = element(tag='model3')
 
     xml = '''
     <model1>

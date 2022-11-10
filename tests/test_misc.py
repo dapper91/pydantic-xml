@@ -43,3 +43,50 @@ def test_skip_empty():
 
     actual_xml = obj.to_xml(skip_empty=True)
     assert_xml_equal(actual_xml, xml.encode())
+
+
+def test_recursive_models():
+    class TestModel(BaseXmlModel, tag='model'):
+        attr1: int = attr()
+        element1: float = element()
+
+        model1: Optional['TestModel'] = element(tag='model1')
+        models: Optional[List['TestModel']] = element(tag='item')
+
+    xml = '''
+        <model attr1="1">
+            <element1>1.1</element1>
+            <model1 attr1="2">
+                <element1>2.2</element1>
+            </model1>
+
+            <item attr1="3">
+                <element1>3.3</element1>
+            </item>
+            <item attr1="4">
+                <element1>4.4</element1>
+            </item>
+        </model>
+    '''
+
+    obj = TestModel(
+        attr1=1,
+        element1=1.1,
+        model1=TestModel(
+            attr1=2,
+            element1=2.2,
+        ),
+        models=[
+            TestModel(
+                attr1=3,
+                element1=3.3,
+            ),
+            TestModel(
+                attr1=4,
+                element1=4.4,
+            ),
+        ],
+    )
+
+    actual_xml = obj.to_xml(skip_empty=True)
+    assert_xml_equal(actual_xml, xml.encode())
