@@ -172,7 +172,6 @@ class BaseXmlModel(pd.BaseModel, metaclass=XmlModelMeta):
     __xml_tag__: ClassVar[Optional[str]]
     __xml_ns__: ClassVar[Optional[str]]
     __xml_nsmap__: ClassVar[Optional[NsMap]]
-    __xml_inherit_ns__: ClassVar[bool]
     __xml_ns_attrs__: ClassVar[bool]
     __xml_serializer__: ClassVar[Optional[serializers.ModelSerializerFactory.RootSerializer]]
 
@@ -182,7 +181,6 @@ class BaseXmlModel(pd.BaseModel, metaclass=XmlModelMeta):
             tag: Optional[str] = None,
             ns: Optional[str] = None,
             nsmap: Optional[NsMap] = None,
-            inherit_ns: bool = False,
             ns_attrs: bool = False,
             **kwargs: Any,
     ):
@@ -192,7 +190,6 @@ class BaseXmlModel(pd.BaseModel, metaclass=XmlModelMeta):
         :param tag: element tag
         :param ns: element namespace
         :param nsmap: element namespace map
-        :param inherit_ns: if `True` and ns argument is not provided - inherits namespace from the outer model
         :param ns_attrs: use namespaced attributes
         """
 
@@ -201,7 +198,6 @@ class BaseXmlModel(pd.BaseModel, metaclass=XmlModelMeta):
         cls.__xml_tag__ = tag
         cls.__xml_ns__ = ns
         cls.__xml_nsmap__ = nsmap
-        cls.__xml_inherit_ns__ = inherit_ns
         cls.__xml_ns_attrs__ = ns_attrs
 
     @classmethod
@@ -220,7 +216,7 @@ class BaseXmlModel(pd.BaseModel, metaclass=XmlModelMeta):
         :return: deserialized object
         """
 
-        assert cls.__xml_serializer__ is not None
+        assert cls.__xml_serializer__ is not None, "model is partially initialized"
         obj = cls.__xml_serializer__.deserialize(root)
 
         return cls.parse_obj(obj)
@@ -254,6 +250,7 @@ class BaseXmlModel(pd.BaseModel, metaclass=XmlModelMeta):
 
         assert self.__xml_serializer__ is not None
         root = self.__xml_serializer__.serialize(None, self, encoder=encoder, skip_empty=skip_empty)
+        assert root is not None
 
         if self.__xml_nsmap__ and (default_ns := self.__xml_nsmap__.get('')):
             root.set('xmlns', default_ns)
@@ -289,7 +286,6 @@ class BaseGenericXmlModel(BaseXmlModel, pd.generics.GenericModel):
         model.__xml_tag__ = cls.__xml_tag__
         model.__xml_ns__ = cls.__xml_ns__
         model.__xml_nsmap__ = cls.__xml_nsmap__
-        model.__xml_inherit_ns__ = cls.__xml_inherit_ns__
         model.__xml_ns_attrs__ = cls.__xml_ns_attrs__
         model.__init_serializer__()
 
