@@ -90,3 +90,18 @@ def test_recursive_models():
 
     actual_xml = obj.to_xml(skip_empty=True)
     assert_xml_equal(actual_xml, xml.encode())
+
+
+def test_defaults():
+    class TestModel(BaseXmlModel, tag='model'):
+        attr1: int = attr(default=1)
+        element1: int = element(default=1)
+
+    xml = '<model/>'
+    actual_obj: TestModel = TestModel.from_xml(xml)
+    expected_obj: TestModel = TestModel()
+    assert actual_obj == expected_obj
+
+    expected_xml = '<model attr1="1"><element1>1</element1></model>'
+    actual_xml = actual_obj.to_xml(skip_empty=True)
+    assert_xml_equal(actual_xml, expected_xml.encode())

@@ -222,6 +222,7 @@ class PrimitiveTypeSerializerFactory:
             nsmap = ctx.parent_nsmap
 
             self.attr_name = QName.from_alias(tag=name, ns=ns, nsmap=nsmap, is_attr=True).uri
+            self.get_default = model_field.get_default
 
         def serialize(
                 self, element: etree.Element, value: Any, *, encoder: XmlEncoder, skip_empty: bool = False,
@@ -235,7 +236,7 @@ class PrimitiveTypeSerializerFactory:
             return element
 
         def deserialize(self, element: etree.Element) -> Optional[str]:
-            return element.get(self.attr_name)
+            return element.get(self.attr_name, self.get_default())
 
     class ElementSerializer(Serializer):
         def __init__(self, model_field: pd.fields.ModelField, ctx: Serializer.Context):
@@ -243,6 +244,7 @@ class PrimitiveTypeSerializerFactory:
             ns = ctx.entity_ns or ctx.parent_ns
             nsmap = merge_nsmaps(ctx.entity_nsmap, ctx.parent_nsmap)
             self.element_name = QName.from_alias(tag=name, ns=ns, nsmap=nsmap).uri
+            self.get_default = model_field.get_default
 
         def serialize(
                 self, element: etree.Element, value: Any, *, encoder: XmlEncoder, skip_empty: bool = False,
@@ -259,7 +261,7 @@ class PrimitiveTypeSerializerFactory:
             return sub_element
 
         def deserialize(self, element: etree.Element) -> Any:
-            return element.findtext(self.element_name)
+            return element.findtext(self.element_name, self.get_default())
 
     @classmethod
     def build(
