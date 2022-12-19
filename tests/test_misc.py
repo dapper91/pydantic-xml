@@ -22,6 +22,15 @@ def test_xml_declaration():
     assert_xml_equal(actual_xml, xml.encode())
 
 
+def test_root_model():
+    class TestModel(BaseXmlModel, tag='model'):
+        pass
+
+    xml = '''<model1/>'''
+
+    assert TestModel.from_xml(xml) is None
+
+
 def test_skip_empty():
     class TestSubModel(BaseXmlModel, tag='model'):
         text: Optional[str]
