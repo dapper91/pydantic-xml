@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pydantic-xml"
-version = "0.3.0"
+version = "0.4.0"
 description = "pydantic xml serialization/deserialization extension"
 authors = ["Dmitry Pershin <dapper1291@gmail.com>"]
 license = "Unlicense"
