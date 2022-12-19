@@ -200,7 +200,7 @@ class PrimitiveTypeSerializerFactory:
 
     class TextSerializer(Serializer):
         def serialize(
-                self,  element: etree.Element, value: Any, *, encoder: XmlEncoder, skip_empty: bool = False,
+                self, element: etree.Element, value: Any, *, encoder: XmlEncoder, skip_empty: bool = False,
         ) -> Optional[etree.Element]:
             if value is None and skip_empty:
                 return element
@@ -210,14 +210,14 @@ class PrimitiveTypeSerializerFactory:
             return element
 
         def deserialize(self, element: etree.Element) -> Optional[str]:
-            return element.text
+            return element.text or None
 
     class AttributeSerializer(Serializer):
         def __init__(
                 self, model: Type['pxml.BaseXmlModel'], model_field: pd.fields.ModelField, ctx: Serializer.Context,
         ):
             ns_attrs = model.__xml_ns_attrs__
-            name = ctx.entity_name or model_field.name
+            name = ctx.entity_name or model_field.alias
             ns = ctx.entity_ns or (ctx.parent_ns if ns_attrs else None)
             nsmap = ctx.parent_nsmap
 
@@ -239,7 +239,7 @@ class PrimitiveTypeSerializerFactory:
 
     class ElementSerializer(Serializer):
         def __init__(self, model_field: pd.fields.ModelField, ctx: Serializer.Context):
-            name = ctx.entity_name or model_field.name
+            name = ctx.entity_name or model_field.alias
             ns = ctx.entity_ns or ctx.parent_ns
             nsmap = merge_nsmaps(ctx.entity_nsmap, ctx.parent_nsmap)
             self.element_name = QName.from_alias(tag=name, ns=ns, nsmap=nsmap).uri
@@ -252,9 +252,7 @@ class PrimitiveTypeSerializerFactory:
 
             encoded = encoder.encode(value)
 
-            if (sub_element := element.find(self.element_name)) is None:
-                sub_element = etree.SubElement(element, self.element_name)
-
+            sub_element = find_element_or_create(element, self.element_name)
             sub_element.text = encoded
             return sub_element
 
@@ -304,7 +302,7 @@ class ModelSerializerFactory:
             self.is_root = is_root
             self.element_name = QName.from_alias(tag=name, ns=ns, nsmap=nsmap).uri
             self.field_serializers = {
-                field_name: self.build_field_serializer(model, model_subfield, ctx)
+                model_subfield.alias: self.build_field_serializer(model, model_subfield, ctx)
                 for field_name, model_subfield in model.__fields__.items()
             }
 
@@ -324,8 +322,9 @@ class ModelSerializerFactory:
 
         def deserialize(self, element: etree.Element) -> Any:
             result = {
-                field_name: field_serializer.deserialize(element)
+                field_name: field_value
                 for field_name, field_serializer in self.field_serializers.items()
+                if (field_value := field_serializer.deserialize(element)) is not None
             }
             if self.is_root:
                 return result['__root__']
@@ -340,7 +339,7 @@ class ModelSerializerFactory:
                 model: Type['pxml.BaseXmlModel'],
                 ctx: Serializer.Context,
         ):
-            field_name = model_field.name if model_field else None
+            field_name = model_field.alias if model_field else None
             name = ctx.entity_name or model.__xml_tag__ or field_name or model.__name__
             ns = ctx.entity_ns or model.__xml_ns__
             nsmap = merge_nsmaps(ctx.entity_nsmap, model.__xml_nsmap__, ctx.parent_nsmap)
@@ -433,7 +432,7 @@ class MappingSerializerFactory:
         def __init__(
                 self, model: Type['pxml.BaseXmlModel'], model_field: pd.fields.ModelField, ctx: Serializer.Context,
         ):
-            name = ctx.entity_name or model_field.name
+            name = ctx.entity_name or model_field.alias
 
             self.parent_ns = ns = ctx.entity_ns or ctx.parent_ns
             self.parent_nsmap = nsmap = merge_nsmaps(ctx.entity_nsmap, ctx.parent_nsmap)
@@ -551,14 +550,14 @@ class HomogeneousSerializerFactory:
         ):
             assert model_field.sub_fields is not None, "unexpected model field"
 
-            name = ctx.entity_name or model_field.name
+            name = ctx.entity_name or model_field.alias
             ns = ctx.entity_ns or ctx.parent_ns
             nsmap = merge_nsmaps(ctx.entity_nsmap, ctx.parent_nsmap)
 
             self.element_name = QName.from_alias(tag=name, ns=ns, nsmap=nsmap).uri
 
             item_field = deepcopy(model_field.sub_fields[0])
-            item_field.name = model_field.name
+            item_field.name = model_field.alias
             self.serializer = self.build_field_serializer(
                 model,
                 item_field,
@@ -640,7 +639,7 @@ class HeterogeneousSerializerFactory:
         ):
             assert model_field.sub_fields is not None, "unexpected model field"
 
-            name = ctx.entity_name or model_field.name
+            name = ctx.entity_name or model_field.alias
             ns = ctx.entity_ns or ctx.parent_ns
             nsmap = merge_nsmaps(ctx.entity_nsmap, ctx.parent_nsmap)
 
@@ -649,7 +648,7 @@ class HeterogeneousSerializerFactory:
             self.serializers = []
             for sub_field in model_field.sub_fields:
                 sub_field = deepcopy(sub_field)
-                sub_field.name = model_field.name
+                sub_field.name = model_field.alias
 
                 self.serializers.append(
                     self.build_field_serializer(

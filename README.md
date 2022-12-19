@@ -356,7 +356,7 @@ AuthType = TypeVar('AuthType')
 PayloadType = TypeVar('PayloadType')
 
 
-class Request(pxml.BaseGenericXmlModel, Generic[AuthType, PayloadType], tag='reqeust'):
+class Request(pxml.BaseGenericXmlModel, Generic[AuthType, PayloadType], tag='request'):
     service_name: str = pxml.attr(name='service-name')
     request_id: str = pxml.attr(name='request-id')
     timestamp: dt.datetime = pxml.attr()

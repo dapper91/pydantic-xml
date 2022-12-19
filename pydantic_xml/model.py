@@ -100,6 +100,11 @@ class XmlWrapperInfo(XmlEntityInfo):
             nsmap: Optional[NsMap] = None,
             **kwargs: Any,
     ):
+        if entity is not None:
+            # copy arguments from the wrapped entity to let pydantic know how to process the field
+            for entity_field_name in entity.__slots__:
+                kwargs[entity_field_name] = getattr(entity, entity_field_name)
+
         super().__init__(**kwargs)
         self._entity = entity
         self._path = path
@@ -208,7 +213,7 @@ class BaseXmlModel(pd.BaseModel, metaclass=XmlModelMeta):
         cls.__xml_serializer__ = serializers.ModelSerializerFactory.from_model(cls)
 
     @classmethod
-    def from_xml_tree(cls, root: etree.Element) -> 'BaseXmlModel':
+    def from_xml_tree(cls, root: etree.Element) -> Optional['BaseXmlModel']:
         """
         Deserializes an xml element tree to an object of `cls` type.
 
@@ -217,12 +222,15 @@ class BaseXmlModel(pd.BaseModel, metaclass=XmlModelMeta):
         """
 
         assert cls.__xml_serializer__ is not None, "model is partially initialized"
-        obj = cls.__xml_serializer__.deserialize(root)
 
-        return cls.parse_obj(obj)
+        if root.tag == cls.__xml_serializer__.element_name:
+            obj = cls.__xml_serializer__.deserialize(root)
+            return cls.parse_obj(obj)
+        else:
+            return None
 
     @classmethod
-    def from_xml(cls, source: Union[str, bytes]) -> 'BaseXmlModel':
+    def from_xml(cls, source: Union[str, bytes]) -> Optional['BaseXmlModel']:
         """
         Deserializes an xml string to an object of `cls` type.
 
@@ -248,7 +256,7 @@ class BaseXmlModel(pd.BaseModel, metaclass=XmlModelMeta):
 
         encoder = encoder or serializers.DEFAULT_ENCODER
 
-        assert self.__xml_serializer__ is not None
+        assert self.__xml_serializer__ is not None, "model is partially initialized"
         root = self.__xml_serializer__.serialize(None, self, encoder=encoder, skip_empty=skip_empty)
         assert root is not None
 
@@ -300,7 +308,7 @@ class BaseGenericXmlModel(BaseXmlModel, pd.generics.GenericModel):
             super().__init_serializer__()
 
     @classmethod
-    def from_xml_tree(cls, root: etree.Element) -> 'BaseXmlModel':
+    def from_xml_tree(cls, root: etree.Element) -> Optional['BaseXmlModel']:
         """
         Deserializes an xml element tree to an object of `cls` type.
 

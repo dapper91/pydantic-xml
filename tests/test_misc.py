@@ -22,6 +22,15 @@ def test_xml_declaration():
     assert_xml_equal(actual_xml, xml.encode())
 
 
+def test_root_model():
+    class TestModel(BaseXmlModel, tag='model'):
+        pass
+
+    xml = '''<model1/>'''
+
+    assert TestModel.from_xml(xml) is None
+
+
 def test_skip_empty():
     class TestSubModel(BaseXmlModel, tag='model'):
         text: Optional[str]
@@ -90,3 +99,43 @@ def test_recursive_models():
 
     actual_xml = obj.to_xml(skip_empty=True)
     assert_xml_equal(actual_xml, xml.encode())
+
+
+def test_defaults():
+    class TestModel(BaseXmlModel, tag='model'):
+        attr1: int = attr(default=1)
+        element1: int = element(default=1)
+        text: str = 'text'
+        attrs: Dict[str, str] = element(tag='model2', default={'key': 'value'})
+        element2: int = wrapped('wrapper', element(tag='model3', default=2))
+
+    xml = '<model/>'
+    actual_obj: TestModel = TestModel.from_xml(xml)
+    expected_obj: TestModel = TestModel()
+    assert actual_obj == expected_obj
+
+    expected_xml = '''
+        <model attr1="1">text<element1>1</element1><model2 key="value"/><wrapper><model3>2</model3></wrapper></model>
+    '''
+    actual_xml = actual_obj.to_xml(skip_empty=True)
+    assert_xml_equal(actual_xml, expected_xml.encode())
+
+
+def test_default_factory():
+    class TestModel(BaseXmlModel, tag='model'):
+        attr1: int = attr(default_factory=lambda: 1)
+        element1: int = element(default_factory=lambda: 1)
+        text: str = 'text'
+        attrs: Dict[str, str] = element(tag='model2', default_factory=lambda: {'key': 'value'})
+        element2: int = wrapped('wrapper', element(tag='model3', default_factory=lambda: 2))
+
+    xml = '<model/>'
+    actual_obj: TestModel = TestModel.from_xml(xml)
+    expected_obj: TestModel = TestModel()
+    assert actual_obj == expected_obj
+
+    expected_xml = '''
+        <model attr1="1">text<element1>1</element1><model2 key="value"/><wrapper><model3>2</model3></wrapper></model>
+    '''
+    actual_xml = actual_obj.to_xml(skip_empty=True)
+    assert_xml_equal(actual_xml, expected_xml.encode())

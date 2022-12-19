@@ -1,6 +1,15 @@
 Changelog
 =========
 
+0.4.0 (2022-12-19)
+------------------
+
+- field default parameter support added.
+- field default_factory parameter support added.
+- root model validation added.
+- pydantic field alias support implemented.
+
+
 0.3.0 (2022-11-10)
 ------------------
 
