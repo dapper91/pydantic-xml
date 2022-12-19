@@ -213,7 +213,7 @@ class BaseXmlModel(pd.BaseModel, metaclass=XmlModelMeta):
         cls.__xml_serializer__ = serializers.ModelSerializerFactory.from_model(cls)
 
     @classmethod
-    def from_xml_tree(cls, root: etree.Element) -> 'BaseXmlModel':
+    def from_xml_tree(cls, root: etree.Element) -> Optional['BaseXmlModel']:
         """
         Deserializes an xml element tree to an object of `cls` type.
 
@@ -222,12 +222,15 @@ class BaseXmlModel(pd.BaseModel, metaclass=XmlModelMeta):
         """
 
         assert cls.__xml_serializer__ is not None, "model is partially initialized"
-        obj = cls.__xml_serializer__.deserialize(root)
 
-        return cls.parse_obj(obj)
+        if root.tag == cls.__xml_serializer__.element_name:
+            obj = cls.__xml_serializer__.deserialize(root)
+            return cls.parse_obj(obj)
+        else:
+            return None
 
     @classmethod
-    def from_xml(cls, source: Union[str, bytes]) -> 'BaseXmlModel':
+    def from_xml(cls, source: Union[str, bytes]) -> Optional['BaseXmlModel']:
         """
         Deserializes an xml string to an object of `cls` type.
 
@@ -305,7 +308,7 @@ class BaseGenericXmlModel(BaseXmlModel, pd.generics.GenericModel):
             super().__init_serializer__()
 
     @classmethod
-    def from_xml_tree(cls, root: etree.Element) -> 'BaseXmlModel':
+    def from_xml_tree(cls, root: etree.Element) -> Optional['BaseXmlModel']:
         """
         Deserializes an xml element tree to an object of `cls` type.
 
