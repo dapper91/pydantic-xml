@@ -210,7 +210,7 @@ class PrimitiveTypeSerializerFactory:
             return element
 
         def deserialize(self, element: etree.Element) -> Optional[str]:
-            return element.text
+            return element.text or None
 
     class AttributeSerializer(Serializer):
         def __init__(
@@ -322,8 +322,9 @@ class ModelSerializerFactory:
 
         def deserialize(self, element: etree.Element) -> Any:
             result = {
-                field_name: field_serializer.deserialize(element)
+                field_name: field_value
                 for field_name, field_serializer in self.field_serializers.items()
+                if (field_value := field_serializer.deserialize(element)) is not None
             }
             if self.is_root:
                 return result['__root__']
