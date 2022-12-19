@@ -200,7 +200,7 @@ class PrimitiveTypeSerializerFactory:
 
     class TextSerializer(Serializer):
         def serialize(
-                self,  element: etree.Element, value: Any, *, encoder: XmlEncoder, skip_empty: bool = False,
+                self, element: etree.Element, value: Any, *, encoder: XmlEncoder, skip_empty: bool = False,
         ) -> Optional[etree.Element]:
             if value is None and skip_empty:
                 return element
@@ -252,9 +252,7 @@ class PrimitiveTypeSerializerFactory:
 
             encoded = encoder.encode(value)
 
-            if (sub_element := element.find(self.element_name)) is None:
-                sub_element = etree.SubElement(element, self.element_name)
-
+            sub_element = find_element_or_create(element, self.element_name)
             sub_element.text = encoded
             return sub_element
 

@@ -248,7 +248,7 @@ class BaseXmlModel(pd.BaseModel, metaclass=XmlModelMeta):
 
         encoder = encoder or serializers.DEFAULT_ENCODER
 
-        assert self.__xml_serializer__ is not None
+        assert self.__xml_serializer__ is not None, "model is partially initialized"
         root = self.__xml_serializer__.serialize(None, self, encoder=encoder, skip_empty=skip_empty)
         assert root is not None
 
