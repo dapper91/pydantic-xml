@@ -13,7 +13,6 @@ def test_submodel_element_extraction():
 
     class TestModel(BaseXmlModel, tag='model1'):
         model2: TestSubModel
-        model3: Optional[TestSubModel] = element(tag='model3')
 
     xml = '''
     <model1>
@@ -30,6 +29,24 @@ def test_submodel_element_extraction():
             element1=2.2,
         ),
     )
+
+    assert actual_obj == expected_obj
+
+    actual_xml = actual_obj.to_xml()
+    assert_xml_equal(actual_xml, xml)
+
+
+def test_optional_submodel_element_extraction():
+    class TestSubModel(BaseXmlModel, tag='model2'):
+        element1: float = element()
+
+    class TestModel(BaseXmlModel, tag='model1'):
+        model2: Optional[TestSubModel]
+
+    xml = '''<model1/>'''
+
+    actual_obj = TestModel.from_xml(xml)
+    expected_obj = TestModel(model2=None)
 
     assert actual_obj == expected_obj
 
