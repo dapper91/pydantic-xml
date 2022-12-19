@@ -100,6 +100,11 @@ class XmlWrapperInfo(XmlEntityInfo):
             nsmap: Optional[NsMap] = None,
             **kwargs: Any,
     ):
+        if entity is not None:
+            # copy arguments from the wrapped entity to let pydantic know how to process the field
+            for entity_field_name in entity.__slots__:
+                kwargs[entity_field_name] = getattr(entity, entity_field_name)
+
         super().__init__(**kwargs)
         self._entity = entity
         self._path = path
