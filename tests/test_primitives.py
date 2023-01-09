@@ -1,4 +1,5 @@
 import datetime as dt
+import ipaddress
 
 from helpers import assert_xml_equal
 
@@ -31,11 +32,13 @@ def test_attrs_and_elements_extraction():
 
         element1: float = element()
         element2: dt.datetime = element()
+        element3: ipaddress.IPv4Address = element()
 
     xml = '''
     <model attr1="string1" attr2="2">
         <element1>1.1</element1>
         <element2>2022-07-29T23:38:17</element2>
+        <element3>10.0.1.212</element3>
     </model>
     '''
 
@@ -45,6 +48,7 @@ def test_attrs_and_elements_extraction():
         attr2=2,
         element1=1.1,
         element2=dt.datetime(2022, 7, 29, 23, 38, 17),
+        element3=ipaddress.IPv4Address("10.0.1.212")
     )
 
     assert actual_obj == expected_obj
