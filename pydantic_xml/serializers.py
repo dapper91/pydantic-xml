@@ -39,7 +39,12 @@ class XmlEncoder:
         if isinstance(obj, (dt.datetime, dt.date, dt.time)):
             return obj.isoformat()
         if isinstance(
-            obj, (ipaddress.IPv4Address, ipaddress.IPv6Address, ipaddress.IPv4Network, ipaddress.IPv6Network)
+            obj, (ipaddress.IPv4Address,
+                  ipaddress.IPv6Address,
+                  ipaddress.IPv4Network,
+                  ipaddress.IPv6Network,
+                  ipaddress.IPv4Interface,
+                  ipaddress.IPv6Interface)
         ):
             return str(obj)
         if isinstance(obj, Enum):
