@@ -6,6 +6,8 @@ import xmldiff.formatting
 import xmldiff.main
 from lxml import etree
 
+from pydantic_xml import backend
+
 
 def assert_xml_equal(
         left: Union[str, bytes],
@@ -28,3 +30,12 @@ def assert_xml_equal(
             assert not diffs, '\n' + '\n'.join(difflib.Differ().compare(left.splitlines(), right.splitlines()))
         else:
             assert not diffs, '\n' + '\n'.join((str(diff) for diff in diffs))
+
+
+def is_lxml_backend() -> bool:
+    try:
+        import lxml.etree
+    except ImportError:
+        return False
+
+    return backend.etree is lxml.etree

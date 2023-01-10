@@ -1,7 +1,7 @@
 from typing import Dict, List, Tuple
 
 import pytest
-from helpers import assert_xml_equal
+from helpers import assert_xml_equal, is_lxml_backend
 
 from pydantic_xml import BaseXmlModel, attr, element, wrapped
 
@@ -37,6 +37,46 @@ def test_default_namespaces():
 
     actual_xml = actual_obj.to_xml()
     assert_xml_equal(actual_xml, xml)
+
+
+@pytest.mark.skipif(not is_lxml_backend(), reason='not lxml backend used')
+def test_lxml_default_namespace_serialisation():
+    class TestSubModel(BaseXmlModel, tag='submodel', ns='', nsmap={'': 'http://test3.org', 'tst': 'http://test4.org'}):
+        attr1: int = attr(ns='')
+        attr2: int = attr(ns='tst')
+        element1: str = element(ns='')
+
+    class TestModel(BaseXmlModel, tag='model', ns='', nsmap={'': 'http://test1.org', 'tst': 'http://test2.org'}):
+        attr1: int = attr()
+        attr2: int = attr(ns='tst')
+        element1: str = element()
+
+        submodel: TestSubModel = element()
+
+    xml = '''
+    <model xmlns="http://test1.org" xmlns:tst="http://test2.org" attr1="1" tst:attr2="2">
+        <element1>value</element1>
+        <submodel xmlns="http://test3.org" xmlns:tst="http://test4.org" attr1="1" tst:attr2="2">
+            <element1>value</element1>
+        </submodel>
+    </model>
+    '''
+
+    actual_obj = TestModel.from_xml(xml)
+    expected_obj = TestModel(
+        element1='value',
+        attr1=1,
+        attr2=2,
+        submodel=TestSubModel(element1='value', attr1=1, attr2=2),
+    )
+
+    assert actual_obj == expected_obj
+
+    actual_xml = actual_obj.to_xml()
+
+    actual_xml_normalized = actual_xml.decode().replace('\n', '').replace(' ', '')
+    expected_xml_normalized = xml.replace('\n', '').replace(' ', '')
+    assert actual_xml_normalized == expected_xml_normalized
 
 
 @pytest.mark.parametrize(

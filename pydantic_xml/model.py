@@ -260,9 +260,6 @@ class BaseXmlModel(pd.BaseModel, metaclass=XmlModelMeta):
         root = self.__xml_serializer__.serialize(None, self, encoder=encoder, skip_empty=skip_empty)
         assert root is not None
 
-        if self.__xml_nsmap__ and (default_ns := self.__xml_nsmap__.get('')):
-            root.set('xmlns', default_ns)
-
         return root
 
     def to_xml(
