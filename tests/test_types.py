@@ -32,7 +32,7 @@ def test_ipaddress_fields_extraction():
         ipv4network=ipaddress.IPv4Network("198.51.100.0/24"),
         ipv6network=ipaddress.IPv6Network("2001:db8::/32"),
         ipv4interface=ipaddress.IPv4Interface("198.51.100.42/24"),
-        ipv6interface=ipaddress.IPv6Interface("2001:db8::42/32")
+        ipv6interface=ipaddress.IPv6Interface("2001:db8::42/32"),
     )
 
     assert actual_obj == expected_obj
