@@ -1,6 +1,7 @@
 import abc
 import dataclasses as dc
 import datetime as dt
+import ipaddress
 from copy import deepcopy
 from decimal import Decimal
 from enum import Enum, IntEnum
@@ -12,7 +13,7 @@ import pydantic as pd
 import pydantic_xml as pxml
 from pydantic_xml import errors
 
-from .backend import etree
+from .backend import create_element, etree
 from .utils import NsMap, QName, merge_nsmaps
 
 
@@ -37,6 +38,17 @@ class XmlEncoder:
             return str(obj).lower()
         if isinstance(obj, (dt.datetime, dt.date, dt.time)):
             return obj.isoformat()
+        if isinstance(
+            obj, (
+                ipaddress.IPv4Address,
+                ipaddress.IPv6Address,
+                ipaddress.IPv4Network,
+                ipaddress.IPv6Network,
+                ipaddress.IPv4Interface,
+                ipaddress.IPv6Interface,
+            ),
+        ):
+            return str(obj)
         if isinstance(obj, Enum):
             return self.encode(obj.value)
 
@@ -299,6 +311,7 @@ class ModelSerializerFactory:
                 parent_is_root=is_root,
             )
 
+            self.nsmap = nsmap
             self.is_root = is_root
             self.element_name = QName.from_alias(tag=name, ns=ns, nsmap=nsmap).uri
             self.field_serializers = {
@@ -313,7 +326,7 @@ class ModelSerializerFactory:
                 return None
 
             if element is None:
-                element = etree.Element(self.element_name)
+                element = create_element(self.element_name, nsmap=self.nsmap)
 
             for field_name, field_serializer in self.field_serializers.items():
                 field_serializer.serialize(element, getattr(value, field_name), encoder=encoder, skip_empty=skip_empty)
@@ -344,6 +357,7 @@ class ModelSerializerFactory:
             ns = ctx.entity_ns or model.__xml_ns__
             nsmap = merge_nsmaps(ctx.entity_nsmap, model.__xml_nsmap__, ctx.parent_nsmap)
 
+            self.nsmap = nsmap
             self.element_name = QName.from_alias(tag=name, ns=ns, nsmap=nsmap).uri
             self.model = model
 
@@ -355,7 +369,7 @@ class ModelSerializerFactory:
             if value is None:
                 return None
 
-            sub_element = etree.Element(self.element_name)
+            sub_element = create_element(self.element_name, nsmap=self.nsmap)
 
             self.model.__xml_serializer__.serialize(sub_element, value, encoder=encoder, skip_empty=skip_empty)
 

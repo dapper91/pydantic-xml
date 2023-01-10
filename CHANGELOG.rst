@@ -1,6 +1,16 @@
 Changelog
 =========
 
+
+0.5.0 (2023-01-11)
+------------------
+
+- ipaddress objects serialization support added
+- py.typed file added
+- distutils dependency removed
+- default namespace redefinition during serialization fixed (for lxml only). See https://github.com/dapper91/pydantic-xml/issues/27.
+
+
 0.4.0 (2022-12-19)
 ------------------
 
