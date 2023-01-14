@@ -115,6 +115,10 @@ def find_element_or_create(root: etree.Element, name: str) -> etree.Element:
     return sub_element
 
 
+def is_xml_model(tp: Any) -> bool:
+    return isclass(tp) and issubclass(tp, pxml.BaseXmlModel)
+
+
 class Serializer(abc.ABC):
     """
     Base field serializer/deserializer.
@@ -164,7 +168,7 @@ class Serializer(abc.ABC):
         if shape_type is PydanticShapeType.UNKNOWN:
             raise TypeError(f"fields of type {model_field.type_} are not supported")
 
-        if isclass(field_type) and issubclass(field_type, pxml.BaseXmlModel):
+        if is_xml_model(field_type):
             is_model_field = True
         else:
             is_model_field = False
@@ -539,7 +543,7 @@ class MappingSerializerFactory:
                 model.__name__, model_field.name, "mapping value should be of scalar type",
             )
 
-        if isclass(value_type) and issubclass(value_type, pxml.BaseXmlModel):
+        if is_xml_model(value_type):
             raise errors.ModelFieldError(
                 model.__name__, model_field.name, "mapping value types can't be models",
             )
