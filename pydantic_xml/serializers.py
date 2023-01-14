@@ -6,7 +6,7 @@ from copy import deepcopy
 from decimal import Decimal
 from enum import Enum, IntEnum
 from inspect import isclass
-from typing import Any, Dict, List, Mapping, Optional, Sized, Type
+from typing import Any, Dict, List, Optional, Sized, Type
 
 import pydantic as pd
 
@@ -458,7 +458,7 @@ class MappingSerializerFactory:
 
     class AttributesSerializer(BaseSerializer):
         def serialize(
-                self, element: etree.Element, value: Mapping[str, Any], *, encoder: XmlEncoder, skip_empty: bool = False
+                self, element: etree.Element, value: Dict[str, Any], *, encoder: XmlEncoder, skip_empty: bool = False
         ) -> Optional[etree.Element]:
             if value is None:
                 return element
@@ -488,7 +488,7 @@ class MappingSerializerFactory:
 
     class ElementSerializer(BaseSerializer):
         def serialize(
-                self, element: etree.Element, value: Mapping[str, Any], *, encoder: XmlEncoder, skip_empty: bool = False
+                self, element: etree.Element, value: Dict[str, Any], *, encoder: XmlEncoder, skip_empty: bool = False
         ) -> etree.Element:
             if skip_empty and len(value) == 0:
                 return element
