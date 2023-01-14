@@ -225,7 +225,7 @@ class BaseXmlModel(pd.BaseModel, metaclass=XmlModelMeta):
 
         if root.tag == cls.__xml_serializer__.element_name:
             obj = cls.__xml_serializer__.deserialize(root)
-            return cls.parse_obj(obj)
+            return obj
         else:
             return None
 

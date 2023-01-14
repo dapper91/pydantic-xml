@@ -311,6 +311,7 @@ class ModelSerializerFactory:
                 parent_is_root=is_root,
             )
 
+            self.model = model
             self.nsmap = nsmap
             self.is_root = is_root
             self.element_name = QName.from_alias(tag=name, ns=ns, nsmap=nsmap).uri
@@ -333,16 +334,18 @@ class ModelSerializerFactory:
 
             return element
 
-        def deserialize(self, element: etree.Element) -> Any:
+        def deserialize(self, element: etree.Element) -> 'pxml.BaseXmlModel':
             result = {
                 field_name: field_value
                 for field_name, field_serializer in self.field_serializers.items()
                 if (field_value := field_serializer.deserialize(element)) is not None
             }
             if self.is_root:
-                return result['__root__']
+                obj = result['__root__']
             else:
-                return result
+                obj = result
+
+            return self.model.parse_obj(obj)
 
     class ElementSerializer(Serializer):
 
@@ -379,7 +382,7 @@ class ModelSerializerFactory:
             else:
                 return None
 
-        def deserialize(self, element: etree.Element) -> Optional[Dict[str, Any]]:
+        def deserialize(self, element: etree.Element) -> Optional['pxml.BaseXmlModel']:
             assert self.model.__xml_serializer__ is not None, "model is partially initialized"
 
             if (sub_element := element.find(self.element_name)) is not None:
@@ -399,7 +402,7 @@ class ModelSerializerFactory:
 
             return self.model.__xml_serializer__.serialize(element, value, encoder=encoder, skip_empty=skip_empty)
 
-        def deserialize(self, element: etree.Element) -> Optional[Dict[str, Any]]:
+        def deserialize(self, element: etree.Element) -> Optional['pxml.BaseXmlModel']:
             assert self.model.__xml_serializer__ is not None, "model is partially initialized"
 
             return self.model.__xml_serializer__.deserialize(element)
