@@ -356,54 +356,11 @@ class ModelSerializerFactory:
 
             return self.model.parse_obj(obj)
 
-    class ElementSerializer(Serializer):
-
-        def __init__(
-                self,
-                model_field: pd.fields.ModelField,
-                model: Type['pxml.BaseXmlModel'],
-                ctx: Serializer.Context,
-        ):
-            name, ns, nsmap = self.get_entity_info(model_field)
-            field_name = model_field.alias if model_field else None
-            name = name or model.__xml_tag__ or field_name or model.__name__
-            ns = ns or model.__xml_ns__
-            nsmap = merge_nsmaps(nsmap, model.__xml_nsmap__, ctx.parent_nsmap)
-
-            self.nsmap = nsmap
-            self.element_name = QName.from_alias(tag=name, ns=ns, nsmap=nsmap).uri
-            self.model = model
-
-        def serialize(
-                self, element: etree.Element, value: Any, *, encoder: XmlEncoder, skip_empty: bool = False,
-        ) -> Optional[etree.Element]:
-            assert self.model.__xml_serializer__ is not None, "model is partially initialized"
-
-            if value is None:
-                return None
-
-            sub_element = create_element(self.element_name, nsmap=self.nsmap)
-
-            self.model.__xml_serializer__.serialize(sub_element, value, encoder=encoder, skip_empty=skip_empty)
-
-            if not skip_empty or sub_element.text or sub_element.attrib or len(sub_element) != 0:
-                element.append(sub_element)
-                return sub_element
-            else:
-                return None
-
-        def deserialize(self, element: etree.Element) -> Optional['pxml.BaseXmlModel']:
-            assert self.model.__xml_serializer__ is not None, "model is partially initialized"
-
-            if (sub_element := element.find(self.element_name)) is not None:
-                return self.model.__xml_serializer__.deserialize(sub_element)
-            else:
-                return None
-
     class DeferredSerializer(Serializer):
 
-        def __init__(self, model: Type['pxml.BaseXmlModel']):
-            self.model = model
+        def __init__(self, model_field: pd.fields.ModelField):
+            assert is_xml_model(model_field.type_), "unexpected model field type"
+            self.model: Type[pxml.BaseXmlModel] = model_field.type_
 
         def serialize(
                 self, element: etree.Element, value: Any, *, encoder: XmlEncoder, skip_empty: bool = False,
@@ -417,6 +374,47 @@ class ModelSerializerFactory:
 
             return self.model.__xml_serializer__.deserialize(element)
 
+    class ElementSerializer(DeferredSerializer):
+
+        def __init__(
+                self,
+                root_model: Type['pxml.BaseXmlModel'],
+                model_field: pd.fields.ModelField,
+                ctx: Serializer.Context,
+        ):
+            super().__init__(model_field)
+            name, ns, nsmap = self.get_entity_info(model_field)
+            field_name = model_field.alias
+
+            model = self.model
+            name = name or model.__xml_tag__ or field_name or model.__name__
+            ns = ns or model.__xml_ns__
+            nsmap = merge_nsmaps(nsmap, model.__xml_nsmap__, root_model.__xml_nsmap__, ctx.parent_nsmap)
+
+            self.nsmap = nsmap
+            self.element_name = QName.from_alias(tag=name, ns=ns, nsmap=nsmap).uri
+
+        def serialize(
+                self, element: etree.Element, value: Any, *, encoder: XmlEncoder, skip_empty: bool = False,
+        ) -> Optional[etree.Element]:
+            if value is None:
+                return None
+
+            sub_element = create_element(self.element_name, nsmap=self.nsmap)
+            super().serialize(sub_element, value, encoder=encoder, skip_empty=skip_empty)
+
+            if skip_empty and not sub_element.text and not sub_element.attrib and len(sub_element) == 0:
+                return None
+            else:
+                element.append(sub_element)
+                return sub_element
+
+        def deserialize(self, element: etree.Element) -> Optional['pxml.BaseXmlModel']:
+            if (sub_element := element.find(self.element_name)) is not None:
+                return super().deserialize(sub_element)
+            else:
+                return None
+
     @classmethod
     def build_root(cls, model: Type['pxml.BaseXmlModel']) -> 'RootSerializer':
         return cls.RootSerializer(model)
@@ -429,19 +427,12 @@ class ModelSerializerFactory:
             field_location: Location,
             ctx: Serializer.Context,
     ) -> 'Serializer':
-        sub_model = model_field.type_
-        ctx = dc.replace(
-            ctx,
-            parent_ns=ctx.parent_ns or model.__xml_ns__,
-            parent_nsmap=merge_nsmaps(ctx.parent_nsmap, model.__xml_nsmap__),
-        )
-
         if field_location is Location.ELEMENT:
-            return cls.ElementSerializer(model_field, sub_model, ctx)
+            return cls.ElementSerializer(model, model_field, ctx)
         elif not ctx.parent_is_root and field_location is Location.MISSING:
-            return cls.ElementSerializer(model_field, sub_model, ctx)
+            return cls.ElementSerializer(model, model_field, ctx)
         elif ctx.parent_is_root and field_location is Location.MISSING:
-            return cls.DeferredSerializer(sub_model)
+            return cls.DeferredSerializer(model_field)
         elif field_location is Location.ATTRIBUTE:
             raise errors.ModelFieldError(
                 model.__name__, model_field.name, "attributes of model type are not supported",
