@@ -178,7 +178,7 @@ class BaseXmlModel(pd.BaseModel, metaclass=XmlModelMeta):
     __xml_ns__: ClassVar[Optional[str]]
     __xml_nsmap__: ClassVar[Optional[NsMap]]
     __xml_ns_attrs__: ClassVar[bool]
-    __xml_serializer__: ClassVar[Optional[serializers.ModelSerializerFactory.RootSerializer]]
+    __xml_serializer__: ClassVar[Optional[serializers.ModelSerializerFactory.RootSerializer]] = None
 
     def __init_subclass__(
             cls,
