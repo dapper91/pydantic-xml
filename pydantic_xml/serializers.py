@@ -308,26 +308,22 @@ class ModelSerializerFactory:
     """
 
     class RootSerializer(Serializer):
-        def __init__(
-                self,
-                model: Type['pxml.BaseXmlModel'],
-                ctx: Serializer.Context,
-        ):
+        def __init__(self, model: Type['pxml.BaseXmlModel']):
             name = model.__xml_tag__ or model.__name__
             ns = model.__xml_ns__
-            nsmap = merge_nsmaps(model.__xml_nsmap__, ctx.parent_nsmap)
+            nsmap = model.__xml_nsmap__
             is_root = model.__custom_root_type__
-            ctx = dc.replace(
-                ctx,
-                parent_ns=ns,
-                parent_nsmap=nsmap,
-                parent_is_root=is_root,
-            )
 
             self.model = model
             self.nsmap = nsmap
             self.is_root = is_root
             self.element_name = QName.from_alias(tag=name, ns=ns, nsmap=nsmap).uri
+
+            ctx = Serializer.Context(
+                parent_ns=ns,
+                parent_nsmap=nsmap,
+                parent_is_root=is_root,
+            )
             self.field_serializers = {
                 model_subfield.alias: self.build_field_serializer(model, model_subfield, ctx)
                 for field_name, model_subfield in model.__fields__.items()
@@ -423,7 +419,7 @@ class ModelSerializerFactory:
 
     @classmethod
     def build_root(cls, model: Type['pxml.BaseXmlModel']) -> 'RootSerializer':
-        return cls.RootSerializer(model, Serializer.Context(parent_is_root=True))
+        return cls.RootSerializer(model)
 
     @classmethod
     def build(
