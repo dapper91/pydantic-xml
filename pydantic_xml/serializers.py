@@ -151,6 +151,19 @@ class Serializer(abc.ABC):
         """
 
     @classmethod
+    def get_field_location(cls, field_info: pd.fields.FieldInfo) -> Location:
+        if isinstance(field_info, pxml.XmlElementInfo):
+            field_location = Location.ELEMENT
+        elif isinstance(field_info, pxml.XmlAttributeInfo):
+            field_location = Location.ATTRIBUTE
+        elif isinstance(field_info, pxml.XmlWrapperInfo):
+            field_location = Location.WRAPPED
+        else:
+            field_location = Location.MISSING
+
+        return field_location
+
+    @classmethod
     def get_entity_info(
             cls,
             model_field: pd.fields.ModelField,
@@ -185,14 +198,7 @@ class Serializer(abc.ABC):
         else:
             is_model_field = False
 
-        if isinstance(field_info, pxml.XmlElementInfo):
-            field_location = Location.ELEMENT
-        elif isinstance(field_info, pxml.XmlAttributeInfo):
-            field_location = Location.ATTRIBUTE
-        elif isinstance(field_info, pxml.XmlWrapperInfo):
-            field_location = Location.WRAPPED
-        else:
-            field_location = Location.MISSING
+        field_location = cls.get_field_location(field_info)
 
         if field_location is Location.WRAPPED:
             return WrappedSerializerFactory.build(model, model_field, ctx)
