@@ -6,7 +6,7 @@ from copy import deepcopy
 from decimal import Decimal
 from enum import Enum, IntEnum
 from inspect import isclass
-from typing import Any, Dict, List, Optional, Sized, Type
+from typing import Any, Dict, List, Optional, Sized, Tuple, Type
 
 import pydantic as pd
 
@@ -130,10 +130,6 @@ class Serializer(abc.ABC):
         parent_ns: Optional[str] = None
         parent_nsmap: Optional[NsMap] = None
 
-        entity_name: Optional[str] = None
-        entity_ns: Optional[str] = None
-        entity_nsmap: Optional[NsMap] = None
-
     @abc.abstractmethod
     def serialize(self, element: etree.Element, value: Any, *, encoder: XmlEncoder, skip_empty: bool = False) -> Any:
         """
@@ -153,6 +149,22 @@ class Serializer(abc.ABC):
         :param root: element deserialized value should be fetched to
         :return: deserialized value
         """
+
+    @classmethod
+    def get_entity_info(
+            cls,
+            model_field: pd.fields.ModelField,
+    ) -> Tuple[Optional[str], Optional[str], Optional[Dict[str, str]]]:
+        field_info = model_field.field_info
+
+        if isinstance(field_info, pxml.XmlElementInfo):
+            return field_info.tag, field_info.ns, field_info.nsmap
+        elif isinstance(field_info, pxml.XmlAttributeInfo):
+            return field_info.name, field_info.ns, None
+        elif isinstance(field_info, pxml.XmlWrapperInfo):
+            return field_info.path, field_info.ns, field_info.nsmap
+        else:
+            return None, None, None
 
     @classmethod
     def build_field_serializer(
@@ -175,23 +187,12 @@ class Serializer(abc.ABC):
 
         if isinstance(field_info, pxml.XmlElementInfo):
             field_location = Location.ELEMENT
-            ctx = dc.replace(ctx, entity_name=field_info.tag, entity_ns=field_info.ns, entity_nsmap=field_info.nsmap)
         elif isinstance(field_info, pxml.XmlAttributeInfo):
             field_location = Location.ATTRIBUTE
-            ctx = dc.replace(ctx, entity_name=field_info.name, entity_ns=field_info.ns)
         elif isinstance(field_info, pxml.XmlWrapperInfo):
             field_location = Location.WRAPPED
-            ctx = dc.replace(ctx, entity_name=field_info.path, entity_ns=field_info.ns, entity_nsmap=field_info.nsmap)
         else:
             field_location = Location.MISSING
-            ctx = dc.replace(
-                ctx,
-                parent_ns=ctx.entity_ns or ctx.parent_ns,
-                parent_nsmap=merge_nsmaps(ctx.entity_nsmap, ctx.parent_nsmap),
-                entity_name=None,
-                entity_ns=None,
-                entity_nsmap=None,
-            )
 
         if field_location is Location.WRAPPED:
             return WrappedSerializerFactory.build(model, model_field, ctx)
@@ -232,10 +233,11 @@ class PrimitiveTypeSerializerFactory:
         def __init__(
                 self, model: Type['pxml.BaseXmlModel'], model_field: pd.fields.ModelField, ctx: Serializer.Context,
         ):
+            name, ns, nsmap = self.get_entity_info(model_field)
             ns_attrs = model.__xml_ns_attrs__
-            name = ctx.entity_name or model_field.alias
-            ns = ctx.entity_ns or (ctx.parent_ns if ns_attrs else None)
-            nsmap = ctx.parent_nsmap
+            name = name or model_field.alias
+            ns = ns or (ctx.parent_ns if ns_attrs else None)
+            nsmap = merge_nsmaps(nsmap, ctx.parent_nsmap)
 
             self.attr_name = QName.from_alias(tag=name, ns=ns, nsmap=nsmap, is_attr=True).uri
 
@@ -255,9 +257,10 @@ class PrimitiveTypeSerializerFactory:
 
     class ElementSerializer(Serializer):
         def __init__(self, model_field: pd.fields.ModelField, ctx: Serializer.Context):
-            name = ctx.entity_name or model_field.alias
-            ns = ctx.entity_ns or ctx.parent_ns
-            nsmap = merge_nsmaps(ctx.entity_nsmap, ctx.parent_nsmap)
+            name, ns, nsmap = self.get_entity_info(model_field)
+            name = name or model_field.alias
+            ns = ns or ctx.parent_ns
+            nsmap = merge_nsmaps(nsmap, ctx.parent_nsmap)
             self.element_name = QName.from_alias(tag=name, ns=ns, nsmap=nsmap).uri
 
         def serialize(
@@ -304,9 +307,9 @@ class ModelSerializerFactory:
                 model: Type['pxml.BaseXmlModel'],
                 ctx: Serializer.Context,
         ):
-            name = ctx.entity_name or model.__xml_tag__ or model.__name__
-            ns = ctx.entity_ns or model.__xml_ns__
-            nsmap = merge_nsmaps(ctx.entity_nsmap, model.__xml_nsmap__, ctx.parent_nsmap)
+            name = model.__xml_tag__ or model.__name__
+            ns = model.__xml_ns__
+            nsmap = merge_nsmaps(model.__xml_nsmap__, ctx.parent_nsmap)
             is_root = model.__custom_root_type__
             ctx = dc.replace(
                 ctx,
@@ -355,14 +358,15 @@ class ModelSerializerFactory:
 
         def __init__(
                 self,
-                model_field: Optional[pd.fields.ModelField],
+                model_field: pd.fields.ModelField,
                 model: Type['pxml.BaseXmlModel'],
                 ctx: Serializer.Context,
         ):
+            name, ns, nsmap = self.get_entity_info(model_field)
             field_name = model_field.alias if model_field else None
-            name = ctx.entity_name or model.__xml_tag__ or field_name or model.__name__
-            ns = ctx.entity_ns or model.__xml_ns__
-            nsmap = merge_nsmaps(ctx.entity_nsmap, model.__xml_nsmap__, ctx.parent_nsmap)
+            name = name or model.__xml_tag__ or field_name or model.__name__
+            ns = ns or model.__xml_ns__
+            nsmap = merge_nsmaps(nsmap, model.__xml_nsmap__, ctx.parent_nsmap)
 
             self.nsmap = nsmap
             self.element_name = QName.from_alias(tag=name, ns=ns, nsmap=nsmap).uri
@@ -453,10 +457,11 @@ class MappingSerializerFactory:
         def __init__(
                 self, model: Type['pxml.BaseXmlModel'], model_field: pd.fields.ModelField, ctx: Serializer.Context,
         ):
-            name = ctx.entity_name or model_field.alias
+            name, ns, nsmap = self.get_entity_info(model_field)
+            name = name or model_field.alias
 
-            self.parent_ns = ns = ctx.entity_ns or ctx.parent_ns
-            self.parent_nsmap = nsmap = merge_nsmaps(ctx.entity_nsmap, ctx.parent_nsmap)
+            self.parent_ns = ns = ns or ctx.parent_ns
+            self.parent_nsmap = nsmap = merge_nsmaps(nsmap, ctx.parent_nsmap)
             self.element_name = QName.from_alias(tag=name, ns=ns, nsmap=nsmap).uri
             self.ns_attrs = model.__xml_ns_attrs__
 
@@ -571,9 +576,10 @@ class HomogeneousSerializerFactory:
         ):
             assert model_field.sub_fields is not None, "unexpected model field"
 
-            name = ctx.entity_name or model_field.alias
-            ns = ctx.entity_ns or ctx.parent_ns
-            nsmap = merge_nsmaps(ctx.entity_nsmap, ctx.parent_nsmap)
+            name, ns, nsmap = self.get_entity_info(model_field)
+            name = name or model_field.alias
+            ns = ns or ctx.parent_ns
+            nsmap = merge_nsmaps(nsmap, ctx.parent_nsmap)
 
             self.element_name = QName.from_alias(tag=name, ns=ns, nsmap=nsmap).uri
 
@@ -660,9 +666,10 @@ class HeterogeneousSerializerFactory:
         ):
             assert model_field.sub_fields is not None, "unexpected model field"
 
-            name = ctx.entity_name or model_field.alias
-            ns = ctx.entity_ns or ctx.parent_ns
-            nsmap = merge_nsmaps(ctx.entity_nsmap, ctx.parent_nsmap)
+            name, ns, nsmap = self.get_entity_info(model_field)
+            name = name or model_field.alias
+            ns = ns or ctx.parent_ns
+            nsmap = merge_nsmaps(nsmap, ctx.parent_nsmap)
 
             self.element_name = QName.from_alias(tag=name, ns=ns, nsmap=nsmap).uri
 
@@ -751,9 +758,10 @@ class WrappedSerializerFactory:
         def __init__(
                 self, model: Type['pxml.BaseXmlModel'], model_field: pd.fields.ModelField, ctx: Serializer.Context,
         ):
-            path = ctx.entity_name
-            ns = ctx.entity_ns or ctx.parent_ns
-            nsmap = merge_nsmaps(ctx.entity_nsmap, ctx.parent_nsmap)
+            name, ns, nsmap = self.get_entity_info(model_field)
+            path = name
+            ns = ns or ctx.parent_ns
+            nsmap = merge_nsmaps(nsmap, ctx.parent_nsmap)
 
             model_field = deepcopy(model_field)
             field_info = model_field.field_info
