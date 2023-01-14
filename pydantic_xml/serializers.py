@@ -590,7 +590,8 @@ class HomogeneousSerializerFactory:
             self.element_name = QName.from_alias(tag=name, ns=ns, nsmap=nsmap).uri
 
             item_field = deepcopy(model_field.sub_fields[0])
-            item_field.name = model_field.alias
+            item_field.name = model_field.name
+            item_field.alias = model_field.alias
             self.serializer = self.build_field_serializer(
                 model,
                 item_field,
@@ -682,7 +683,8 @@ class HeterogeneousSerializerFactory:
             self.serializers = []
             for sub_field in model_field.sub_fields:
                 sub_field = deepcopy(sub_field)
-                sub_field.name = model_field.alias
+                sub_field.name = model_field.name
+                sub_field.alias = model_field.alias
 
                 self.serializers.append(
                     self.build_field_serializer(
