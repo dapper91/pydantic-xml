@@ -771,8 +771,7 @@ class WrappedSerializerFactory:
         def __init__(
                 self, model: Type['pxml.BaseXmlModel'], model_field: pd.fields.ModelField, ctx: Serializer.Context,
         ):
-            name, ns, nsmap = self.get_entity_info(model_field)
-            path = name
+            path, ns, nsmap = self.get_entity_info(model_field)
             ns = ns or ctx.parent_ns
             nsmap = merge_nsmaps(nsmap, ctx.parent_nsmap)
 
@@ -780,7 +779,9 @@ class WrappedSerializerFactory:
             field_info = model_field.field_info
 
             assert path is not None, "path is not provided"
-            assert isinstance(field_info, pxml.XmlWrapperInfo)
+            assert isinstance(field_info, pxml.XmlWrapperInfo), "unexpected field info type"
+
+            # copy field_info from wrapped entity
             model_field.field_info = field_info.entity or pd.fields.FieldInfo()
 
             self.path = tuple(QName.from_alias(tag=part, ns=ns, nsmap=nsmap).uri for part in path.split('/'))
