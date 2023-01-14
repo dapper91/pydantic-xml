@@ -261,7 +261,7 @@ class PrimitiveTypeSerializerFactory:
         def deserialize(self, element: etree.Element) -> Optional[str]:
             return element.get(self.attr_name)
 
-    class ElementSerializer(Serializer):
+    class ElementSerializer(TextSerializer):
         def __init__(self, model_field: pd.fields.ModelField, ctx: Serializer.Context):
             name, ns, nsmap = self.get_entity_info(model_field)
             name = name or model_field.alias
@@ -275,14 +275,14 @@ class PrimitiveTypeSerializerFactory:
             if value is None and skip_empty:
                 return element
 
-            encoded = encoder.encode(value)
-
             sub_element = find_element_or_create(element, self.element_name)
-            sub_element.text = encoded
-            return sub_element
+            return super().serialize(sub_element, value, encoder=encoder, skip_empty=skip_empty)
 
         def deserialize(self, element: etree.Element) -> Any:
-            return element.findtext(self.element_name)
+            if (sub_element := element.find(self.element_name)) is not None:
+                return super().deserialize(sub_element)
+            else:
+                return None
 
     @classmethod
     def build(
