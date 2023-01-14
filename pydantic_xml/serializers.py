@@ -547,8 +547,11 @@ class MappingSerializerFactory:
             ctx: Serializer.Context,
     ) -> 'Serializer':
         assert model_field.sub_fields is not None, "unexpected model field"
+        assert len(model_field.sub_fields) == 1, "unexpected model field subfields number"
+
         value_field = model_field.sub_fields[0]
         value_type = value_field.type_
+
         if PydanticShapeType.from_shape(value_field.shape) is not PydanticShapeType.SCALAR:
             raise errors.ModelFieldError(
                 model.__name__, model_field.name, "mapping value should be of scalar type",
@@ -556,7 +559,7 @@ class MappingSerializerFactory:
 
         if is_xml_model(value_type):
             raise errors.ModelFieldError(
-                model.__name__, model_field.name, "mapping value types can't be models",
+                model.__name__, model_field.name, "mapping value can't be of model type",
             )
 
         if field_location is Location.ELEMENT:
