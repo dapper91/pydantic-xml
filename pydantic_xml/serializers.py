@@ -635,9 +635,10 @@ class HomogeneousSerializerFactory:
             field_location: Location,
             ctx: Serializer.Context,
     ) -> 'Serializer':
-        is_root = model.__custom_root_type__
-
         assert model_field.sub_fields is not None, "unexpected model field"
+        assert len(model_field.sub_fields) == 1, "unexpected subfields number"
+
+        is_root = model.__custom_root_type__
         item_field = model_field.sub_fields[0]
 
         if PydanticShapeType.from_shape(item_field.shape) in (
