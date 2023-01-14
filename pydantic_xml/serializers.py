@@ -405,7 +405,7 @@ class ModelSerializerFactory:
             return self.model.__xml_serializer__.deserialize(element)
 
     @classmethod
-    def from_model(cls, model: Type['pxml.BaseXmlModel']) -> 'RootSerializer':
+    def build_root(cls, model: Type['pxml.BaseXmlModel']) -> 'RootSerializer':
         return cls.RootSerializer(model, Serializer.Context(parent_is_root=True))
 
     @classmethod

@@ -210,7 +210,7 @@ class BaseXmlModel(pd.BaseModel, metaclass=XmlModelMeta):
         if config.REGISTER_NS_PREFIXES and cls.__xml_nsmap__:
             register_nsmap(cls.__xml_nsmap__)
 
-        cls.__xml_serializer__ = serializers.ModelSerializerFactory.from_model(cls)
+        cls.__xml_serializer__ = serializers.ModelSerializerFactory.build_root(cls)
 
     @classmethod
     def from_xml_tree(cls, root: etree.Element) -> Optional['BaseXmlModel']:
