@@ -446,82 +446,57 @@ class MappingSerializerFactory:
     Mapping type serializer factory.
     """
 
-    class BaseSerializer(Serializer, abc.ABC):
+    class AttributesSerializer(Serializer):
         def __init__(
                 self, model: Type['pxml.BaseXmlModel'], model_field: pd.fields.ModelField, ctx: Serializer.Context,
         ):
             name, ns, nsmap = self.get_entity_info(model_field)
-            name = name or model_field.alias
-
-            self.parent_ns = ns = ns or ctx.parent_ns
-            self.parent_nsmap = nsmap = merge_nsmaps(nsmap, ctx.parent_nsmap)
-            self.element_name = QName.from_alias(tag=name, ns=ns, nsmap=nsmap).uri
+            self.ns = ns or ctx.parent_ns
+            self.nsmap = merge_nsmaps(nsmap, ctx.parent_nsmap)
             self.ns_attrs = model.__xml_ns_attrs__
 
-    class AttributesSerializer(BaseSerializer):
         def serialize(
                 self, element: etree.Element, value: Dict[str, Any], *, encoder: XmlEncoder, skip_empty: bool = False
         ) -> Optional[etree.Element]:
             if value is None:
                 return element
 
-            if skip_empty and len(value) == 0:
-                return element
-
-            if self.ns_attrs:
-                ns = self.parent_nsmap.get(self.parent_ns) if self.parent_ns else None
-                element.attrib.update({
-                    QName(tag=attr, ns=ns).uri: encoder.encode(val)
-                    for attr, val in value.items()
-                })
-            else:
-                element.attrib.update({
-                    attr: encoder.encode(val)
-                    for attr, val in value.items()
-                })
+            ns = self.nsmap.get(self.ns) if self.ns_attrs and self.ns else None
+            element.attrib.update({
+                QName(tag=attr, ns=ns).uri: encoder.encode(val)
+                for attr, val in value.items()
+            })
 
             return element
 
-        def deserialize(self, element: etree.Element) -> Dict[str, str]:
-            if self.ns_attrs:
-                return {QName.from_uri(attr).tag: val for attr, val in element.attrib.items()}
-            else:
-                return {attr: val for attr, val in element.attrib.items()}
+        def deserialize(self, element: etree.Element) -> Optional[Dict[str, str]]:
+            return {
+                QName.from_uri(attr).tag if self.ns_attrs else attr: val
+                for attr, val in element.attrib.items()
+            }
 
-    class ElementSerializer(BaseSerializer):
+    class ElementSerializer(AttributesSerializer):
+        def __init__(
+                self, model: Type['pxml.BaseXmlModel'], model_field: pd.fields.ModelField, ctx: Serializer.Context,
+        ):
+            super().__init__(model, model_field, ctx)
+
+            name, ns, nsmap = self.get_entity_info(model_field)
+            self.name = name or model_field.alias
+            self.element_name = QName.from_alias(tag=self.name, ns=self.ns, nsmap=self.nsmap).uri
+
         def serialize(
                 self, element: etree.Element, value: Dict[str, Any], *, encoder: XmlEncoder, skip_empty: bool = False
-        ) -> etree.Element:
+        ) -> Optional[etree.Element]:
             if skip_empty and len(value) == 0:
                 return element
 
             sub_element = find_element_or_create(element, self.element_name)
-            if self.ns_attrs:
-                ns = self.parent_nsmap.get(self.parent_ns) if self.parent_ns else None
-                sub_element.attrib.update({
-                    QName(tag=attr, ns=ns).uri: encoder.encode(val)
-                    for attr, val in value.items()
-                })
-            else:
-                sub_element.attrib.update({
-                    attr: encoder.encode(val)
-                    for attr, val in value.items()
-                })
-
-            return sub_element
+            return super().serialize(sub_element, value, encoder=encoder, skip_empty=skip_empty)
 
         def deserialize(self, element: etree.Element) -> Optional[Dict[str, str]]:
             if (sub_element := element.find(self.element_name)) is not None:
-                if self.ns_attrs:
-                    return {
-                        QName.from_uri(attr).tag: val
-                        for attr, val in sub_element.attrib.items()
-                    }
-                else:
-                    return {
-                        attr: val
-                        for attr, val in sub_element.attrib.items()
-                    }
+                return super().deserialize(sub_element)
             else:
                 return None
 
