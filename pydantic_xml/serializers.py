@@ -38,6 +38,8 @@ class XmlEncoder:
             return str(obj)
         if isinstance(obj, (dt.datetime, dt.date, dt.time)):
             return obj.isoformat()
+        if isinstance(obj, Enum):
+            return self.encode(obj.value)
         if isinstance(
             obj, (
                 ipaddress.IPv4Address,
@@ -49,8 +51,6 @@ class XmlEncoder:
             ),
         ):
             return str(obj)
-        if isinstance(obj, Enum):
-            return self.encode(obj.value)
 
         return self.default(obj)
 
