@@ -142,11 +142,11 @@ class Serializer(abc.ABC):
         """
 
     @abc.abstractmethod
-    def deserialize(self, root: etree.Element) -> Any:
+    def deserialize(self, element: etree.Element) -> Any:
         """
         Deserializes a value from an xml element.
 
-        :param root: element deserialized value should be fetched to
+        :param element: element deserialized value should be fetched from
         :return: deserialized value
         """
 
