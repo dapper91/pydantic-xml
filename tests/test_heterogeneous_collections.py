@@ -1,4 +1,4 @@
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import pytest
 from helpers import assert_xml_equal
@@ -8,7 +8,7 @@ from pydantic_xml import BaseXmlModel, attr, element, errors
 
 def test_set_of_primitives_extraction():
     class TestModel(BaseXmlModel, tag='model1'):
-        elements: Tuple[int, float, str] = element(tag='element')
+        elements: Tuple[int, float, str, Optional[str]] = element(tag='element')
 
     xml = '''
     <model1>
@@ -19,11 +19,11 @@ def test_set_of_primitives_extraction():
     '''
 
     actual_obj = TestModel.from_xml(xml)
-    expected_obj = TestModel(elements=(1, 2.2, "string3"))
+    expected_obj = TestModel(elements=(1, 2.2, "string3", None))
 
     assert actual_obj == expected_obj
 
-    actual_xml = actual_obj.to_xml()
+    actual_xml = actual_obj.to_xml(skip_empty=True)
     assert_xml_equal(actual_xml, xml)
 
 

@@ -142,7 +142,7 @@ class Serializer(abc.ABC):
         """
 
     @abc.abstractmethod
-    def deserialize(self, element: etree.Element) -> Any:
+    def deserialize(self, element: Optional[etree.Element]) -> Any:
         """
         Deserializes a value from an xml element.
 
@@ -232,7 +232,10 @@ class PrimitiveTypeSerializerFactory:
             element.text = encoded
             return element
 
-        def deserialize(self, element: etree.Element) -> Optional[str]:
+        def deserialize(self, element: Optional[etree.Element]) -> Optional[str]:
+            if element is None:
+                return None
+
             return element.text or None
 
     class AttributeSerializer(Serializer):
@@ -258,7 +261,10 @@ class PrimitiveTypeSerializerFactory:
 
             return element
 
-        def deserialize(self, element: etree.Element) -> Optional[str]:
+        def deserialize(self, element: Optional[etree.Element]) -> Optional[str]:
+            if element is None:
+                return None
+
             return element.get(self._attr_name)
 
     class ElementSerializer(TextSerializer):
@@ -278,8 +284,8 @@ class PrimitiveTypeSerializerFactory:
             sub_element = find_element_or_create(element, self._element_name)
             return super().serialize(sub_element, value, encoder=encoder, skip_empty=skip_empty)
 
-        def deserialize(self, element: etree.Element) -> Any:
-            if (sub_element := element.find(self._element_name)) is not None:
+        def deserialize(self, element: Optional[etree.Element]) -> Any:
+            if element is not None and (sub_element := element.find(self._element_name)) is not None:
                 return super().deserialize(sub_element)
             else:
                 return None
@@ -347,7 +353,10 @@ class ModelSerializerFactory:
 
             return element
 
-        def deserialize(self, element: etree.Element) -> 'pxml.BaseXmlModel':
+        def deserialize(self, element: Optional[etree.Element]) -> Optional['pxml.BaseXmlModel']:
+            if element is None:
+                return None
+
             result = {
                 field_name: field_value
                 for field_name, field_serializer in self._field_serializers.items()
@@ -373,7 +382,7 @@ class ModelSerializerFactory:
 
             return self._model.__xml_serializer__.serialize(element, value, encoder=encoder, skip_empty=skip_empty)
 
-        def deserialize(self, element: etree.Element) -> Optional['pxml.BaseXmlModel']:
+        def deserialize(self, element: Optional[etree.Element]) -> Optional['pxml.BaseXmlModel']:
             assert self._model.__xml_serializer__ is not None, "model is partially initialized"
 
             return self._model.__xml_serializer__.deserialize(element)
@@ -413,8 +422,8 @@ class ModelSerializerFactory:
                 element.append(sub_element)
                 return sub_element
 
-        def deserialize(self, element: etree.Element) -> Optional['pxml.BaseXmlModel']:
-            if (sub_element := element.find(self._element_name)) is not None:
+        def deserialize(self, element: Optional[etree.Element]) -> Optional['pxml.BaseXmlModel']:
+            if element is not None and (sub_element := element.find(self._element_name)) is not None:
                 return super().deserialize(sub_element)
             else:
                 return None
@@ -473,7 +482,10 @@ class MappingSerializerFactory:
 
             return element
 
-        def deserialize(self, element: etree.Element) -> Optional[Dict[str, str]]:
+        def deserialize(self, element: Optional[etree.Element]) -> Optional[Dict[str, str]]:
+            if element is None:
+                return None
+
             return {
                 QName.from_uri(attr).tag if self._ns_attrs else attr: val
                 for attr, val in element.attrib.items()
@@ -498,8 +510,8 @@ class MappingSerializerFactory:
             sub_element = find_element_or_create(element, self._element_name)
             return super().serialize(sub_element, value, encoder=encoder, skip_empty=skip_empty)
 
-        def deserialize(self, element: etree.Element) -> Optional[Dict[str, str]]:
-            if (sub_element := element.find(self._element_name)) is not None:
+        def deserialize(self, element: Optional[etree.Element]) -> Optional[Dict[str, str]]:
+            if element and (sub_element := element.find(self._element_name)) is not None:
                 return super().deserialize(sub_element)
             else:
                 return None
@@ -582,12 +594,18 @@ class HomogeneousSerializerFactory:
                 return element
 
             for val in value:
+                if skip_empty and val is None:
+                    continue
+
                 sub_element = etree.SubElement(element, self._element_name)
                 self._serializer.serialize(sub_element, val, encoder=encoder, skip_empty=skip_empty)
 
             return element
 
-        def deserialize(self, element: etree.Element) -> Optional[List[Any]]:
+        def deserialize(self, element: Optional[etree.Element]) -> Optional[List[Any]]:
+            if element is None:
+                return None
+
             return [
                 self._serializer.deserialize(sub_element)
                 for sub_element in element.findall(self._element_name)
@@ -679,15 +697,23 @@ class HeterogeneousSerializerFactory:
                 return element
 
             for serializer, val in zip(self._serializers, value):
+                if skip_empty and val is None:
+                    continue
+
                 sub_element = etree.SubElement(element, self._element_name)
                 serializer.serialize(sub_element, val, encoder=encoder, skip_empty=skip_empty)
 
             return element
 
-        def deserialize(self, element: etree.Element) -> Optional[List[Any]]:
+        def deserialize(self, element: Optional[etree.Element]) -> Optional[List[Any]]:
+            if element is None:
+                return None
+
+            sub_elements = iter(element.findall(self._element_name))
+
             return [
-                serializer.deserialize(sub_element)
-                for serializer, sub_element in zip(self._serializers, element.findall(self._element_name))
+                serializer.deserialize(next(sub_elements, None))
+                for serializer in self._serializers
             ]
 
     @classmethod
@@ -778,8 +804,8 @@ class WrappedSerializerFactory:
 
             return element
 
-        def deserialize(self, element: etree.Element) -> Optional[Any]:
-            if (sub_element := element.find('/'.join(self._path))) is not None:
+        def deserialize(self, element: Optional[etree.Element]) -> Optional[Any]:
+            if element is not None and (sub_element := element.find('/'.join(self._path))) is not None:
                 return self._serializer.deserialize(sub_element)
             else:
                 return None
