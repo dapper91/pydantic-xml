@@ -151,7 +151,7 @@ class Serializer(abc.ABC):
         """
 
     @classmethod
-    def get_field_location(cls, field_info: pd.fields.FieldInfo) -> Location:
+    def _get_field_location(cls, field_info: pd.fields.FieldInfo) -> Location:
         if isinstance(field_info, pxml.XmlElementInfo):
             field_location = Location.ELEMENT
         elif isinstance(field_info, pxml.XmlAttributeInfo):
@@ -164,7 +164,7 @@ class Serializer(abc.ABC):
         return field_location
 
     @classmethod
-    def get_entity_info(
+    def _get_entity_info(
             cls,
             model_field: pd.fields.ModelField,
     ) -> Tuple[Optional[str], Optional[str], Optional[Dict[str, str]]]:
@@ -180,7 +180,7 @@ class Serializer(abc.ABC):
             return None, None, None
 
     @classmethod
-    def build_field_serializer(
+    def _build_field_serializer(
             cls,
             model: Type['pxml.BaseXmlModel'],
             model_field: pd.fields.ModelField,
@@ -198,7 +198,7 @@ class Serializer(abc.ABC):
         else:
             is_model_field = False
 
-        field_location = cls.get_field_location(field_info)
+        field_location = cls._get_field_location(field_info)
 
         if field_location is Location.WRAPPED:
             return WrappedSerializerFactory.build(model, model_field, ctx)
@@ -239,13 +239,13 @@ class PrimitiveTypeSerializerFactory:
         def __init__(
                 self, model: Type['pxml.BaseXmlModel'], model_field: pd.fields.ModelField, ctx: Serializer.Context,
         ):
-            name, ns, nsmap = self.get_entity_info(model_field)
+            name, ns, nsmap = self._get_entity_info(model_field)
             ns_attrs = model.__xml_ns_attrs__
             name = name or model_field.alias
             ns = ns or (ctx.parent_ns if ns_attrs else None)
             nsmap = merge_nsmaps(nsmap, ctx.parent_nsmap)
 
-            self.attr_name = QName.from_alias(tag=name, ns=ns, nsmap=nsmap, is_attr=True).uri
+            self._attr_name = QName.from_alias(tag=name, ns=ns, nsmap=nsmap, is_attr=True).uri
 
         def serialize(
                 self, element: etree.Element, value: Any, *, encoder: XmlEncoder, skip_empty: bool = False,
@@ -254,20 +254,20 @@ class PrimitiveTypeSerializerFactory:
                 return element
 
             encoded = encoder.encode(value)
-            element.set(self.attr_name, encoded)
+            element.set(self._attr_name, encoded)
 
             return element
 
         def deserialize(self, element: etree.Element) -> Optional[str]:
-            return element.get(self.attr_name)
+            return element.get(self._attr_name)
 
     class ElementSerializer(TextSerializer):
         def __init__(self, model_field: pd.fields.ModelField, ctx: Serializer.Context):
-            name, ns, nsmap = self.get_entity_info(model_field)
+            name, ns, nsmap = self._get_entity_info(model_field)
             name = name or model_field.alias
             ns = ns or ctx.parent_ns
             nsmap = merge_nsmaps(nsmap, ctx.parent_nsmap)
-            self.element_name = QName.from_alias(tag=name, ns=ns, nsmap=nsmap).uri
+            self._element_name = QName.from_alias(tag=name, ns=ns, nsmap=nsmap).uri
 
         def serialize(
                 self, element: etree.Element, value: Any, *, encoder: XmlEncoder, skip_empty: bool = False,
@@ -275,11 +275,11 @@ class PrimitiveTypeSerializerFactory:
             if value is None and skip_empty:
                 return element
 
-            sub_element = find_element_or_create(element, self.element_name)
+            sub_element = find_element_or_create(element, self._element_name)
             return super().serialize(sub_element, value, encoder=encoder, skip_empty=skip_empty)
 
         def deserialize(self, element: etree.Element) -> Any:
-            if (sub_element := element.find(self.element_name)) is not None:
+            if (sub_element := element.find(self._element_name)) is not None:
                 return super().deserialize(sub_element)
             else:
                 return None
@@ -314,20 +314,24 @@ class ModelSerializerFactory:
             nsmap = model.__xml_nsmap__
             is_root = model.__custom_root_type__
 
-            self.model = model
-            self.nsmap = nsmap
-            self.is_root = is_root
-            self.element_name = QName.from_alias(tag=name, ns=ns, nsmap=nsmap).uri
+            self._model = model
+            self._nsmap = nsmap
+            self._is_root = is_root
+            self._element_name = QName.from_alias(tag=name, ns=ns, nsmap=nsmap).uri
 
             ctx = Serializer.Context(
                 parent_ns=ns,
                 parent_nsmap=nsmap,
                 parent_is_root=is_root,
             )
-            self.field_serializers = {
-                model_subfield.alias: self.build_field_serializer(model, model_subfield, ctx)
+            self._field_serializers = {
+                model_subfield.alias: self._build_field_serializer(model, model_subfield, ctx)
                 for field_name, model_subfield in model.__fields__.items()
             }
+
+        @property
+        def element_name(self) -> str:
+            return self._element_name
 
         def serialize(
                 self, element: Optional[etree.Element], value: Any, *, encoder: XmlEncoder, skip_empty: bool = False,
@@ -336,9 +340,9 @@ class ModelSerializerFactory:
                 return None
 
             if element is None:
-                element = create_element(self.element_name, nsmap=self.nsmap)
+                element = create_element(self._element_name, nsmap=self._nsmap)
 
-            for field_name, field_serializer in self.field_serializers.items():
+            for field_name, field_serializer in self._field_serializers.items():
                 field_serializer.serialize(element, getattr(value, field_name), encoder=encoder, skip_empty=skip_empty)
 
             return element
@@ -346,33 +350,33 @@ class ModelSerializerFactory:
         def deserialize(self, element: etree.Element) -> 'pxml.BaseXmlModel':
             result = {
                 field_name: field_value
-                for field_name, field_serializer in self.field_serializers.items()
+                for field_name, field_serializer in self._field_serializers.items()
                 if (field_value := field_serializer.deserialize(element)) is not None
             }
-            if self.is_root:
+            if self._is_root:
                 obj = result['__root__']
             else:
                 obj = result
 
-            return self.model.parse_obj(obj)
+            return self._model.parse_obj(obj)
 
     class DeferredSerializer(Serializer):
 
         def __init__(self, model_field: pd.fields.ModelField):
             assert is_xml_model(model_field.type_), "unexpected model field type"
-            self.model: Type[pxml.BaseXmlModel] = model_field.type_
+            self._model: Type[pxml.BaseXmlModel] = model_field.type_
 
         def serialize(
                 self, element: etree.Element, value: Any, *, encoder: XmlEncoder, skip_empty: bool = False,
         ) -> Optional[etree.Element]:
-            assert self.model.__xml_serializer__ is not None, "model is partially initialized"
+            assert self._model.__xml_serializer__ is not None, "model is partially initialized"
 
-            return self.model.__xml_serializer__.serialize(element, value, encoder=encoder, skip_empty=skip_empty)
+            return self._model.__xml_serializer__.serialize(element, value, encoder=encoder, skip_empty=skip_empty)
 
         def deserialize(self, element: etree.Element) -> Optional['pxml.BaseXmlModel']:
-            assert self.model.__xml_serializer__ is not None, "model is partially initialized"
+            assert self._model.__xml_serializer__ is not None, "model is partially initialized"
 
-            return self.model.__xml_serializer__.deserialize(element)
+            return self._model.__xml_serializer__.deserialize(element)
 
     class ElementSerializer(DeferredSerializer):
 
@@ -383,16 +387,16 @@ class ModelSerializerFactory:
                 ctx: Serializer.Context,
         ):
             super().__init__(model_field)
-            name, ns, nsmap = self.get_entity_info(model_field)
+            name, ns, nsmap = self._get_entity_info(model_field)
             field_name = model_field.alias
 
-            model = self.model
+            model = self._model
             name = name or model.__xml_tag__ or field_name or model.__name__
             ns = ns or model.__xml_ns__
             nsmap = merge_nsmaps(nsmap, model.__xml_nsmap__, root_model.__xml_nsmap__, ctx.parent_nsmap)
 
-            self.nsmap = nsmap
-            self.element_name = QName.from_alias(tag=name, ns=ns, nsmap=nsmap).uri
+            self._nsmap = nsmap
+            self._element_name = QName.from_alias(tag=name, ns=ns, nsmap=nsmap).uri
 
         def serialize(
                 self, element: etree.Element, value: Any, *, encoder: XmlEncoder, skip_empty: bool = False,
@@ -400,7 +404,7 @@ class ModelSerializerFactory:
             if value is None:
                 return None
 
-            sub_element = create_element(self.element_name, nsmap=self.nsmap)
+            sub_element = create_element(self._element_name, nsmap=self._nsmap)
             super().serialize(sub_element, value, encoder=encoder, skip_empty=skip_empty)
 
             if skip_empty and not sub_element.text and not sub_element.attrib and len(sub_element) == 0:
@@ -410,7 +414,7 @@ class ModelSerializerFactory:
                 return sub_element
 
         def deserialize(self, element: etree.Element) -> Optional['pxml.BaseXmlModel']:
-            if (sub_element := element.find(self.element_name)) is not None:
+            if (sub_element := element.find(self._element_name)) is not None:
                 return super().deserialize(sub_element)
             else:
                 return None
@@ -450,10 +454,10 @@ class MappingSerializerFactory:
         def __init__(
                 self, model: Type['pxml.BaseXmlModel'], model_field: pd.fields.ModelField, ctx: Serializer.Context,
         ):
-            name, ns, nsmap = self.get_entity_info(model_field)
-            self.ns = ns or ctx.parent_ns
-            self.nsmap = merge_nsmaps(nsmap, ctx.parent_nsmap)
-            self.ns_attrs = model.__xml_ns_attrs__
+            name, ns, nsmap = self._get_entity_info(model_field)
+            self._ns = ns or ctx.parent_ns
+            self._nsmap = merge_nsmaps(nsmap, ctx.parent_nsmap)
+            self._ns_attrs = model.__xml_ns_attrs__
 
         def serialize(
                 self, element: etree.Element, value: Dict[str, Any], *, encoder: XmlEncoder, skip_empty: bool = False
@@ -461,7 +465,7 @@ class MappingSerializerFactory:
             if value is None:
                 return element
 
-            ns = self.nsmap.get(self.ns) if self.ns_attrs and self.ns else None
+            ns = self._nsmap.get(self._ns) if self._ns_attrs and self._ns else None
             element.attrib.update({
                 QName(tag=attr, ns=ns).uri: encoder.encode(val)
                 for attr, val in value.items()
@@ -471,7 +475,7 @@ class MappingSerializerFactory:
 
         def deserialize(self, element: etree.Element) -> Optional[Dict[str, str]]:
             return {
-                QName.from_uri(attr).tag if self.ns_attrs else attr: val
+                QName.from_uri(attr).tag if self._ns_attrs else attr: val
                 for attr, val in element.attrib.items()
             }
 
@@ -481,9 +485,9 @@ class MappingSerializerFactory:
         ):
             super().__init__(model, model_field, ctx)
 
-            name, ns, nsmap = self.get_entity_info(model_field)
-            self.name = name or model_field.alias
-            self.element_name = QName.from_alias(tag=self.name, ns=self.ns, nsmap=self.nsmap).uri
+            name, ns, nsmap = self._get_entity_info(model_field)
+            self._name = name or model_field.alias
+            self._element_name = QName.from_alias(tag=self._name, ns=self._ns, nsmap=self._nsmap).uri
 
         def serialize(
                 self, element: etree.Element, value: Dict[str, Any], *, encoder: XmlEncoder, skip_empty: bool = False
@@ -491,11 +495,11 @@ class MappingSerializerFactory:
             if skip_empty and len(value) == 0:
                 return element
 
-            sub_element = find_element_or_create(element, self.element_name)
+            sub_element = find_element_or_create(element, self._element_name)
             return super().serialize(sub_element, value, encoder=encoder, skip_empty=skip_empty)
 
         def deserialize(self, element: etree.Element) -> Optional[Dict[str, str]]:
-            if (sub_element := element.find(self.element_name)) is not None:
+            if (sub_element := element.find(self._element_name)) is not None:
                 return super().deserialize(sub_element)
             else:
                 return None
@@ -547,17 +551,17 @@ class HomogeneousSerializerFactory:
         ):
             assert model_field.sub_fields is not None, "unexpected model field"
 
-            name, ns, nsmap = self.get_entity_info(model_field)
+            name, ns, nsmap = self._get_entity_info(model_field)
             name = name or model_field.alias
             ns = ns or ctx.parent_ns
             nsmap = merge_nsmaps(nsmap, ctx.parent_nsmap)
 
-            self.element_name = QName.from_alias(tag=name, ns=ns, nsmap=nsmap).uri
+            self._element_name = QName.from_alias(tag=name, ns=ns, nsmap=nsmap).uri
 
             item_field = deepcopy(model_field.sub_fields[0])
             item_field.name = model_field.name
             item_field.alias = model_field.alias
-            self.serializer = self.build_field_serializer(
+            self._serializer = self._build_field_serializer(
                 model,
                 item_field,
                 dc.replace(
@@ -578,15 +582,15 @@ class HomogeneousSerializerFactory:
                 return element
 
             for val in value:
-                sub_element = etree.SubElement(element, self.element_name)
-                self.serializer.serialize(sub_element, val, encoder=encoder, skip_empty=skip_empty)
+                sub_element = etree.SubElement(element, self._element_name)
+                self._serializer.serialize(sub_element, val, encoder=encoder, skip_empty=skip_empty)
 
             return element
 
         def deserialize(self, element: etree.Element) -> Optional[List[Any]]:
             return [
-                self.serializer.deserialize(sub_element)
-                for sub_element in element.findall(self.element_name)
+                self._serializer.deserialize(sub_element)
+                for sub_element in element.findall(self._element_name)
             ]
 
     @classmethod
@@ -639,21 +643,21 @@ class HeterogeneousSerializerFactory:
         ):
             assert model_field.sub_fields is not None, "unexpected model field"
 
-            name, ns, nsmap = self.get_entity_info(model_field)
+            name, ns, nsmap = self._get_entity_info(model_field)
             name = name or model_field.alias
             ns = ns or ctx.parent_ns
             nsmap = merge_nsmaps(nsmap, ctx.parent_nsmap)
 
-            self.element_name = QName.from_alias(tag=name, ns=ns, nsmap=nsmap).uri
+            self._element_name = QName.from_alias(tag=name, ns=ns, nsmap=nsmap).uri
 
-            self.serializers = []
+            self._serializers = []
             for sub_field in model_field.sub_fields:
                 sub_field = deepcopy(sub_field)
                 sub_field.name = model_field.name
                 sub_field.alias = model_field.alias
 
-                self.serializers.append(
-                    self.build_field_serializer(
+                self._serializers.append(
+                    self._build_field_serializer(
                         model,
                         sub_field,
                         dc.replace(
@@ -674,8 +678,8 @@ class HeterogeneousSerializerFactory:
             if skip_empty and len(value) == 0:
                 return element
 
-            for serializer, val in zip(self.serializers, value):
-                sub_element = etree.SubElement(element, self.element_name)
+            for serializer, val in zip(self._serializers, value):
+                sub_element = etree.SubElement(element, self._element_name)
                 serializer.serialize(sub_element, val, encoder=encoder, skip_empty=skip_empty)
 
             return element
@@ -683,7 +687,7 @@ class HeterogeneousSerializerFactory:
         def deserialize(self, element: etree.Element) -> Optional[List[Any]]:
             return [
                 serializer.deserialize(sub_element)
-                for serializer, sub_element in zip(self.serializers, element.findall(self.element_name))
+                for serializer, sub_element in zip(self._serializers, element.findall(self._element_name))
             ]
 
     @classmethod
@@ -733,7 +737,7 @@ class WrappedSerializerFactory:
         def __init__(
                 self, model: Type['pxml.BaseXmlModel'], model_field: pd.fields.ModelField, ctx: Serializer.Context,
         ):
-            path, ns, nsmap = self.get_entity_info(model_field)
+            path, ns, nsmap = self._get_entity_info(model_field)
             ns = ns or ctx.parent_ns
             nsmap = merge_nsmaps(nsmap, ctx.parent_nsmap)
 
@@ -746,8 +750,8 @@ class WrappedSerializerFactory:
             # copy field_info from wrapped entity
             model_field.field_info = field_info.entity or pd.fields.FieldInfo()
 
-            self.path = tuple(QName.from_alias(tag=part, ns=ns, nsmap=nsmap).uri for part in path.split('/'))
-            self.serializer = self.build_field_serializer(
+            self._path = tuple(QName.from_alias(tag=part, ns=ns, nsmap=nsmap).uri for part in path.split('/'))
+            self._serializer = self._build_field_serializer(
                 model,
                 model_field,
                 ctx=dc.replace(
@@ -767,16 +771,16 @@ class WrappedSerializerFactory:
             if skip_empty and isinstance(value, Sized) and len(value) == 0:
                 return element
 
-            for part in self.path:
+            for part in self._path:
                 element = find_element_or_create(element, part)
 
-            self.serializer.serialize(element, value, encoder=encoder, skip_empty=skip_empty)
+            self._serializer.serialize(element, value, encoder=encoder, skip_empty=skip_empty)
 
             return element
 
         def deserialize(self, element: etree.Element) -> Optional[Any]:
-            if (sub_element := element.find('/'.join(self.path))) is not None:
-                return self.serializer.deserialize(sub_element)
+            if (sub_element := element.find('/'.join(self._path))) is not None:
+                return self._serializer.deserialize(sub_element)
             else:
                 return None
 
