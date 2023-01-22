@@ -558,6 +558,23 @@ class HomogeneousSerializerFactory:
     Homogeneous collection type serializer factory.
     """
 
+    class TextSerializer(Serializer):
+        def serialize(
+                self, element: etree.Element, value: Any, *, encoder: XmlEncoder, skip_empty: bool = False,
+        ) -> Optional[etree.Element]:
+            if value is None or skip_empty and len(value) == 0:
+                return element
+
+            encoded = " ".join(encoder.encode(val) for val in value)
+            element.text = encoded
+            return element
+
+        def deserialize(self, element: etree.Element) -> Optional[List[Any]]:
+            return [
+                value
+                for value in element.text.split()
+            ]
+
     class ElementSerializer(Serializer):
         def __init__(
                 self, model: Type['pxml.BaseXmlModel'], model_field: pd.fields.ModelField, ctx: Serializer.Context,
@@ -633,7 +650,7 @@ class HomogeneousSerializerFactory:
         if field_location is Location.ELEMENT:
             return cls.ElementSerializer(model, model_field, ctx)
         elif field_location is Location.MISSING:
-            return cls.ElementSerializer(model, model_field, ctx)
+            return cls.TextSerializer()
         elif field_location is Location.ATTRIBUTE:
             raise errors.ModelFieldError(
                 model.__name__, model_field.name, "attributes of collection type are not supported",
