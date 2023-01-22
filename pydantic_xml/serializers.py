@@ -559,6 +559,15 @@ class HomogeneousSerializerFactory:
     """
 
     class TextSerializer(Serializer):
+        def __init__(
+                self, model: Type['pxml.BaseXmlModel'], model_field: pd.fields.ModelField, ctx: Serializer.Context,
+        ):
+            assert len(model_field.sub_fields) == 1
+            if issubclass(model_field.type_, pxml.BaseXmlModel):
+                raise errors.ModelFieldError(
+                     model.__name__, model_field.name, "Inline list value should be of scalar type",
+                )
+
         def serialize(
                 self, element: etree.Element, value: Any, *, encoder: XmlEncoder, skip_empty: bool = False,
         ) -> Optional[etree.Element]:
@@ -570,10 +579,7 @@ class HomogeneousSerializerFactory:
             return element
 
         def deserialize(self, element: etree.Element) -> Optional[List[Any]]:
-            return [
-                value
-                for value in element.text.split()
-            ]
+            return [value for value in element.text.split()]
 
     class ElementSerializer(Serializer):
         def __init__(
@@ -650,7 +656,7 @@ class HomogeneousSerializerFactory:
         if field_location is Location.ELEMENT:
             return cls.ElementSerializer(model, model_field, ctx)
         elif field_location is Location.MISSING:
-            return cls.TextSerializer()
+            return cls.TextSerializer(model, model_field, ctx)
         elif field_location is Location.ATTRIBUTE:
             raise errors.ModelFieldError(
                 model.__name__, model_field.name, "attributes of collection type are not supported",
