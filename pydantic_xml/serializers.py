@@ -581,6 +581,37 @@ class HomogeneousSerializerFactory:
         def deserialize(self, element: etree.Element) -> Optional[List[Any]]:
             return [value for value in element.text.split()]
 
+    class AttributeSerializer(Serializer):
+        def __init__(
+                self, model: Type['pxml.BaseXmlModel'], model_field: pd.fields.ModelField, ctx: Serializer.Context,
+        ):
+            assert len(model_field.sub_fields) == 1
+            if issubclass(model_field.type_, pxml.BaseXmlModel):
+                raise errors.ModelFieldError(
+                     model.__name__, model_field.name, "Inline list value should be of scalar type",
+                )
+
+            ns_attrs = model.__xml_ns_attrs__
+            name = ctx.entity_name or model_field.alias
+            ns = ctx.entity_ns or (ctx.parent_ns if ns_attrs else None)
+            nsmap = ctx.parent_nsmap
+            
+            self.attr_name = QName.from_alias(tag=name, ns=ns, nsmap=nsmap, is_attr=True).uri
+
+
+        def serialize(
+                self, element: etree.Element, value: Any, *, encoder: XmlEncoder, skip_empty: bool = False,
+        ) -> Optional[etree.Element]:
+            if value is None or skip_empty and len(value) == 0:
+                return element
+
+            encoded = " ".join(encoder.encode(val) for val in value)
+            element.set(self.attr_name, encoded)
+            return element
+
+        def deserialize(self, element: etree.Element) -> Optional[List[Any]]:
+            return [value for value in element.get(self.attr_name).split()]
+
     class ElementSerializer(Serializer):
         def __init__(
                 self, model: Type['pxml.BaseXmlModel'], model_field: pd.fields.ModelField, ctx: Serializer.Context,
@@ -658,9 +689,10 @@ class HomogeneousSerializerFactory:
         elif field_location is Location.MISSING:
             return cls.TextSerializer(model, model_field, ctx)
         elif field_location is Location.ATTRIBUTE:
-            raise errors.ModelFieldError(
-                model.__name__, model_field.name, "attributes of collection type are not supported",
-            )
+            return cls.AttributeSerializer(model, model_field, ctx)
+            # raise errors.ModelFieldError(
+            #     model.__name__, model_field.name, "attributes of collection type are not supported",
+            # )
         else:
             raise AssertionError("unreachable")
 

@@ -39,7 +39,7 @@ def test_skip_empty():
 
     class TestModel(BaseXmlModel, tag='model'):
         model: TestSubModel
-        list: List[TestSubModel] = []
+        list: List[TestSubModel] = element(default=[])
         tuple: Optional[Tuple[TestSubModel, TestSubModel]] = None
         attrs: Dict[str, str] = {}
         wrapped: Optional[str] = wrapped('envelope')
