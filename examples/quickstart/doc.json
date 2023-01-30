@@ -1,0 +1,65 @@
+{
+    "trade_name": "SpaceX",
+    "type": "Private",
+    "founder": {
+        "name": "Elon",
+        "surname": "Musk"
+    },
+    "founded": "2002-03-14",
+    "employees": 12000,
+    "website": "https://www.spacex.com",
+    "industries": [
+        "communications",
+        "space"
+    ],
+    "key_people": [
+        {
+            "name": "Elon Musk",
+            "position": "CEO"
+        },
+        {
+            "name": "Elon Musk",
+            "position": "CTO"
+        },
+        {
+            "name": "Gwynne Shotwell",
+            "position": "COO"
+        }
+    ],
+    "headquarters": {
+        "country": "US",
+        "state": "California",
+        "city": "Hawthorne"
+    },
+    "socials": [
+        {
+            "type": "linkedin",
+            "url": "https://www.linkedin.com/company/spacex"
+        },
+        {
+            "type": "twitter",
+            "url": "https://twitter.com/spacex"
+        },
+        {
+            "type": "youtube",
+            "url": "https://www.youtube.com/spacex"
+        }
+    ],
+    "products": [
+        {
+            "status": "running",
+            "launched": 2013,
+            "title": "Several launch vehicles"
+        },
+        {
+            "status": "running",
+            "launched": 2019,
+            "title": "Starlink"
+        },
+        {
+            "status": "development",
+            "launched": null,
+            "title": "Starship"
+        }
+    ]
+}

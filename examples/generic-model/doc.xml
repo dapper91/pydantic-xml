@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<soap:Envelope xmlns:soap="http://www.w3.org/2003/05/soap-envelope/">
+    <soap:Header>
+        <auth:BasicAuth xmlns:auth="http://www.company.com/auth">
+            <auth:Username>admin</auth:Username>
+            <auth:Password>secret</auth:Password>
+        </auth:BasicAuth>
+    </soap:Header>
+    <soap:Body>
+        <co:CreateCompany xmlns:co="https://www.company.com/co">
+            <co:TradeName>SpaceX</co:TradeName>
+            <co:Founded>2002-03-14</co:Founded>
+            <co:WebSite>https://www.spacex.com</co:WebSite>
+        </co:CreateCompany>
+    </soap:Body>
+</soap:Envelope>

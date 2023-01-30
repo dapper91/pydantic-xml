@@ -1,0 +1,11 @@
+<Directory Name="root" Mode="rwxr-xr-x">
+    <Directory Name="etc" Mode="rwxr-xr-x">
+        <Directory Name="ssh" Mode="rwxr-xr-x"/>
+        <File Name="passwd" Mode="-rw-r--r--"/>
+        <File Name="hosts" Mode="-rw-r--r--"/>
+    </Directory>
+    <Directory Name="bin" Mode="rwxr-xr-x"/>
+    <Directory Name="usr" Mode="rwxr-xr-x">
+        <Directory Name="bin" Mode="rwxr-xr-x"/>
+    </Directory>
+</Directory>
