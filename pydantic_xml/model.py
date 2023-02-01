@@ -19,9 +19,9 @@ class XmlAttributeInfo(XmlEntityInfo):
     """
     Field xml attribute meta-information.
 
-    :param tag: attribute name
+    :param name: attribute name
     :param ns: attribute xml namespace
-    :param kwargs: pydantic field arguments
+    :param kwargs: pydantic field arguments. See :py:class:`pydantic.Field`
     """
 
     def __init__(
@@ -86,7 +86,7 @@ class XmlWrapperInfo(XmlEntityInfo):
     Field xml wrapper meta-information.
 
     :param entity: wrapped entity
-    :param tag: element tag
+    :param path: entity path
     :param ns: element xml namespace
     :param nsmap: element xml namespace map
     :param kwargs: pydantic field arguments
@@ -134,6 +134,7 @@ class XmlWrapperInfo(XmlEntityInfo):
 def attr(**kwargs: Any) -> XmlAttributeInfo:
     """
     Marks a pydantic field as an xml attribute.
+    Method parameters are identical to :py:class:`pydantic_xml.XmlAttributeInfo`.
     """
 
     return XmlAttributeInfo(**kwargs)
@@ -142,6 +143,7 @@ def attr(**kwargs: Any) -> XmlAttributeInfo:
 def element(**kwargs: Any) -> XmlElementInfo:
     """
     Marks a pydantic field as an xml element.
+    Method parameters are identical to :py:class:`pydantic_xml.XmlElementInfo`.
     """
 
     return XmlElementInfo(**kwargs)
@@ -150,12 +152,16 @@ def element(**kwargs: Any) -> XmlElementInfo:
 def wrapped(*args: Any, **kwargs: Any) -> XmlWrapperInfo:
     """
     Marks a pydantic field as a wrapped xml entity.
+    Method parameters are identical to :py:class:`pydantic_xml.XmlWrapperInfo`.
     """
 
     return XmlWrapperInfo(*args, **kwargs)
 
 
 class XmlModelMeta(pd.main.ModelMetaclass):
+    """
+    Xml model metaclass.
+    """
 
     __is_base_model_defined__ = False
 
