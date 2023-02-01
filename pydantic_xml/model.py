@@ -4,7 +4,7 @@ import pydantic as pd
 import pydantic.fields
 import pydantic.generics
 
-from . import config, errors, serializers
+from . import config, errors, serializers, utils
 from .backend import etree
 from .utils import NsMap, register_nsmap
 
@@ -23,6 +23,8 @@ class XmlAttributeInfo(XmlEntityInfo):
     :param ns: attribute xml namespace
     :param kwargs: pydantic field arguments. See :py:class:`pydantic.Field`
     """
+
+    __slots__ = ('_name', '_ns')
 
     def __init__(
             self,
@@ -52,6 +54,8 @@ class XmlElementInfo(XmlEntityInfo):
     :param nsmap: element xml namespace map
     :param kwargs: pydantic field arguments
     """
+
+    __slots__ = ('_tag', '_ns', '_nsmap')
 
     def __init__(
             self,
@@ -92,6 +96,8 @@ class XmlWrapperInfo(XmlEntityInfo):
     :param kwargs: pydantic field arguments
     """
 
+    __slots__ = ('_entity', '_path', '_ns', '_nsmap')
+
     def __init__(
             self,
             path: str,
@@ -102,7 +108,7 @@ class XmlWrapperInfo(XmlEntityInfo):
     ):
         if entity is not None:
             # copy arguments from the wrapped entity to let pydantic know how to process the field
-            for entity_field_name in entity.__slots__:
+            for entity_field_name in utils.get_slots(entity):
                 kwargs[entity_field_name] = getattr(entity, entity_field_name)
 
         super().__init__(**kwargs)
