@@ -1,8 +1,9 @@
 from typing import Dict, List, Optional, Tuple
 
+import pytest
 from helpers import assert_xml_equal
 
-from pydantic_xml import BaseXmlModel, attr, element, wrapped
+from pydantic_xml import BaseXmlModel, attr, element, errors, wrapped
 
 
 def test_xml_declaration():
@@ -22,13 +23,19 @@ def test_xml_declaration():
     assert_xml_equal(actual_xml, xml.encode())
 
 
-def test_root_model():
+def test_root_not_found_error():
     class TestModel(BaseXmlModel, tag='model'):
         pass
 
-    xml = '''<model1/>'''
+    xml = '''
+    <model1/>
+    '''
 
-    assert TestModel.from_xml(xml) is None
+    with pytest.raises(errors.ParsingError) as err:
+        TestModel.from_xml(xml)
+
+    assert len(err.value.args) == 1
+    assert err.value.args[0] == 'root element not found (actual: model1, expected: model)'
 
 
 def test_skip_empty():

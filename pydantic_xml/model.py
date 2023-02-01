@@ -233,7 +233,9 @@ class BaseXmlModel(pd.BaseModel, metaclass=XmlModelMeta):
             obj = cls.__xml_serializer__.deserialize(root)
             return obj
         else:
-            return None
+            raise errors.ParsingError(
+                f"root element not found (actual: {root.tag}, expected: {cls.__xml_serializer__.element_name})",
+            )
 
     @classmethod
     def from_xml(cls, source: Union[str, bytes]) -> Optional['BaseXmlModel']:
