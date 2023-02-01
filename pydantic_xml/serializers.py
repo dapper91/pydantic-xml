@@ -115,6 +115,13 @@ def find_element_or_create(root: etree.Element, name: str) -> etree.Element:
     return sub_element
 
 
+def is_empty(element: etree.Element) -> bool:
+    if not element.text and not element.attrib and len(element) == 0:
+        return True
+    else:
+        return False
+
+
 def is_xml_model(tp: Any) -> bool:
     return isclass(tp) and issubclass(tp, pxml.BaseXmlModel)
 
@@ -415,8 +422,7 @@ class ModelSerializerFactory:
 
             sub_element = create_element(self._element_name, nsmap=self._nsmap)
             super().serialize(sub_element, value, encoder=encoder, skip_empty=skip_empty)
-
-            if skip_empty and not sub_element.text and not sub_element.attrib and len(sub_element) == 0:
+            if skip_empty and is_empty(sub_element):
                 return None
             else:
                 element.append(sub_element)
