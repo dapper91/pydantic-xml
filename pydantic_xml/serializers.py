@@ -279,7 +279,7 @@ class PrimitiveTypeSerializerFactory:
             name, ns, nsmap = self._get_entity_info(model_field)
             name = name or model_field.alias
             ns = ns or ctx.parent_ns
-            nsmap = merge_nsmaps(nsmap, ctx.parent_nsmap)
+            self._nsmap = nsmap = merge_nsmaps(nsmap, ctx.parent_nsmap)
             self._element_name = QName.from_alias(tag=name, ns=ns, nsmap=nsmap).uri
 
         def serialize(
@@ -288,8 +288,13 @@ class PrimitiveTypeSerializerFactory:
             if value is None and skip_empty:
                 return element
 
-            sub_element = find_element_or_create(element, self._element_name)
-            return super().serialize(sub_element, value, encoder=encoder, skip_empty=skip_empty)
+            sub_element = create_element(self._element_name, nsmap=self._nsmap)
+            super().serialize(sub_element, value, encoder=encoder, skip_empty=skip_empty)
+            if skip_empty and is_empty(sub_element):
+                return None
+            else:
+                element.append(sub_element)
+                return sub_element
 
         def deserialize(self, element: Optional[etree.Element]) -> Any:
             if element is not None and (sub_element := element.find(self._element_name)) is not None:
@@ -513,8 +518,13 @@ class MappingSerializerFactory:
             if skip_empty and len(value) == 0:
                 return element
 
-            sub_element = find_element_or_create(element, self._element_name)
-            return super().serialize(sub_element, value, encoder=encoder, skip_empty=skip_empty)
+            sub_element = create_element(self._element_name, self._nsmap)
+            super().serialize(sub_element, value, encoder=encoder, skip_empty=skip_empty)
+            if skip_empty and is_empty(sub_element):
+                return None
+            else:
+                element.append(sub_element)
+                return sub_element
 
         def deserialize(self, element: Optional[etree.Element]) -> Optional[Dict[str, str]]:
             if element and (sub_element := element.find(self._element_name)) is not None:
