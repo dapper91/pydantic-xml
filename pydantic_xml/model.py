@@ -6,6 +6,7 @@ import pydantic.generics
 
 from . import config, errors, serializers, utils
 from .backend import etree
+from .serializers.factories import ModelSerializerFactory
 from .utils import NsMap, register_nsmap
 
 
@@ -190,7 +191,7 @@ class BaseXmlModel(pd.BaseModel, metaclass=XmlModelMeta):
     __xml_ns__: ClassVar[Optional[str]]
     __xml_nsmap__: ClassVar[Optional[NsMap]]
     __xml_ns_attrs__: ClassVar[bool]
-    __xml_serializer__: ClassVar[Optional[serializers.ModelSerializerFactory.RootSerializer]] = None
+    __xml_serializer__: ClassVar[Optional[ModelSerializerFactory.RootSerializer]] = None
 
     def __init_subclass__(
             cls,
@@ -222,7 +223,7 @@ class BaseXmlModel(pd.BaseModel, metaclass=XmlModelMeta):
         if config.REGISTER_NS_PREFIXES and cls.__xml_nsmap__:
             register_nsmap(cls.__xml_nsmap__)
 
-        cls.__xml_serializer__ = serializers.ModelSerializerFactory.build_root(cls)
+        cls.__xml_serializer__ = ModelSerializerFactory.build_root(cls)
 
     @classmethod
     def from_xml_tree(cls, root: etree.Element) -> Optional['BaseXmlModel']:
