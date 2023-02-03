@@ -140,6 +140,23 @@ def test_text_list_extraction():
     assert_xml_equal(actual_xml, xml)
 
 
+def test_text_tuple_extraction():
+    class RootModel(BaseXmlModel, tag="model"):
+        values: Tuple[int, ...]
+
+    xml = '''
+    <model>1 2 70 -34</model>
+    '''
+
+    actual_obj = RootModel.from_xml(xml)
+    expected_obj = RootModel(
+        values=[1, 2, 70, -34]
+    )
+
+    actual_xml = actual_obj.to_xml()
+    assert_xml_equal(actual_xml, xml)
+
+
 def test_attr_list_extraction():
     class RootModel(BaseXmlModel, tag="model"):
         values: List[float] = attr()
@@ -155,7 +172,31 @@ def test_attr_list_extraction():
 
     actual_obj = RootModel.from_xml(xml)
     expected_obj = RootModel(
-        values = [3.14, -1.0, 3e2]
+        values=[3.14, -1.0, 3e2]
+    )
+
+    assert actual_obj == expected_obj
+
+    actual_xml = actual_obj.to_xml()
+    assert_xml_equal(actual_xml, xml)
+
+
+def test_attr_tuple_extraction():
+    class RootModel(BaseXmlModel, tag="model"):
+        values: List[float] = attr()
+
+    xml = '''
+    <model values="3.14 -1.0 300.0"/>
+    '''
+    # This will fail if scientific notation is used
+    # i.e. if 300 is replaced with 3e2 or 300, the deserializer
+    # will always use the standard notation with the added `.0`.
+    # While this behaviour fails the tests, it shouldn't
+    # matter in practice.
+
+    actual_obj = RootModel.from_xml(xml)
+    expected_obj = RootModel(
+        values=[3.14, -1.0, 3e2]
     )
 
     assert actual_obj == expected_obj
