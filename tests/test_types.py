@@ -39,3 +39,22 @@ def test_ipaddress_fields_extraction():
 
     actual_xml = actual_obj.to_xml()
     assert_xml_equal(actual_xml, xml)
+
+
+def test_bool_extraction():
+    class TestModel(BaseXmlModel, tag='model'):
+        text: bool
+
+    xml = '''
+    <model>true</model>
+    '''
+
+    actual_obj = TestModel.from_xml(xml)
+    expected_obj = TestModel(
+        text=True,
+    )
+
+    assert actual_obj == expected_obj
+
+    actual_xml = actual_obj.to_xml()
+    assert_xml_equal(actual_xml, xml)
