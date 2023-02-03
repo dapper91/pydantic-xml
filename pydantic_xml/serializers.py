@@ -6,7 +6,7 @@ from copy import deepcopy
 from decimal import Decimal
 from enum import Enum, IntEnum
 from inspect import isclass
-from typing import Any, Dict, List, Mapping, Optional, Sized, Type
+from typing import Any, Dict, List, Mapping, Optional, Sized, Type, Collection
 
 import pydantic as pd
 
@@ -563,13 +563,13 @@ class HomogeneousSerializerFactory:
                 self, model: Type['pxml.BaseXmlModel'], model_field: pd.fields.ModelField, ctx: Serializer.Context,
         ):
             assert len(model_field.sub_fields) == 1
-            if issubclass(model_field.type_, pxml.BaseXmlModel):
+            if isclass(model_field.type_) and issubclass(model_field.type_, pxml.BaseXmlModel):
                 raise errors.ModelFieldError(
                      model.__name__, model_field.name, "Inline list value should be of scalar type",
                 )
 
         def serialize(
-                self, element: etree.Element, value: Any, *, encoder: XmlEncoder, skip_empty: bool = False,
+                self, element: etree.Element, value: Collection[Any], *, encoder: XmlEncoder, skip_empty: bool = False,
         ) -> Optional[etree.Element]:
             if value is None or skip_empty and len(value) == 0:
                 return element
@@ -579,6 +579,9 @@ class HomogeneousSerializerFactory:
             return element
 
         def deserialize(self, element: etree.Element) -> Optional[List[Any]]:
+            if element.text is None:
+                return []
+
             return [value for value in element.text.split()]
 
     class AttributeSerializer(Serializer):
@@ -600,7 +603,7 @@ class HomogeneousSerializerFactory:
 
 
         def serialize(
-                self, element: etree.Element, value: Any, *, encoder: XmlEncoder, skip_empty: bool = False,
+                self, element: etree.Element, value: Collection[Any], *, encoder: XmlEncoder, skip_empty: bool = False,
         ) -> Optional[etree.Element]:
             if value is None or skip_empty and len(value) == 0:
                 return element
@@ -610,7 +613,7 @@ class HomogeneousSerializerFactory:
             return element
 
         def deserialize(self, element: etree.Element) -> Optional[List[Any]]:
-            return [value for value in element.get(self.attr_name).split()]
+            return [value for value in element.get(self.attr_name, default="").split()]
 
     class ElementSerializer(Serializer):
         def __init__(
@@ -690,9 +693,6 @@ class HomogeneousSerializerFactory:
             return cls.TextSerializer(model, model_field, ctx)
         elif field_location is Location.ATTRIBUTE:
             return cls.AttributeSerializer(model, model_field, ctx)
-            # raise errors.ModelFieldError(
-            #     model.__name__, model_field.name, "attributes of collection type are not supported",
-            # )
         else:
             raise AssertionError("unreachable")
 
