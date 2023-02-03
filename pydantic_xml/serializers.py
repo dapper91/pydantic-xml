@@ -32,10 +32,10 @@ class XmlEncoder:
 
         if isinstance(obj, str):
             return obj
-        if isinstance(obj, (int, float, Decimal)):
-            return str(obj)
         if isinstance(obj, bool):
             return str(obj).lower()
+        if isinstance(obj, (int, float, Decimal)):
+            return str(obj)
         if isinstance(obj, (dt.datetime, dt.date, dt.time)):
             return obj.isoformat()
         if isinstance(
