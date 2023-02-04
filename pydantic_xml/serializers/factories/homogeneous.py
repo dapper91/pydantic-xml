@@ -6,7 +6,7 @@ import pydantic as pd
 
 import pydantic_xml as pxml
 from pydantic_xml import errors
-from pydantic_xml.backend import etree
+from pydantic_xml.element import XmlElementReader, XmlElementWriter
 from pydantic_xml.serializers.encoder import XmlEncoder
 from pydantic_xml.serializers.serializer import Location, PydanticShapeType, Serializer
 from pydantic_xml.utils import QName, merge_nsmaps
@@ -33,20 +33,22 @@ class HomogeneousSerializerFactory:
             item_field = deepcopy(model_field.sub_fields[0])
             item_field.name = model_field.name
             item_field.alias = model_field.alias
-            self._serializer = self._build_field_serializer(
+            item_field.field_info = model_field.field_info
+
+            self._inner_serializer = self._build_field_serializer(
                 model,
                 item_field,
                 dc.replace(
                     ctx,
-                    parent_is_root=True,
+                    parent_is_root=False,
                     parent_ns=ns,
                     parent_nsmap=nsmap,
                 ),
             )
 
         def serialize(
-                self, element: etree.Element, value: List[Any], *, encoder: XmlEncoder, skip_empty: bool = False,
-        ) -> Optional[etree.Element]:
+                self, element: XmlElementWriter, value: List[Any], *, encoder: XmlEncoder, skip_empty: bool = False,
+        ) -> Optional[XmlElementWriter]:
             if value is None:
                 return element
 
@@ -57,19 +59,19 @@ class HomogeneousSerializerFactory:
                 if skip_empty and val is None:
                     continue
 
-                sub_element = etree.SubElement(element, self._element_name)
-                self._serializer.serialize(sub_element, val, encoder=encoder, skip_empty=skip_empty)
+                self._inner_serializer.serialize(element, val, encoder=encoder, skip_empty=skip_empty)
 
             return element
 
-        def deserialize(self, element: Optional[etree.Element]) -> Optional[List[Any]]:
+        def deserialize(self, element: Optional[XmlElementReader]) -> Optional[List[Any]]:
             if element is None:
                 return None
 
-            return [
-                self._serializer.deserialize(sub_element)
-                for sub_element in element.findall(self._element_name)
-            ]
+            result = []
+            while (value := self._inner_serializer.deserialize(element)) is not None:
+                result.append(value)
+
+            return result or None
 
     @classmethod
     def build(

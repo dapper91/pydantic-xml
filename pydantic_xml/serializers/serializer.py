@@ -7,8 +7,8 @@ from typing import Any, Dict, Optional, Tuple, Type
 import pydantic as pd
 
 import pydantic_xml as pxml
-from pydantic_xml.backend import etree
-from pydantic_xml.utils import NsMap
+from pydantic_xml.element import SearchMode, XmlElementReader, XmlElementWriter
+from pydantic_xml.typedefs import NsMap
 
 from . import factories
 from .encoder import XmlEncoder
@@ -61,20 +61,6 @@ class PydanticShapeType(IntEnum):
         return cls(cls.__SHAPE_TYPES__.get(shape, cls.UNKNOWN))
 
 
-def find_element_or_create(root: etree.Element, name: str) -> etree.Element:
-    if (sub_element := root.find(name)) is None:
-        sub_element = etree.SubElement(root, name)
-
-    return sub_element
-
-
-def is_empty(element: etree.Element) -> bool:
-    if not element.text and not element.attrib and len(element) == 0:
-        return True
-    else:
-        return False
-
-
 def is_xml_model(tp: Any) -> bool:
     return isclass(tp) and issubclass(tp, pxml.BaseXmlModel)
 
@@ -86,12 +72,13 @@ class Serializer(abc.ABC):
 
     @dc.dataclass(frozen=True)
     class Context:
+        search_mode: SearchMode
         parent_is_root: bool = False
         parent_ns: Optional[str] = None
         parent_nsmap: Optional[NsMap] = None
 
     @abc.abstractmethod
-    def serialize(self, element: etree.Element, value: Any, *, encoder: XmlEncoder, skip_empty: bool = False) -> Any:
+    def serialize(self, element: XmlElementWriter, value: Any, *, encoder: XmlEncoder, skip_empty: bool = False) -> Any:
         """
         Serializes a value into an xml element.
 
@@ -102,7 +89,7 @@ class Serializer(abc.ABC):
         """
 
     @abc.abstractmethod
-    def deserialize(self, element: Optional[etree.Element]) -> Any:
+    def deserialize(self, element: Optional[XmlElementReader]) -> Any:
         """
         Deserializes a value from an xml element.
 
@@ -127,7 +114,7 @@ class Serializer(abc.ABC):
     def _get_entity_info(
             cls,
             model_field: pd.fields.ModelField,
-    ) -> Tuple[Optional[str], Optional[str], Optional[Dict[str, str]]]:
+    ) -> Tuple[Optional[str], Optional[str], Optional[NsMap]]:
         field_info = model_field.field_info
 
         if isinstance(field_info, pxml.XmlElementInfo):

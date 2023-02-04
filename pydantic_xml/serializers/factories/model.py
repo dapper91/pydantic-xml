@@ -1,12 +1,14 @@
+import abc
 from typing import Any, Optional, Type
 
 import pydantic as pd
 
 import pydantic_xml as pxml
 from pydantic_xml import errors
-from pydantic_xml.backend import create_element, etree
+from pydantic_xml.element import XmlElementReader, XmlElementWriter
 from pydantic_xml.serializers.encoder import XmlEncoder
-from pydantic_xml.serializers.serializer import Location, Serializer, is_empty, is_xml_model
+from pydantic_xml.serializers.serializer import Location, Serializer, is_xml_model
+from pydantic_xml.typedefs import NsMap
 from pydantic_xml.utils import QName, merge_nsmaps
 
 
@@ -14,6 +16,12 @@ class ModelSerializerFactory:
     """
     Model serializer factory.
     """
+
+    class ModelSerializer(Serializer):
+        @property
+        @abc.abstractmethod
+        def model(self) -> Type['pxml.BaseXmlModel']:
+            pass
 
     class RootSerializer(Serializer):
         def __init__(self, model: Type['pxml.BaseXmlModel']):
@@ -28,6 +36,7 @@ class ModelSerializerFactory:
             self._element_name = QName.from_alias(tag=name, ns=ns, nsmap=nsmap).uri
 
             ctx = Serializer.Context(
+                search_mode=model.__xml_search_mode__,
                 parent_ns=ns,
                 parent_nsmap=nsmap,
                 parent_is_root=is_root,
@@ -41,21 +50,26 @@ class ModelSerializerFactory:
         def element_name(self) -> str:
             return self._element_name
 
+        @property
+        def nsmap(self) -> Optional[NsMap]:
+            return self._nsmap
+
+        @property
+        def model(self) -> Type['pxml.BaseXmlModel']:
+            return self._model
+
         def serialize(
-                self, element: Optional[etree.Element], value: Any, *, encoder: XmlEncoder, skip_empty: bool = False,
-        ) -> Optional[etree.Element]:
+                self, element: XmlElementWriter, value: Any, *, encoder: XmlEncoder, skip_empty: bool = False,
+        ) -> Optional[XmlElementWriter]:
             if value is None:
                 return None
-
-            if element is None:
-                element = create_element(self._element_name, nsmap=self._nsmap)
 
             for field_name, field_serializer in self._field_serializers.items():
                 field_serializer.serialize(element, getattr(value, field_name), encoder=encoder, skip_empty=skip_empty)
 
             return element
 
-        def deserialize(self, element: Optional[etree.Element]) -> Optional['pxml.BaseXmlModel']:
+        def deserialize(self, element: Optional[XmlElementReader]) -> Optional['pxml.BaseXmlModel']:
             if element is None:
                 return None
 
@@ -65,27 +79,31 @@ class ModelSerializerFactory:
                 if (field_value := field_serializer.deserialize(element)) is not None
             }
             if self._is_root:
-                obj = result['__root__']
+                obj = result.get('__root__')
             else:
                 obj = result
 
             return self._model.parse_obj(obj)
 
-    class DeferredSerializer(Serializer):
+    class DeferredSerializer(ModelSerializer):
 
         def __init__(self, model_field: pd.fields.ModelField):
             assert is_xml_model(model_field.type_), "unexpected model field type"
             self._model: Type[pxml.BaseXmlModel] = model_field.type_
 
+        @property
+        def model(self) -> Type['pxml.BaseXmlModel']:
+            return self._model
+
         def serialize(
-                self, element: etree.Element, value: Any, *, encoder: XmlEncoder, skip_empty: bool = False,
-        ) -> Optional[etree.Element]:
-            assert self._model.__xml_serializer__ is not None, "model is partially initialized"
+                self, element: XmlElementWriter, value: Any, *, encoder: XmlEncoder, skip_empty: bool = False,
+        ) -> Optional[XmlElementWriter]:
+            assert self._model.__xml_serializer__ is not None, f"model {self._model.__name__} is partially initialized"
 
             return self._model.__xml_serializer__.serialize(element, value, encoder=encoder, skip_empty=skip_empty)
 
-        def deserialize(self, element: Optional[etree.Element]) -> Optional['pxml.BaseXmlModel']:
-            assert self._model.__xml_serializer__ is not None, "model is partially initialized"
+        def deserialize(self, element: Optional[XmlElementReader]) -> Optional['pxml.BaseXmlModel']:
+            assert self._model.__xml_serializer__ is not None, f"model {self._model.__name__} is partially initialized"
 
             return self._model.__xml_serializer__.deserialize(element)
 
@@ -108,23 +126,25 @@ class ModelSerializerFactory:
 
             self._nsmap = nsmap
             self._element_name = QName.from_alias(tag=name, ns=ns, nsmap=nsmap).uri
+            self._search_mode = ctx.search_mode
 
         def serialize(
-                self, element: etree.Element, value: Any, *, encoder: XmlEncoder, skip_empty: bool = False,
-        ) -> Optional[etree.Element]:
+                self, element: XmlElementWriter, value: Any, *, encoder: XmlEncoder, skip_empty: bool = False,
+        ) -> Optional[XmlElementWriter]:
             if value is None:
                 return None
 
-            sub_element = create_element(self._element_name, nsmap=self._nsmap)
+            sub_element = element.make_element(self._element_name, nsmap=self._nsmap)
             super().serialize(sub_element, value, encoder=encoder, skip_empty=skip_empty)
-            if skip_empty and is_empty(sub_element):
+            if skip_empty and sub_element.is_empty():
                 return None
             else:
-                element.append(sub_element)
+                element.append_element(sub_element)
                 return sub_element
 
-        def deserialize(self, element: Optional[etree.Element]) -> Optional['pxml.BaseXmlModel']:
-            if element is not None and (sub_element := element.find(self._element_name)) is not None:
+        def deserialize(self, element: Optional[XmlElementReader]) -> Optional['pxml.BaseXmlModel']:
+            if element is not None and \
+                    (sub_element := element.pop_element(self._element_name, self._search_mode)) is not None:
                 return super().deserialize(sub_element)
             else:
                 return None

@@ -5,7 +5,8 @@ import pydantic.fields
 import pydantic.generics
 
 from . import config, errors, serializers, utils
-from .backend import etree
+from .element import SearchMode
+from .element.native import XmlElement, etree
 from .serializers.factories import ModelSerializerFactory
 from .utils import NsMap, register_nsmap
 
@@ -191,6 +192,7 @@ class BaseXmlModel(pd.BaseModel, metaclass=XmlModelMeta):
     __xml_ns__: ClassVar[Optional[str]]
     __xml_nsmap__: ClassVar[Optional[NsMap]]
     __xml_ns_attrs__: ClassVar[bool]
+    __xml_search_mode__: ClassVar[SearchMode]
     __xml_serializer__: ClassVar[Optional[ModelSerializerFactory.RootSerializer]] = None
 
     def __init_subclass__(
@@ -200,6 +202,7 @@ class BaseXmlModel(pd.BaseModel, metaclass=XmlModelMeta):
             ns: Optional[str] = None,
             nsmap: Optional[NsMap] = None,
             ns_attrs: bool = False,
+            search_mode: SearchMode = SearchMode.STRICT,
             **kwargs: Any,
     ):
         """
@@ -209,6 +212,7 @@ class BaseXmlModel(pd.BaseModel, metaclass=XmlModelMeta):
         :param ns: element namespace
         :param nsmap: element namespace map
         :param ns_attrs: use namespaced attributes
+        :param search_mode: element search mode
         """
 
         super().__init_subclass__(*args, **kwargs)
@@ -217,6 +221,7 @@ class BaseXmlModel(pd.BaseModel, metaclass=XmlModelMeta):
         cls.__xml_ns__ = ns if ns is not None else getattr(cls, '__xml_ns__', None)
         cls.__xml_nsmap__ = nsmap if nsmap is not None else getattr(cls, '__xml_nsmap__', None)
         cls.__xml_ns_attrs__ = ns_attrs if ns_attrs is not None else getattr(cls, '__xml_ns_attrs__', None)
+        cls.__xml_search_mode__ = search_mode if search_mode is not None else getattr(cls, '__xml_search_mode__', None)
 
     @classmethod
     def __init_serializer__(cls) -> None:
@@ -234,10 +239,10 @@ class BaseXmlModel(pd.BaseModel, metaclass=XmlModelMeta):
         :return: deserialized object
         """
 
-        assert cls.__xml_serializer__ is not None, "model is partially initialized"
+        assert cls.__xml_serializer__ is not None, f"model {cls.__name__} is partially initialized"
 
         if root.tag == cls.__xml_serializer__.element_name:
-            obj = cls.__xml_serializer__.deserialize(root)
+            obj = cls.__xml_serializer__.deserialize(XmlElement.from_native(root))
             return obj
         else:
             raise errors.ParsingError(
@@ -271,11 +276,12 @@ class BaseXmlModel(pd.BaseModel, metaclass=XmlModelMeta):
 
         encoder = encoder or serializers.DEFAULT_ENCODER
 
-        assert self.__xml_serializer__ is not None, "model is partially initialized"
-        root = self.__xml_serializer__.serialize(None, self, encoder=encoder, skip_empty=skip_empty)
-        assert root is not None
+        assert self.__xml_serializer__ is not None, f"model {type(self).__name__} is partially initialized"
 
-        return root
+        root = XmlElement(tag=self.__xml_serializer__.element_name, nsmap=self.__xml_serializer__.nsmap)
+        self.__xml_serializer__.serialize(root, self, encoder=encoder, skip_empty=skip_empty)
+
+        return root.to_native()
 
     def to_xml(
             self,
@@ -307,6 +313,7 @@ class BaseGenericXmlModel(BaseXmlModel, pd.generics.GenericModel):
         model.__xml_ns__ = cls.__xml_ns__
         model.__xml_nsmap__ = cls.__xml_nsmap__
         model.__xml_ns_attrs__ = cls.__xml_ns_attrs__
+        model.__xml_search_mode__ = cls.__xml_search_mode__
         model.__init_serializer__()
 
         return model

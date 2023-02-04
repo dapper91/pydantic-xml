@@ -2,11 +2,10 @@ import dataclasses as dc
 import itertools as it
 import re
 from collections import ChainMap
-from typing import Dict, Iterable, Optional, cast
+from typing import Iterable, Optional, cast
 
-from .backend import etree
-
-NsMap = Dict[str, str]
+from .element.native import etree
+from .typedefs import NsMap
 
 
 @dc.dataclass(frozen=True)

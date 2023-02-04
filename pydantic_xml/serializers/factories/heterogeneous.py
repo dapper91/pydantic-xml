@@ -6,7 +6,7 @@ import pydantic as pd
 
 import pydantic_xml as pxml
 from pydantic_xml import errors
-from pydantic_xml.backend import etree
+from pydantic_xml.element import XmlElementReader, XmlElementWriter
 from pydantic_xml.serializers.encoder import XmlEncoder
 from pydantic_xml.serializers.serializer import Location, PydanticShapeType, Serializer
 from pydantic_xml.utils import QName, merge_nsmaps
@@ -30,19 +30,20 @@ class HeterogeneousSerializerFactory:
 
             self._element_name = QName.from_alias(tag=name, ns=ns, nsmap=nsmap).uri
 
-            self._serializers = []
+            self._inner_serializers = []
             for sub_field in model_field.sub_fields:
                 sub_field = deepcopy(sub_field)
                 sub_field.name = model_field.name
                 sub_field.alias = model_field.alias
+                sub_field.field_info = model_field.field_info
 
-                self._serializers.append(
+                self._inner_serializers.append(
                     self._build_field_serializer(
                         model,
                         sub_field,
                         dc.replace(
                             ctx,
-                            parent_is_root=True,
+                            parent_is_root=False,
                             parent_ns=ns,
                             parent_nsmap=nsmap,
                         ),
@@ -50,32 +51,29 @@ class HeterogeneousSerializerFactory:
                 )
 
         def serialize(
-                self, element: etree.Element, value: List[Any], *, encoder: XmlEncoder, skip_empty: bool = False,
-        ) -> Optional[etree.Element]:
+                self, element: XmlElementWriter, value: List[Any], *, encoder: XmlEncoder, skip_empty: bool = False,
+        ) -> Optional[XmlElementWriter]:
             if value is None:
                 return element
 
             if skip_empty and len(value) == 0:
                 return element
 
-            for serializer, val in zip(self._serializers, value):
+            for serializer, val in zip(self._inner_serializers, value):
                 if skip_empty and val is None:
                     continue
 
-                sub_element = etree.SubElement(element, self._element_name)
-                serializer.serialize(sub_element, val, encoder=encoder, skip_empty=skip_empty)
+                serializer.serialize(element, val, encoder=encoder, skip_empty=skip_empty)
 
             return element
 
-        def deserialize(self, element: Optional[etree.Element]) -> Optional[List[Any]]:
+        def deserialize(self, element: Optional[XmlElementReader]) -> Optional[List[Any]]:
             if element is None:
                 return None
 
-            sub_elements = iter(element.findall(self._element_name))
-
             return [
-                serializer.deserialize(next(sub_elements, None))
-                for serializer in self._serializers
+                serializer.deserialize(element)
+                for serializer in self._inner_serializers
             ]
 
     @classmethod

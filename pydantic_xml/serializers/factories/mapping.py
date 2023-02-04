@@ -4,9 +4,9 @@ import pydantic as pd
 
 import pydantic_xml as pxml
 from pydantic_xml import errors
-from pydantic_xml.backend import create_element, etree
+from pydantic_xml.element import XmlElementReader, XmlElementWriter
 from pydantic_xml.serializers.encoder import XmlEncoder
-from pydantic_xml.serializers.serializer import Location, PydanticShapeType, Serializer, is_empty, is_xml_model
+from pydantic_xml.serializers.serializer import Location, PydanticShapeType, Serializer, is_xml_model
 from pydantic_xml.utils import QName, merge_nsmaps
 
 
@@ -25,26 +25,29 @@ class MappingSerializerFactory:
             self._ns_attrs = model.__xml_ns_attrs__
 
         def serialize(
-                self, element: etree.Element, value: Dict[str, Any], *, encoder: XmlEncoder, skip_empty: bool = False
-        ) -> Optional[etree.Element]:
+                self, element: XmlElementWriter, value: Dict[str, Any], *, encoder: XmlEncoder, skip_empty: bool = False
+        ) -> Optional[XmlElementWriter]:
             if value is None:
                 return element
 
             ns = self._nsmap.get(self._ns) if self._ns_attrs and self._ns else None
-            element.attrib.update({
+            element.set_attributes({
                 QName(tag=attr, ns=ns).uri: encoder.encode(val)
                 for attr, val in value.items()
             })
 
             return element
 
-        def deserialize(self, element: Optional[etree.Element]) -> Optional[Dict[str, str]]:
+        def deserialize(self, element: Optional[XmlElementReader]) -> Optional[Dict[str, str]]:
             if element is None:
+                return None
+
+            if (attributes := element.pop_attributes()) is None:
                 return None
 
             return {
                 QName.from_uri(attr).tag if self._ns_attrs else attr: val
-                for attr, val in element.attrib.items()
+                for attr, val in attributes.items()
             }
 
     class ElementSerializer(AttributesSerializer):
@@ -56,23 +59,24 @@ class MappingSerializerFactory:
             name, ns, nsmap = self._get_entity_info(model_field)
             self._name = name or model_field.alias
             self._element_name = QName.from_alias(tag=self._name, ns=self._ns, nsmap=self._nsmap).uri
+            self._search_mode = ctx.search_mode
 
         def serialize(
-                self, element: etree.Element, value: Dict[str, Any], *, encoder: XmlEncoder, skip_empty: bool = False
-        ) -> Optional[etree.Element]:
+                self, element: XmlElementWriter, value: Dict[str, Any], *, encoder: XmlEncoder, skip_empty: bool = False
+        ) -> Optional[XmlElementWriter]:
             if skip_empty and len(value) == 0:
                 return element
 
-            sub_element = create_element(self._element_name, self._nsmap)
+            sub_element = element.make_element(self._element_name, nsmap=self._nsmap)
             super().serialize(sub_element, value, encoder=encoder, skip_empty=skip_empty)
-            if skip_empty and is_empty(sub_element):
+            if skip_empty and sub_element.is_empty():
                 return None
             else:
-                element.append(sub_element)
+                element.append_element(sub_element)
                 return sub_element
 
-        def deserialize(self, element: Optional[etree.Element]) -> Optional[Dict[str, str]]:
-            if element and (sub_element := element.find(self._element_name)) is not None:
+        def deserialize(self, element: Optional[XmlElementReader]) -> Optional[Dict[str, str]]:
+            if element and (sub_element := element.pop_element(self._element_name, self._search_mode)) is not None:
                 return super().deserialize(sub_element)
             else:
                 return None

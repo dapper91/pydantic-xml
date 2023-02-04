@@ -61,13 +61,14 @@ def test_skip_empty():
     assert_xml_equal(actual_xml, xml.encode())
 
 
-def test_recursive_models():
+def test_self_ref_models():
     class TestModel(BaseXmlModel, tag='model'):
         attr1: int = attr()
         element1: float = element()
 
         model1: Optional['TestModel'] = element(tag='model1')
-        models: Optional[List['TestModel']] = element(tag='item')
+        models1: Optional[List['TestModel']] = element(tag='item1')
+        models2: Optional[Tuple['TestModel', 'TestModel']] = element(tag='item2')
 
     xml = '''
         <model attr1="1">
@@ -76,12 +77,18 @@ def test_recursive_models():
                 <element1>2.2</element1>
             </model1>
 
-            <item attr1="3">
+            <item1 attr1="3">
                 <element1>3.3</element1>
-            </item>
-            <item attr1="4">
+            </item1>
+            <item1 attr1="4">
                 <element1>4.4</element1>
-            </item>
+            </item1>
+            <item2 attr1="5">
+                <element1>5.5</element1>
+            </item2>
+            <item2 attr1="6">
+                <element1>6.6</element1>
+            </item2>
         </model>
     '''
 
@@ -92,7 +99,7 @@ def test_recursive_models():
             attr1=2,
             element1=2.2,
         ),
-        models=[
+        models1=[
             TestModel(
                 attr1=3,
                 element1=3.3,
@@ -100,6 +107,16 @@ def test_recursive_models():
             TestModel(
                 attr1=4,
                 element1=4.4,
+            ),
+        ],
+        models2=[
+            TestModel(
+                attr1=5,
+                element1=5.5,
+            ),
+            TestModel(
+                attr1=6,
+                element1=6.6,
             ),
         ],
     )

@@ -5,9 +5,9 @@ from typing import Any, Optional, Sized, Type
 import pydantic as pd
 
 import pydantic_xml as pxml
-from pydantic_xml.backend import etree
+from pydantic_xml.element import XmlElementReader, XmlElementWriter
 from pydantic_xml.serializers.encoder import XmlEncoder
-from pydantic_xml.serializers.serializer import Serializer, find_element_or_create
+from pydantic_xml.serializers.serializer import Serializer
 from pydantic_xml.utils import QName, merge_nsmaps
 
 
@@ -22,7 +22,8 @@ class WrappedSerializerFactory:
         ):
             path, ns, nsmap = self._get_entity_info(model_field)
             ns = ns or ctx.parent_ns
-            nsmap = merge_nsmaps(nsmap, ctx.parent_nsmap)
+            self._nsmap = nsmap = merge_nsmaps(nsmap, ctx.parent_nsmap)
+            self._search_mode = ctx.search_mode
 
             model_field = deepcopy(model_field)
             field_info = model_field.field_info
@@ -34,20 +35,20 @@ class WrappedSerializerFactory:
             model_field.field_info = field_info.entity or pd.fields.FieldInfo()
 
             self._path = tuple(QName.from_alias(tag=part, ns=ns, nsmap=nsmap).uri for part in path.split('/'))
-            self._serializer = self._build_field_serializer(
+            self._inner_serializer = self._build_field_serializer(
                 model,
                 model_field,
                 ctx=dc.replace(
                     ctx,
-                    parent_is_root=True,
+                    parent_is_root=False,
                     parent_ns=ns,
                     parent_nsmap=nsmap,
                 ),
             )
 
         def serialize(
-                self, element: etree.Element, value: Any, *, encoder: XmlEncoder, skip_empty: bool = False,
-        ) -> Optional[etree.Element]:
+                self, element: XmlElementWriter, value: Any, *, encoder: XmlEncoder, skip_empty: bool = False,
+        ) -> Optional[XmlElementWriter]:
             if value is None:
                 return element
 
@@ -55,15 +56,16 @@ class WrappedSerializerFactory:
                 return element
 
             for part in self._path:
-                element = find_element_or_create(element, part)
+                element = element.find_element_or_create(part, self._search_mode, nsmap=self._nsmap)
 
-            self._serializer.serialize(element, value, encoder=encoder, skip_empty=skip_empty)
+            self._inner_serializer.serialize(element, value, encoder=encoder, skip_empty=skip_empty)
 
             return element
 
-        def deserialize(self, element: Optional[etree.Element]) -> Optional[Any]:
-            if element is not None and (sub_element := element.find('/'.join(self._path))) is not None:
-                return self._serializer.deserialize(sub_element)
+        def deserialize(self, element: Optional[XmlElementReader]) -> Optional[Any]:
+            if element is not None and \
+                    (sub_element := element.find_sub_element(self._path, self._search_mode)) is not None:
+                return self._inner_serializer.deserialize(sub_element)
             else:
                 return None
 
