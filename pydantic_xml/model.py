@@ -1,8 +1,10 @@
-from typing import Any, ClassVar, Dict, Optional, Tuple, Type, Union
+import functools as ft
+from typing import Any, Callable, ClassVar, Dict, Optional, Tuple, Type, Union
 
 import pydantic as pd
 import pydantic.fields
 import pydantic.generics
+import pydantic.json
 
 from . import config, errors, serializers, utils
 from .element import SearchMode
@@ -174,6 +176,9 @@ class XmlModelMeta(pd.main.ModelMetaclass):
     __is_base_model_defined__ = False
 
     def __new__(mcls, name: str, bases: Tuple[type], namespace: Dict[str, Any], **kwargs: Any) -> Type['BaseXmlModel']:
+        if mcls.__is_base_model_defined__:
+            mcls._merge_configs(bases, namespace)
+
         cls = super().__new__(mcls, name, bases, namespace, **kwargs)
         if mcls.__is_base_model_defined__:
             cls.__init_serializer__()
@@ -181,6 +186,17 @@ class XmlModelMeta(pd.main.ModelMetaclass):
             mcls.__is_base_model_defined__ = True
 
         return cls
+
+    @classmethod
+    def _merge_configs(mcls, bases: Tuple[type], namespace: Dict[str, Any]) -> None:
+        xml_encoders: Dict[Type[Any], Callable[[Any], Any]] = {}
+        for base in reversed(bases):
+            if issubclass(base, BaseXmlModel) and base != BaseXmlModel:
+                xml_encoders.update(getattr(base.__config__, 'xml_encoders', {}))
+
+        if self_config := namespace.get('Config'):
+            xml_encoders.update(getattr(self_config, 'xml_encoders', {}))
+            setattr(self_config, 'xml_encoders', xml_encoders)
 
 
 class BaseXmlModel(pd.BaseModel, metaclass=XmlModelMeta):
@@ -193,6 +209,7 @@ class BaseXmlModel(pd.BaseModel, metaclass=XmlModelMeta):
     __xml_nsmap__: ClassVar[Optional[NsMap]]
     __xml_ns_attrs__: ClassVar[bool]
     __xml_search_mode__: ClassVar[SearchMode]
+    __xml_encoder__: ClassVar[serializers.XmlEncoder]
     __xml_serializer__: ClassVar[Optional[ModelSerializerFactory.RootSerializer]] = None
 
     def __init_subclass__(
@@ -222,6 +239,14 @@ class BaseXmlModel(pd.BaseModel, metaclass=XmlModelMeta):
         cls.__xml_nsmap__ = nsmap if nsmap is not None else getattr(cls, '__xml_nsmap__', None)
         cls.__xml_ns_attrs__ = ns_attrs if ns_attrs is not None else getattr(cls, '__xml_ns_attrs__', None)
         cls.__xml_search_mode__ = search_mode if search_mode is not None else getattr(cls, '__xml_search_mode__', None)
+
+        default_xml_encoder: Callable[[Any], Any]
+        if xml_encoders := getattr(cls.Config, 'xml_encoders', None):
+            default_xml_encoder = ft.partial(pd.json.custom_pydantic_encoder, xml_encoders)
+        else:
+            default_xml_encoder = pd.json.pydantic_encoder
+
+        cls.__xml_encoder__ = serializers.XmlEncoder(default=default_xml_encoder)
 
     @classmethod
     def __init_serializer__(cls) -> None:
@@ -274,7 +299,7 @@ class BaseXmlModel(pd.BaseModel, metaclass=XmlModelMeta):
         :return: object xml representation
         """
 
-        encoder = encoder or serializers.DEFAULT_ENCODER
+        encoder = encoder or self.__xml_encoder__
 
         assert self.__xml_serializer__ is not None, f"model {type(self).__name__} is partially initialized"
 
