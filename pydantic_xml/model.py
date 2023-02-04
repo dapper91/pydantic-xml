@@ -213,10 +213,10 @@ class BaseXmlModel(pd.BaseModel, metaclass=XmlModelMeta):
 
         super().__init_subclass__(*args, **kwargs)
 
-        cls.__xml_tag__ = tag
-        cls.__xml_ns__ = ns
-        cls.__xml_nsmap__ = nsmap
-        cls.__xml_ns_attrs__ = ns_attrs
+        cls.__xml_tag__ = tag if tag is not None else getattr(cls, '__xml_tag__', None)
+        cls.__xml_ns__ = ns if ns is not None else getattr(cls, '__xml_ns__', None)
+        cls.__xml_nsmap__ = nsmap if nsmap is not None else getattr(cls, '__xml_nsmap__', None)
+        cls.__xml_ns_attrs__ = ns_attrs if ns_attrs is not None else getattr(cls, '__xml_ns_attrs__', None)
 
     @classmethod
     def __init_serializer__(cls) -> None:
