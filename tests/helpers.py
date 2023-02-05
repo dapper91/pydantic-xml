@@ -6,7 +6,7 @@ import xmldiff.formatting
 import xmldiff.main
 from lxml import etree
 
-from pydantic_xml import backend
+from pydantic_xml.element import native
 
 
 def assert_xml_equal(
@@ -32,10 +32,10 @@ def assert_xml_equal(
             assert not diffs, '\n' + '\n'.join((str(diff) for diff in diffs))
 
 
-def is_lxml_backend() -> bool:
+def is_lxml_native() -> bool:
     try:
         import lxml.etree
     except ImportError:
         return False
 
-    return backend.etree is lxml.etree
+    return native.etree is lxml.etree
