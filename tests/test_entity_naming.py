@@ -137,6 +137,7 @@ def test_homogeneous_collection_element_tag_declaration_order(model_name, elemen
 @pytest.mark.parametrize(
     'model_name, model_tag, element_tag',
     [
+        ('model1', 'model1', None),
         ('model1', None, 'model1'),
         ('model1', 'model2', 'model1'),
         ('model2', None, None),
@@ -191,14 +192,16 @@ def test_heterogeneous_collection_element_tag_declaration_order(model_name, elem
 
 
 @pytest.mark.parametrize(
-    'model_name, element_tag',
+    'model_name, model_tag, element_tag',
     [
-        ('model2', None),
-        ('model1', 'model1'),
+        ('model1', 'model1', None),
+        ('model1', None, 'model1'),
+        ('model1', 'model2', 'model1'),
+        ('model2', None, None),
     ],
 )
-def test_submodel_heterogeneous_collection_tag_declaration_order(model_name, element_tag):
-    class TestSubModel(BaseXmlModel):
+def test_submodel_heterogeneous_collection_tag_declaration_order(model_name, model_tag, element_tag):
+    class TestSubModel(BaseXmlModel, tag=model_tag):
         __root__: int
 
     class TestModel(BaseXmlModel, tag='model'):

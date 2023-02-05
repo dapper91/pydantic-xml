@@ -28,7 +28,7 @@ def test_root_generic_model():
     assert_xml_equal(actual_xml, xml1)
 
     xml2 = '''
-    <model1 attr1="True" attr2="string"/>
+    <model1 attr1="true" attr2="string"/>
     '''
 
     TestModel = GenericModel[bool, str]

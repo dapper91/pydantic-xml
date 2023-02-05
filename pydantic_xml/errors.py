@@ -23,3 +23,9 @@ class ModelFieldError(BaseError):
         self.message = message
 
         super().__init__(f"{model_name}.{field_name} field type incorrect: {message}")
+
+
+class ParsingError(BaseError):
+    """
+    Xml parsing error.
+    """

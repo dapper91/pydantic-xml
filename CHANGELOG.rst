@@ -2,6 +2,16 @@ Changelog
 =========
 
 
+0.6.0 (2023-02-05)
+------------------
+
+- union types support added
+- xml model encoding api unified with pydantic json encoding api
+- root model validation raises exception instead of returning None
+- xml model params inheritance implemented
+- multiple element search strategies implemented
+
+
 0.5.0 (2023-01-11)
 ------------------
 

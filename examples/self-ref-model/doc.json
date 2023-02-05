@@ -1,0 +1,46 @@
+{
+    "name": "root",
+    "mode": "rwxr-xr-x",
+    "dirs": [
+        {
+            "name": "etc",
+            "mode": "rwxr-xr-x",
+            "dirs": [
+                {
+                    "name": "ssh",
+                    "mode": "rwxr-xr-x"
+                }
+            ],
+            "files": [
+                {
+                    "name": "passwd",
+                    "mode": "-rw-r--r--"
+                },
+                {
+                    "name": "hosts",
+                    "mode": "-rw-r--r--"
+                }
+            ]
+        },
+        {
+            "name": "bin",
+            "mode": "rwxr-xr-x",
+            "dirs": null,
+            "files": []
+        },
+        {
+            "name": "usr",
+            "mode": "rwxr-xr-x",
+            "dirs": [
+                {
+                    "name": "bin",
+                    "mode": "rwxr-xr-x",
+                    "dirs": null,
+                    "files": []
+                }
+            ],
+            "files": []
+        }
+    ],
+    "files": []
+}

@@ -1,11 +1,11 @@
 import dataclasses as dc
+import itertools as it
 import re
 from collections import ChainMap
-from typing import Dict, Optional, cast
+from typing import Iterable, Optional, cast
 
-from .backend import etree
-
-NsMap = Dict[str, str]
+from .element.native import etree
+from .typedefs import NsMap
 
 
 @dc.dataclass(frozen=True)
@@ -80,3 +80,7 @@ def register_nsmap(nsmap: NsMap) -> None:
     for prefix, uri in nsmap.items():
         if prefix != '':  # skip default namespace
             etree.register_namespace(prefix, uri)
+
+
+def get_slots(o: object) -> Iterable[str]:
+    return it.chain.from_iterable(getattr(cls, '__slots__', []) for cls in o.__class__.__mro__)

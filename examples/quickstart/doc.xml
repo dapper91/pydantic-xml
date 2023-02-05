@@ -1,0 +1,35 @@
+<Company trade-name="SpaceX" type="Private" xmlns:pd="http://www.company.com/prod">
+    <Founder name="Elon" surname="Musk"/>
+    <Founded>2002-03-14</Founded>
+    <Employees>12000</Employees>
+    <WebSite>https://www.spacex.com</WebSite>
+
+    <Industries>
+        <Industry>space</Industry>
+        <Industry>communications</Industry>
+    </Industries>
+
+    <key-people>
+        <person position="CEO" name="Elon Musk"/>
+        <person position="CTO" name="Elon Musk"/>
+        <person position="COO" name="Gwynne Shotwell"/>
+    </key-people>
+
+    <hq:headquarters xmlns:hq="http://www.company.com/hq">
+        <hq:country>US</hq:country>
+        <hq:state>California</hq:state>
+        <hq:city>Hawthorne</hq:city>
+    </hq:headquarters>
+
+    <co:contacts xmlns:co="http://www.company.com/contact">
+        <co:socials>
+            <co:social co:type="linkedin">https://www.linkedin.com/company/spacex</co:social>
+            <co:social co:type="twitter">https://twitter.com/spacex</co:social>
+            <co:social co:type="youtube">https://www.youtube.com/spacex</co:social>
+        </co:socials>
+    </co:contacts>
+
+    <pd:product pd:status="running" pd:launched="2013">Several launch vehicles</pd:product>
+    <pd:product pd:status="running" pd:launched="2019">Starlink</pd:product>
+    <pd:product pd:status="development">Starship</pd:product>
+</Company>

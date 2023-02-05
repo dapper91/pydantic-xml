@@ -1,7 +1,7 @@
 from typing import Dict, List, Tuple
 
 import pytest
-from helpers import assert_xml_equal, is_lxml_backend
+from helpers import assert_xml_equal, is_lxml_native
 
 from pydantic_xml import BaseXmlModel, attr, element, wrapped
 
@@ -39,7 +39,7 @@ def test_default_namespaces():
     assert_xml_equal(actual_xml, xml)
 
 
-@pytest.mark.skipif(not is_lxml_backend(), reason='not lxml backend used')
+@pytest.mark.skipif(not is_lxml_native(), reason='not lxml used')
 def test_lxml_default_namespace_serialisation():
     class TestSubModel(BaseXmlModel, tag='submodel', ns='', nsmap={'': 'http://test3.org', 'tst': 'http://test4.org'}):
         attr1: int = attr(ns='')
@@ -157,6 +157,34 @@ def test_attrs_namespaces(ns_attrs, model_ns, attr_ns, expected_model_ns, expect
     assert_xml_equal(actual_xml, xml)
 
 
+def test_submodel_namespaces():
+    class TestSubModel(BaseXmlModel, tag='submodel'):
+        attr1: int = attr()
+        attr2: int = attr()
+        element1: str = element()
+
+    class TestModel(BaseXmlModel, tag='model'):
+        submodel: TestSubModel = element(ns='tst', nsmap={'tst': 'http://test1.org'})
+
+    xml = '''
+    <model>
+        <tst:submodel xmlns:tst="http://test1.org" attr1="1" attr2="2">
+            <element1>value</element1>
+        </tst:submodel>
+    </model>
+    '''
+
+    actual_obj = TestModel.from_xml(xml)
+    expected_obj = TestModel(
+        submodel=TestSubModel(element1='value', attr1=1, attr2=2),
+    )
+
+    assert actual_obj == expected_obj
+
+    actual_xml = actual_obj.to_xml()
+    assert_xml_equal(actual_xml, xml)
+
+
 def test_wrapper_namespaces():
     class TestModel(BaseXmlModel, tag='model1', ns='tst1', nsmap={'tst1': 'http://test1.org'}):
         data: int = wrapped('model2/model3', ns='tst2', nsmap={'tst2': 'http://test2.org'})
@@ -202,7 +230,7 @@ def test_wrapper_namespace_inheritance():
 
 
 def test_homogeneous_collection_wrapper_namespace_inheritance():
-    class TestSubModel1(BaseXmlModel):
+    class TestSubModel1(BaseXmlModel, ns='tst1'):
         data: int
 
     class TestModel(BaseXmlModel, tag='model1', ns='tst1', nsmap={'tst1': 'http://test1.org'}):
@@ -232,7 +260,7 @@ def test_homogeneous_collection_wrapper_namespace_inheritance():
 
 
 def test_heterogeneous_collection_wrapper_namespace_inheritance():
-    class TestSubModel1(BaseXmlModel):
+    class TestSubModel1(BaseXmlModel, ns='tst1'):
         data: int
 
     class TestModel(BaseXmlModel, tag='model1', ns='tst1', nsmap={'tst1': 'http://test1.org'}):
@@ -283,3 +311,49 @@ def test_mapping_wrapper_namespace_inheritance():
 
     actual_xml = actual_obj.to_xml()
     assert_xml_equal(actual_xml, xml)
+
+
+def test_model_inheritance():
+    class BaseTestModel(BaseXmlModel, tag='model', ns='tst', nsmap={'tst': 'http://test1.org'}):
+        attr1: int = attr()
+        element1: str = element()
+
+    class TestModel(BaseTestModel):
+        pass
+
+    xml1 = '''
+    <tst:model xmlns:tst="http://test1.org" attr1="1">
+        <tst:element1>value</tst:element1>
+    </tst:model>
+    '''
+
+    actual_obj = TestModel.from_xml(xml1)
+    expected_obj = TestModel(attr1=1, element1='value')
+
+    assert actual_obj == expected_obj
+
+    actual_xml = actual_obj.to_xml()
+    assert_xml_equal(actual_xml, xml1)
+
+
+def test_model_inheritance_params_redefinition():
+    class BaseTestModel(BaseXmlModel, tag='base-model', ns='bs', nsmap={'bs': 'http://base.org'}):
+        attr1: int = attr()
+        element1: str = element()
+
+    class TestModel(BaseTestModel, tag='model', ns='tst', nsmap={'tst': 'http://test1.org'}):
+        pass
+
+    xml1 = '''
+    <tst:model xmlns:tst="http://test1.org" attr1="1">
+        <tst:element1>value</tst:element1>
+    </tst:model>
+    '''
+
+    actual_obj = TestModel.from_xml(xml1)
+    expected_obj = TestModel(attr1=1, element1='value')
+
+    assert actual_obj == expected_obj
+
+    actual_xml = actual_obj.to_xml()
+    assert_xml_equal(actual_xml, xml1)

@@ -1,11 +1,15 @@
-from typing import Any, ClassVar, Dict, Optional, Tuple, Type, Union
+import functools as ft
+from typing import Any, Callable, ClassVar, Dict, Optional, Tuple, Type, Union
 
 import pydantic as pd
 import pydantic.fields
 import pydantic.generics
+import pydantic.json
 
-from . import config, errors, serializers
-from .backend import etree
+from . import config, errors, serializers, utils
+from .element import SearchMode
+from .element.native import XmlElement, etree
+from .serializers.factories import ModelSerializerFactory
 from .utils import NsMap, register_nsmap
 
 
@@ -19,10 +23,12 @@ class XmlAttributeInfo(XmlEntityInfo):
     """
     Field xml attribute meta-information.
 
-    :param tag: attribute name
+    :param name: attribute name
     :param ns: attribute xml namespace
-    :param kwargs: pydantic field arguments
+    :param kwargs: pydantic field arguments. See :py:class:`pydantic.Field`
     """
+
+    __slots__ = ('_name', '_ns')
 
     def __init__(
             self,
@@ -52,6 +58,8 @@ class XmlElementInfo(XmlEntityInfo):
     :param nsmap: element xml namespace map
     :param kwargs: pydantic field arguments
     """
+
+    __slots__ = ('_tag', '_ns', '_nsmap')
 
     def __init__(
             self,
@@ -86,11 +94,13 @@ class XmlWrapperInfo(XmlEntityInfo):
     Field xml wrapper meta-information.
 
     :param entity: wrapped entity
-    :param tag: element tag
+    :param path: entity path
     :param ns: element xml namespace
     :param nsmap: element xml namespace map
     :param kwargs: pydantic field arguments
     """
+
+    __slots__ = ('_entity', '_path', '_ns', '_nsmap')
 
     def __init__(
             self,
@@ -102,7 +112,7 @@ class XmlWrapperInfo(XmlEntityInfo):
     ):
         if entity is not None:
             # copy arguments from the wrapped entity to let pydantic know how to process the field
-            for entity_field_name in entity.__slots__:
+            for entity_field_name in utils.get_slots(entity):
                 kwargs[entity_field_name] = getattr(entity, entity_field_name)
 
         super().__init__(**kwargs)
@@ -131,35 +141,44 @@ class XmlWrapperInfo(XmlEntityInfo):
         return self._nsmap
 
 
-def attr(**kwargs: Any) -> XmlAttributeInfo:
+def attr(**kwargs: Any) -> Any:
     """
     Marks a pydantic field as an xml attribute.
+    Method parameters are identical to :py:class:`pydantic_xml.XmlAttributeInfo`.
     """
 
     return XmlAttributeInfo(**kwargs)
 
 
-def element(**kwargs: Any) -> XmlElementInfo:
+def element(**kwargs: Any) -> Any:
     """
     Marks a pydantic field as an xml element.
+    Method parameters are identical to :py:class:`pydantic_xml.XmlElementInfo`.
     """
 
     return XmlElementInfo(**kwargs)
 
 
-def wrapped(*args: Any, **kwargs: Any) -> XmlWrapperInfo:
+def wrapped(*args: Any, **kwargs: Any) -> Any:
     """
     Marks a pydantic field as a wrapped xml entity.
+    Method parameters are identical to :py:class:`pydantic_xml.XmlWrapperInfo`.
     """
 
     return XmlWrapperInfo(*args, **kwargs)
 
 
 class XmlModelMeta(pd.main.ModelMetaclass):
+    """
+    Xml model metaclass.
+    """
 
     __is_base_model_defined__ = False
 
     def __new__(mcls, name: str, bases: Tuple[type], namespace: Dict[str, Any], **kwargs: Any) -> Type['BaseXmlModel']:
+        if mcls.__is_base_model_defined__:
+            mcls._merge_configs(bases, namespace)
+
         cls = super().__new__(mcls, name, bases, namespace, **kwargs)
         if mcls.__is_base_model_defined__:
             cls.__init_serializer__()
@@ -167,6 +186,17 @@ class XmlModelMeta(pd.main.ModelMetaclass):
             mcls.__is_base_model_defined__ = True
 
         return cls
+
+    @classmethod
+    def _merge_configs(mcls, bases: Tuple[type], namespace: Dict[str, Any]) -> None:
+        xml_encoders: Dict[Type[Any], Callable[[Any], Any]] = {}
+        for base in reversed(bases):
+            if issubclass(base, BaseXmlModel) and base != BaseXmlModel:
+                xml_encoders.update(getattr(base.__config__, 'xml_encoders', {}))
+
+        if self_config := namespace.get('Config'):
+            xml_encoders.update(getattr(self_config, 'xml_encoders', {}))
+            setattr(self_config, 'xml_encoders', xml_encoders)
 
 
 class BaseXmlModel(pd.BaseModel, metaclass=XmlModelMeta):
@@ -178,7 +208,9 @@ class BaseXmlModel(pd.BaseModel, metaclass=XmlModelMeta):
     __xml_ns__: ClassVar[Optional[str]]
     __xml_nsmap__: ClassVar[Optional[NsMap]]
     __xml_ns_attrs__: ClassVar[bool]
-    __xml_serializer__: ClassVar[Optional[serializers.ModelSerializerFactory.RootSerializer]]
+    __xml_search_mode__: ClassVar[SearchMode]
+    __xml_encoder__: ClassVar[serializers.XmlEncoder]
+    __xml_serializer__: ClassVar[Optional[ModelSerializerFactory.RootSerializer]] = None
 
     def __init_subclass__(
             cls,
@@ -187,6 +219,7 @@ class BaseXmlModel(pd.BaseModel, metaclass=XmlModelMeta):
             ns: Optional[str] = None,
             nsmap: Optional[NsMap] = None,
             ns_attrs: bool = False,
+            search_mode: SearchMode = SearchMode.STRICT,
             **kwargs: Any,
     ):
         """
@@ -196,21 +229,31 @@ class BaseXmlModel(pd.BaseModel, metaclass=XmlModelMeta):
         :param ns: element namespace
         :param nsmap: element namespace map
         :param ns_attrs: use namespaced attributes
+        :param search_mode: element search mode
         """
 
         super().__init_subclass__(*args, **kwargs)
 
-        cls.__xml_tag__ = tag
-        cls.__xml_ns__ = ns
-        cls.__xml_nsmap__ = nsmap
-        cls.__xml_ns_attrs__ = ns_attrs
+        cls.__xml_tag__ = tag if tag is not None else getattr(cls, '__xml_tag__', None)
+        cls.__xml_ns__ = ns if ns is not None else getattr(cls, '__xml_ns__', None)
+        cls.__xml_nsmap__ = nsmap if nsmap is not None else getattr(cls, '__xml_nsmap__', None)
+        cls.__xml_ns_attrs__ = ns_attrs if ns_attrs is not None else getattr(cls, '__xml_ns_attrs__', None)
+        cls.__xml_search_mode__ = search_mode if search_mode is not None else getattr(cls, '__xml_search_mode__', None)
+
+        default_xml_encoder: Callable[[Any], Any]
+        if xml_encoders := getattr(cls.Config, 'xml_encoders', None):
+            default_xml_encoder = ft.partial(pd.json.custom_pydantic_encoder, xml_encoders)
+        else:
+            default_xml_encoder = pd.json.pydantic_encoder
+
+        cls.__xml_encoder__ = serializers.XmlEncoder(default=default_xml_encoder)
 
     @classmethod
     def __init_serializer__(cls) -> None:
         if config.REGISTER_NS_PREFIXES and cls.__xml_nsmap__:
             register_nsmap(cls.__xml_nsmap__)
 
-        cls.__xml_serializer__ = serializers.ModelSerializerFactory.from_model(cls)
+        cls.__xml_serializer__ = ModelSerializerFactory.build_root(cls)
 
     @classmethod
     def from_xml_tree(cls, root: etree.Element) -> Optional['BaseXmlModel']:
@@ -221,13 +264,15 @@ class BaseXmlModel(pd.BaseModel, metaclass=XmlModelMeta):
         :return: deserialized object
         """
 
-        assert cls.__xml_serializer__ is not None, "model is partially initialized"
+        assert cls.__xml_serializer__ is not None, f"model {cls.__name__} is partially initialized"
 
         if root.tag == cls.__xml_serializer__.element_name:
-            obj = cls.__xml_serializer__.deserialize(root)
-            return cls.parse_obj(obj)
+            obj = cls.__xml_serializer__.deserialize(XmlElement.from_native(root))
+            return obj
         else:
-            return None
+            raise errors.ParsingError(
+                f"root element not found (actual: {root.tag}, expected: {cls.__xml_serializer__.element_name})",
+            )
 
     @classmethod
     def from_xml(cls, source: Union[str, bytes]) -> Optional['BaseXmlModel']:
@@ -254,13 +299,14 @@ class BaseXmlModel(pd.BaseModel, metaclass=XmlModelMeta):
         :return: object xml representation
         """
 
-        encoder = encoder or serializers.DEFAULT_ENCODER
+        encoder = encoder or self.__xml_encoder__
 
-        assert self.__xml_serializer__ is not None, "model is partially initialized"
-        root = self.__xml_serializer__.serialize(None, self, encoder=encoder, skip_empty=skip_empty)
-        assert root is not None
+        assert self.__xml_serializer__ is not None, f"model {type(self).__name__} is partially initialized"
 
-        return root
+        root = XmlElement(tag=self.__xml_serializer__.element_name, nsmap=self.__xml_serializer__.nsmap)
+        self.__xml_serializer__.serialize(root, self, encoder=encoder, skip_empty=skip_empty)
+
+        return root.to_native()
 
     def to_xml(
             self,
@@ -292,6 +338,7 @@ class BaseGenericXmlModel(BaseXmlModel, pd.generics.GenericModel):
         model.__xml_ns__ = cls.__xml_ns__
         model.__xml_nsmap__ = cls.__xml_nsmap__
         model.__xml_ns_attrs__ = cls.__xml_ns_attrs__
+        model.__xml_search_mode__ = cls.__xml_search_mode__
         model.__init_serializer__()
 
         return model

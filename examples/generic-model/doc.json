@@ -1,0 +1,15 @@
+{
+    "header": {
+        "auth": {
+            "user": "admin",
+            "password": "secret"
+        }
+    },
+    "body": {
+        "call": {
+            "trade_name": "SpaceX",
+            "founded": "2002-03-14",
+            "website": "https://www.spacex.com"
+        }
+    }
+}
