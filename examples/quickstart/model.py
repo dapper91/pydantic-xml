@@ -1,3 +1,4 @@
+import pathlib
 from datetime import date
 from enum import Enum
 from typing import Dict, List, Literal, Optional, Set, Tuple
@@ -7,48 +8,10 @@ from pydantic import HttpUrl, conint
 
 from pydantic_xml import BaseXmlModel, attr, element, wrapped
 
-document = '''
-<Company trade-name="SpaceX" type="Private" xmlns:pd="http://www.test.com/prod">
-    <Founder name="Elon" surname="Musk"/>
-    <Founded>2002-03-14</Founded>
-    <Employees>12000</Employees>
-    <WebSite>https://www.spacex.com</WebSite>
-
-    <Industries>
-        <Industry>space</Industry>
-        <Industry>communications</Industry>
-    </Industries>
-
-    <key-people>
-        <person position="CEO" name="Elon Musk"/>
-        <person position="CTO" name="Elon Musk"/>
-        <person position="COO" name="Gwynne Shotwell"/>
-    </key-people>
-
-    <hq:headquarters xmlns:hq="http://www.test.com/hq">
-        <hq:country>US</hq:country>
-        <hq:state>California</hq:state>
-        <hq:city>Hawthorne</hq:city>
-    </hq:headquarters>
-
-    <co:contacts xmlns:co="http://www.test.com/contact" >
-        <co:socials>
-            <co:social co:type="linkedin">https://www.linkedin.com/company/spacex</co:social>
-            <co:social co:type="twitter">https://twitter.com/spacex</co:social>
-            <co:social co:type="youtube">https://www.youtube.com/spacex</co:social>
-        </co:socials>
-    </co:contacts>
-
-    <pd:product pd:status="running" pd:launched="2013">Several launch vehicles</pd:product>
-    <pd:product pd:status="running" pd:launched="2019">Starlink</pd:product>
-    <pd:product pd:status="development">Starship</pd:product>
-</Company>
-'''
-
 NSMAP = {
-    'co': 'http://www.test.com/contact',
-    'hq': 'http://www.test.com/hq',
-    'pd': 'http://www.test.com/prod',
+    'co': 'http://www.company.com/contact',
+    'hq': 'http://www.company.com/hq',
+    'pd': 'http://www.company.com/prod',
 }
 
 
@@ -70,7 +33,7 @@ class Industries(BaseXmlModel):
 
 class Social(BaseXmlModel, ns_attrs=True, ns='co', nsmap=NSMAP):
     type: str = attr()
-    url: str
+    url: HttpUrl
 
 
 class Product(BaseXmlModel, ns_attrs=True, ns='pd', nsmap=NSMAP):
@@ -102,11 +65,11 @@ class Company(BaseXmlModel, tag='Company', nsmap=NSMAP):
 
     trade_name: str = attr(name='trade-name')
     type: CompanyType = attr()
+    founder: Dict[str, str] = element(tag='Founder')
+    founded: Optional[date] = element(tag='Founded')
     employees: conint(gt=0) = element(tag='Employees')
     website: HttpUrl = element(tag='WebSite')
 
-    founder: Dict[str, str] = element(tag='Founder')
-    founded: Optional[date] = element(tag='Founded')
     industries: Industries = element(tag='Industries')
 
     key_people: Tuple[CEO, CTO, COO] = wrapped('key-people', element(tag='person'))
@@ -121,6 +84,8 @@ class Company(BaseXmlModel, tag='Company', nsmap=NSMAP):
     products: Tuple[Product, ...] = element(tag='product', ns='pd')
 
 
-company = Company.from_xml(document)
+xml_doc = pathlib.Path('./doc.xml').read_text()
 
-print(company.json(indent=4))
+company = Company.from_xml(xml_doc)
+
+assert company == Company.parse_file('./doc.json')
