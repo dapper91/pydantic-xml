@@ -1,8 +1,9 @@
 import abc
 import dataclasses as dc
+import typing
 from enum import IntEnum
 from inspect import isclass
-from typing import Any, Dict, Optional, Tuple, Type
+from typing import Any, Dict, Optional, Tuple, Type, Union
 
 import pydantic as pd
 
@@ -63,6 +64,21 @@ class PydanticShapeType(IntEnum):
 
 def is_xml_model(tp: Any) -> bool:
     return isclass(tp) and issubclass(tp, pxml.BaseXmlModel)
+
+
+def is_union(type_: Any) -> bool:
+    return typing.get_origin(type_) is Union
+
+
+def is_optional(type_: Any) -> bool:
+    if not is_union(type_):
+        return False
+
+    union_args = typing.get_args(type_)
+    if len(union_args) != 2:
+        return False
+
+    return type(None) in union_args
 
 
 class Serializer(abc.ABC):
@@ -145,10 +161,14 @@ class Serializer(abc.ABC):
         else:
             is_model_field = False
 
+        is_union_type = is_union(model_field.outer_type_) and not is_optional(model_field.outer_type_)
+
         field_location = cls._get_field_location(field_info)
 
         if field_location is Location.WRAPPED:
             return factories.WrappedSerializerFactory.build(model, model_field, ctx)
+        elif is_union_type:
+            return factories.UnionSerializerFactory.build(model, model_field, field_location, ctx)
         elif shape_type is PydanticShapeType.SCALAR and not is_model_field:
             return factories.PrimitiveTypeSerializerFactory.build(model, model_field, field_location, ctx)
         elif shape_type is PydanticShapeType.SCALAR and is_model_field:
