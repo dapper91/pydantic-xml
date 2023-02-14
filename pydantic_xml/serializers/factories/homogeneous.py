@@ -63,7 +63,9 @@ class HomogeneousSerializerFactory:
                      model.__name__, model_field.name, "Inline list value should be of scalar type",
                 )
 
-            name, ns, nsmap = self._get_entity_info(model_field)
+            _, ns, nsmap = self._get_entity_info(model_field)
+
+            name = model_field.name
 
             assert name is not None, "attr must be name"
 
