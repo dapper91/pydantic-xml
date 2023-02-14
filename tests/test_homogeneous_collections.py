@@ -172,3 +172,10 @@ def test_homogeneous_definition_errors():
 
         class TestModel(BaseXmlModel):
             __root__: List[TestSubModel]
+
+    with pytest.raises(errors.ModelFieldError):
+        class TestSubModel(BaseXmlModel):
+            attr: int
+
+        class TestModel(BaseXmlModel):
+            text: List[TestSubModel]
