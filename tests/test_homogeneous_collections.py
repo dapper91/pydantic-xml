@@ -150,7 +150,7 @@ def test_text_tuple_extraction():
 
     actual_obj = RootModel.from_xml(xml)
     expected_obj = RootModel(
-        values=[1, 2, 70, -34]
+        values=[1, 2, 70, -34],
     )
 
     actual_xml = actual_obj.to_xml()
@@ -172,7 +172,7 @@ def test_attr_list_extraction():
 
     actual_obj = RootModel.from_xml(xml)
     expected_obj = RootModel(
-        values=[3.14, -1.0, 3e2]
+        values=[3.14, -1.0, 3e2],
     )
 
     assert actual_obj == expected_obj
@@ -196,7 +196,7 @@ def test_attr_tuple_extraction():
 
     actual_obj = RootModel.from_xml(xml)
     expected_obj = RootModel(
-        values=[3.14, -1.0, 3e2]
+        values=[3.14, -1.0, 3e2],
     )
 
     assert actual_obj == expected_obj
