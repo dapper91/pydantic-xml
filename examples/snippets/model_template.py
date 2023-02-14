@@ -27,7 +27,7 @@ class Airplane(VehicleTemplate, tag='airplane'):
 
 
 class Vehicles(BaseXmlModel, tag='vehicles'):
-    items: List[Union[Car, Airplane]]
+    items: List[Union[Car, Airplane]] = element()
 # [model-end]
 
 

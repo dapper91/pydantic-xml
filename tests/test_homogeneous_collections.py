@@ -121,11 +121,27 @@ def test_list_of_dicts_extraction():
     assert_xml_equal(actual_xml, xml)
 
 
-def test_homogeneous_definition_errors():
-    with pytest.raises(errors.ModelFieldError):
-        class TestModel(BaseXmlModel):
-            attr1: List[int] = attr()
+def test_text_list_extraction():
+    class RootModel(BaseXmlModel, tag="model"):
+        values: List[int]
 
+    xml = '''
+    <model>1 2 70 -34</model>
+    '''
+
+    actual_obj = RootModel.from_xml(xml)
+    expected_obj = RootModel(
+        values = [1, 2, 70, -34],
+    )
+
+    assert actual_obj == expected_obj
+
+    actual_xml = actual_obj.to_xml()
+    assert_xml_equal(actual_xml, xml)
+
+
+def test_homogeneous_definition_errors():
+    breakpoint()
     with pytest.raises(errors.ModelFieldError):
         class TestModel(BaseXmlModel):
             attr1: List[Tuple[int, ...]]
