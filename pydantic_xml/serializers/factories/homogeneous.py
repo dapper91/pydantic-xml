@@ -1,6 +1,5 @@
 import dataclasses as dc
 from copy import deepcopy
-from inspect import isclass
 from typing import Any, Collection, List, Optional, Type
 
 import pydantic as pd
@@ -9,7 +8,7 @@ import pydantic_xml as pxml
 from pydantic_xml import errors
 from pydantic_xml.element import XmlElementReader, XmlElementWriter
 from pydantic_xml.serializers.encoder import XmlEncoder
-from pydantic_xml.serializers.serializer import Location, PydanticShapeType, Serializer
+from pydantic_xml.serializers.serializer import Location, PydanticShapeType, Serializer, is_xml_model
 from pydantic_xml.utils import QName, merge_nsmaps
 
 
@@ -24,7 +23,7 @@ class HomogeneousSerializerFactory:
         ):
             assert model_field.sub_fields and len(model_field.sub_fields) == 1
             if (
-                isclass(model_field.type_) and issubclass(model_field.type_, pxml.BaseXmlModel) or
+                is_xml_model(model_field.type_) or
                 issubclass(model_field.type_, tuple)
             ):
                 raise errors.ModelFieldError(
@@ -49,7 +48,7 @@ class HomogeneousSerializerFactory:
             text = element.pop_text()
 
             if text is None:
-                return []
+                return None
 
             return [value for value in text.split()]
 
@@ -65,9 +64,7 @@ class HomogeneousSerializerFactory:
 
             _, ns, nsmap = self._get_entity_info(model_field)
 
-            name = model_field.name
-
-            assert name is not None, "attr must be name"
+            name = model_field.alias
 
             self.attr_name = QName.from_alias(tag=name, ns=ns, nsmap=nsmap, is_attr=True).uri
 

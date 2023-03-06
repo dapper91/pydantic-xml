@@ -153,6 +153,8 @@ def test_text_tuple_extraction():
         values=[1, 2, 70, -34],
     )
 
+    assert actual_obj == expected_obj
+
     actual_xml = actual_obj.to_xml()
     assert_xml_equal(actual_xml, xml)
 
@@ -183,7 +185,7 @@ def test_attr_list_extraction():
 
 def test_attr_tuple_extraction():
     class RootModel(BaseXmlModel, tag="model"):
-        values: List[float] = attr()
+        values: Tuple[float, ...] = attr()
 
     xml = '''
     <model values="3.14 -1.0 300.0"/>
@@ -196,7 +198,7 @@ def test_attr_tuple_extraction():
 
     actual_obj = RootModel.from_xml(xml)
     expected_obj = RootModel(
-        values=[3.14, -1.0, 3e2],
+        values=(3.14, -1.0, 3e2),
     )
 
     assert actual_obj == expected_obj
@@ -243,4 +245,3 @@ def test_homogeneous_definition_errors():
 
         class TestModel(BaseXmlModel):
             text: List[TestSubModel]
-
