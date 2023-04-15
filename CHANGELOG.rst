@@ -2,6 +2,12 @@ Changelog
 =========
 
 
+0.6.1 (2023-04-15)
+------------------
+
+- model parameters inheritance bug fixed. See https://github.com/dapper91/pydantic-xml/issues/51
+
+
 0.6.0 (2023-02-05)
 ------------------
 
