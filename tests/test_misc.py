@@ -163,3 +163,24 @@ def test_default_factory():
     '''
     actual_xml = actual_obj.to_xml(skip_empty=True)
     assert_xml_equal(actual_xml, expected_xml.encode())
+
+
+def test_model_params_inheritance():
+    class BaseModel(
+        BaseXmlModel,
+        tag='TestTag',
+        ns='TestNamespace',
+        nsmap={'test': 'value'},
+        ns_attrs=True,
+        search_mode='ordered',
+    ):
+        pass
+
+    class TestModel(BaseModel):
+        pass
+
+    assert TestModel.__xml_tag__ == BaseModel.__xml_tag__
+    assert TestModel.__xml_ns__ == BaseModel.__xml_ns__
+    assert TestModel.__xml_nsmap__ == BaseModel.__xml_nsmap__
+    assert TestModel.__xml_ns_attrs__ == BaseModel.__xml_ns_attrs__
+    assert TestModel.__xml_search_mode__ == BaseModel.__xml_search_mode__
