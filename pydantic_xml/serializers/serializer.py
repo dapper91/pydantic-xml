@@ -3,6 +3,7 @@ import dataclasses as dc
 import typing
 from enum import IntEnum
 from inspect import isclass
+from types import UnionType
 from typing import Any, Dict, Optional, Tuple, Type, Union
 
 import pydantic as pd
@@ -67,7 +68,7 @@ def is_xml_model(tp: Any) -> bool:
 
 
 def is_union(type_: Any) -> bool:
-    return typing.get_origin(type_) is Union
+    return typing.get_origin(type_) in [Union, UnionType]
 
 
 def is_optional(type_: Any) -> bool:
