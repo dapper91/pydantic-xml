@@ -1,3 +1,4 @@
+import sys
 from typing import List, Tuple, Union
 
 import pytest
@@ -156,3 +157,61 @@ def test_submodel_definition_errors():
 
         class TestModel(BaseXmlModel):
             field1: Union[int, SubModel]
+
+
+@pytest.mark.skipif(sys.version_info < (3, 10), reason="requires python 3.10 and above")
+def test_union_type():
+    class TestModel(BaseXmlModel, tag='model'):
+        text: int | float | str
+
+    xml = '''
+    <model>text</model>
+    '''
+
+    actual_obj = TestModel.from_xml(xml)
+    expected_obj = TestModel(text='text')
+
+    assert actual_obj == expected_obj
+
+    actual_xml = actual_obj.to_xml()
+    assert_xml_equal(actual_xml, xml)
+
+
+@pytest.mark.skipif(sys.version_info < (3, 10), reason="requires python 3.10 and above")
+def test_model_union_type():
+    class SubModel1(BaseXmlModel, tag='model1'):
+        attr1: int = attr()
+
+    class SubModel2(BaseXmlModel, tag='model2'):
+        text: float
+
+    class TestModel(BaseXmlModel, tag='model'):
+        field1: SubModel1 | SubModel2 = element()
+
+    xml = '''
+    <model><model1 attr1="1"></model1></model>
+    '''
+
+    actual_obj = TestModel.from_xml(xml)
+    expected_obj = TestModel(
+        field1=SubModel1(attr1=1),
+    )
+
+    assert actual_obj == expected_obj
+
+    actual_xml = actual_obj.to_xml()
+    assert_xml_equal(actual_xml, xml)
+
+    xml = '''
+    <model><model2>inf</model2></model>
+    '''
+
+    actual_obj = TestModel.from_xml(xml)
+    expected_obj = TestModel(
+        field1=SubModel2(text=float('inf')),
+    )
+
+    assert actual_obj == expected_obj
+
+    actual_xml = actual_obj.to_xml()
+    assert_xml_equal(actual_xml, xml)
