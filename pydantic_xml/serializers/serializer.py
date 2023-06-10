@@ -1,9 +1,16 @@
 import abc
 import dataclasses as dc
+import sys
 import typing
 from enum import IntEnum
 from inspect import isclass
 from typing import Any, Dict, Optional, Tuple, Type, Union
+
+if sys.version_info < (3, 10):
+    UnionTypes = (Union,)
+else:
+    from types import UnionType
+    UnionTypes = (Union, UnionType)
 
 import pydantic as pd
 
@@ -67,7 +74,7 @@ def is_xml_model(tp: Any) -> bool:
 
 
 def is_union(type_: Any) -> bool:
-    return typing.get_origin(type_) is Union
+    return typing.get_origin(type_) in UnionTypes
 
 
 def is_optional(type_: Any) -> bool:

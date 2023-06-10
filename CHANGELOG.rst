@@ -1,6 +1,11 @@
 Changelog
 =========
 
+0.6.2 (2023-06-10)
+------------------
+
+- piped union typehints support added. See https://github.com/dapper91/pydantic-xml/issues/56
+
 
 0.6.1 (2023-04-15)
 ------------------

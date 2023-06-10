@@ -186,7 +186,7 @@ For more information see :ref:`wrapped entities <pages/data-binding/wrapper:wrap
 Example
 _______
 
-The following example illustrates all previously described rules combined with some ``pydantic`` feature:
+The following example illustrates all previously described rules combined with some ``pydantic`` features:
 
 *doc.xml:*
 
