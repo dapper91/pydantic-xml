@@ -18,7 +18,7 @@ class MouseEvent(Event, tag='mouse'):
 
 
 class Log(BaseXmlModel, tag='log'):
-    events: List[Union[KeyboardEvent, MouseEvent]]
+    events: List[Union[KeyboardEvent, MouseEvent]] = element()
 # [model-end]
 
 

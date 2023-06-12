@@ -1,6 +1,6 @@
 import dataclasses as dc
 from copy import deepcopy
-from typing import Any, List, Optional, Type
+from typing import Any, Collection, List, Optional, Type
 
 import pydantic as pd
 
@@ -8,7 +8,7 @@ import pydantic_xml as pxml
 from pydantic_xml import errors
 from pydantic_xml.element import XmlElementReader, XmlElementWriter
 from pydantic_xml.serializers.encoder import XmlEncoder
-from pydantic_xml.serializers.serializer import Location, PydanticShapeType, Serializer
+from pydantic_xml.serializers.serializer import Location, PydanticShapeType, Serializer, is_xml_model
 from pydantic_xml.utils import QName, merge_nsmaps
 
 
@@ -16,6 +16,79 @@ class HomogeneousSerializerFactory:
     """
     Homogeneous collection type serializer factory.
     """
+
+    class TextSerializer(Serializer):
+        def __init__(
+                self, model: Type['pxml.BaseXmlModel'], model_field: pd.fields.ModelField, ctx: Serializer.Context,
+        ):
+            assert model_field.sub_fields and len(model_field.sub_fields) == 1
+            if (
+                is_xml_model(model_field.type_) or
+                issubclass(model_field.type_, tuple)
+            ):
+                raise errors.ModelFieldError(
+                     model.__name__, model_field.name, "Inline list value should be of scalar type",
+                )
+
+        def serialize(
+                self, element: XmlElementWriter, value: Collection[Any], *, encoder: XmlEncoder,
+                skip_empty: bool = False,
+        ) -> Optional[XmlElementWriter]:
+            if value is None or skip_empty and len(value) == 0:
+                return element
+
+            encoded = " ".join(encoder.encode(val) for val in value)
+            element.set_text(encoded)
+            return element
+
+        def deserialize(self, element: Optional[XmlElementReader]) -> Optional[List[Any]]:
+            if element is None:
+                return None
+
+            text = element.pop_text()
+
+            if text is None:
+                return None
+
+            return [value for value in text.split()]
+
+    class AttributeSerializer(Serializer):
+        def __init__(
+                self, model: Type['pxml.BaseXmlModel'], model_field: pd.fields.ModelField, ctx: Serializer.Context,
+        ):
+            assert model_field.sub_fields and len(model_field.sub_fields) == 1
+            if issubclass(model_field.type_, pxml.BaseXmlModel):
+                raise errors.ModelFieldError(
+                     model.__name__, model_field.name, "Inline list value should be of scalar type",
+                )
+
+            _, ns, nsmap = self._get_entity_info(model_field)
+
+            name = model_field.alias
+
+            self.attr_name = QName.from_alias(tag=name, ns=ns, nsmap=nsmap, is_attr=True).uri
+
+        def serialize(
+                self, element: XmlElementWriter, value: Collection[Any], *, encoder: XmlEncoder,
+                skip_empty: bool = False,
+        ) -> Optional[XmlElementWriter]:
+            if value is None or skip_empty and len(value) == 0:
+                return element
+
+            encoded = " ".join(encoder.encode(val) for val in value)
+            element.set_attribute(self.attr_name, encoded)
+            return element
+
+        def deserialize(self, element: Optional[XmlElementReader]) -> Optional[List[Any]]:
+            if element is None:
+                return None
+
+            attribute = element.pop_attrib(self.attr_name)
+
+            if attribute is None:
+                return []
+
+            return [value for value in attribute.split()]
 
     class ElementSerializer(Serializer):
         def __init__(
@@ -103,10 +176,8 @@ class HomogeneousSerializerFactory:
         if field_location is Location.ELEMENT:
             return cls.ElementSerializer(model, model_field, ctx)
         elif field_location is Location.MISSING:
-            return cls.ElementSerializer(model, model_field, ctx)
+            return cls.TextSerializer(model, model_field, ctx)
         elif field_location is Location.ATTRIBUTE:
-            raise errors.ModelFieldError(
-                model.__name__, model_field.name, "attributes of collection type are not supported",
-            )
+            return cls.AttributeSerializer(model, model_field, ctx)
         else:
             raise AssertionError("unreachable")

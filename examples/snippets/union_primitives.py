@@ -1,7 +1,7 @@
 import datetime as dt
 from typing import List, Optional, Union
 
-from pydantic_xml import BaseXmlModel, attr
+from pydantic_xml import BaseXmlModel, attr, element
 
 
 # [model-start]
@@ -11,7 +11,7 @@ class Message(BaseXmlModel, tag='Message'):
 
 
 class Messages(BaseXmlModel):
-    messages: List[Message]
+    messages: List[Message] = element()
 # [model-end]
 
 
