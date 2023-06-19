@@ -257,6 +257,13 @@ class BaseXmlModel(pd.BaseModel, metaclass=XmlModelMeta):
         cls.__xml_serializer__ = ModelSerializerFactory.build_root(cls)
 
     @classmethod
+    def update_forward_refs(cls, **kwargs: Any) -> None:
+        super().update_forward_refs(**kwargs)
+
+        if cls.__xml_serializer__ is not None:
+            cls.__xml_serializer__.resolve_forward_refs()
+
+    @classmethod
     def from_xml_tree(cls, root: etree.Element) -> Optional['BaseXmlModel']:
         """
         Deserializes an xml element tree to an object of `cls` type.
