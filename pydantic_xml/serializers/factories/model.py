@@ -85,6 +85,14 @@ class ModelSerializerFactory:
 
             return self._model.parse_obj(obj)
 
+        def resolve_forward_refs(self) -> 'Serializer':
+            self._field_serializers = {
+                field_name: serializer.resolve_forward_refs()
+                for field_name, serializer in self._field_serializers.items()
+            }
+
+            return self
+
     class DeferredSerializer(ModelSerializer):
 
         def __init__(self, model_field: pd.fields.ModelField):

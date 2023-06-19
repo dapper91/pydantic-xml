@@ -1,5 +1,5 @@
 import dataclasses as dc
-from copy import deepcopy
+import typing
 from typing import Any, List, Optional, Type
 
 import pydantic as pd
@@ -8,7 +8,7 @@ import pydantic_xml as pxml
 from pydantic_xml import errors
 from pydantic_xml.element import XmlElementReader, XmlElementWriter
 from pydantic_xml.serializers.encoder import XmlEncoder
-from pydantic_xml.serializers.serializer import Location, PydanticShapeType, Serializer
+from pydantic_xml.serializers.serializer import Location, PydanticShapeType, Serializer, SubFieldWrapper
 from pydantic_xml.utils import QName, merge_nsmaps
 
 
@@ -29,11 +29,15 @@ class HomogeneousSerializerFactory:
             nsmap = merge_nsmaps(nsmap, ctx.parent_nsmap)
 
             self._element_name = QName.from_alias(tag=name, ns=ns, nsmap=nsmap).uri
-
-            item_field = deepcopy(model_field.sub_fields[0])
-            item_field.name = model_field.name
-            item_field.alias = model_field.alias
-            item_field.field_info = model_field.field_info
+            item_field = typing.cast(
+                pd.fields.ModelField,
+                SubFieldWrapper(
+                    model_field.name,
+                    model_field.alias,
+                    model_field.field_info,
+                    model_field.sub_fields[0],
+                ),
+            )
 
             self._inner_serializer = self._build_field_serializer(
                 model,
@@ -72,6 +76,11 @@ class HomogeneousSerializerFactory:
                 result.append(value)
 
             return result or None
+
+        def resolve_forward_refs(self) -> 'Serializer':
+            self._inner_serializer = self._inner_serializer.resolve_forward_refs()
+
+            return self
 
     @classmethod
     def build(

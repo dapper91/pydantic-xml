@@ -1,3 +1,4 @@
+from .forwardref import ForwardRefSerializerFactory
 from .heterogeneous import HeterogeneousSerializerFactory
 from .homogeneous import HomogeneousSerializerFactory
 from .mapping import MappingSerializerFactory

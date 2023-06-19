@@ -1,5 +1,5 @@
 import dataclasses as dc
-from copy import deepcopy
+import typing
 from typing import Any, List, Optional, Type
 
 import pydantic as pd
@@ -8,7 +8,7 @@ import pydantic_xml as pxml
 from pydantic_xml import errors
 from pydantic_xml.element import XmlElementReader, XmlElementWriter
 from pydantic_xml.serializers.encoder import XmlEncoder
-from pydantic_xml.serializers.serializer import Location, PydanticShapeType, Serializer
+from pydantic_xml.serializers.serializer import Location, PydanticShapeType, Serializer, SubFieldWrapper
 from pydantic_xml.utils import QName, merge_nsmaps
 
 
@@ -32,10 +32,15 @@ class HeterogeneousSerializerFactory:
 
             self._inner_serializers = []
             for sub_field in model_field.sub_fields:
-                sub_field = deepcopy(sub_field)
-                sub_field.name = model_field.name
-                sub_field.alias = model_field.alias
-                sub_field.field_info = model_field.field_info
+                sub_field = typing.cast(
+                    pd.fields.ModelField,
+                    SubFieldWrapper(
+                        model_field.name,
+                        model_field.alias,
+                        model_field.field_info,
+                        sub_field,
+                    ),
+                )
 
                 self._inner_serializers.append(
                     self._build_field_serializer(
@@ -49,6 +54,14 @@ class HeterogeneousSerializerFactory:
                         ),
                     ),
                 )
+
+        def resolve_forward_refs(self) -> 'Serializer':
+            self._inner_serializers = [
+                serializer.resolve_forward_refs()
+                for serializer in self._inner_serializers
+            ]
+
+            return self
 
         def serialize(
                 self, element: XmlElementWriter, value: List[Any], *, encoder: XmlEncoder, skip_empty: bool = False,
