@@ -1,5 +1,5 @@
 import dataclasses as dc
-from copy import deepcopy
+import typing
 from typing import Any, Optional, Sized, Type
 
 import pydantic as pd
@@ -7,7 +7,7 @@ import pydantic as pd
 import pydantic_xml as pxml
 from pydantic_xml.element import XmlElementReader, XmlElementWriter
 from pydantic_xml.serializers.encoder import XmlEncoder
-from pydantic_xml.serializers.serializer import Serializer
+from pydantic_xml.serializers.serializer import Serializer, SubFieldWrapper
 from pydantic_xml.utils import QName, merge_nsmaps
 
 
@@ -25,14 +25,21 @@ class WrappedSerializerFactory:
             self._nsmap = nsmap = merge_nsmaps(nsmap, ctx.parent_nsmap)
             self._search_mode = ctx.search_mode
 
-            model_field = deepcopy(model_field)
             field_info = model_field.field_info
 
             assert path is not None, "path is not provided"
             assert isinstance(field_info, pxml.XmlWrapperInfo), "unexpected field info type"
 
             # copy field_info from wrapped entity
-            model_field.field_info = field_info.entity or pd.fields.FieldInfo()
+            model_field = typing.cast(
+                pd.fields.ModelField,
+                SubFieldWrapper(
+                    model_field.name,
+                    model_field.alias,
+                    field_info.entity or pd.fields.FieldInfo(),
+                    model_field,
+                ),
+            )
 
             self._path = tuple(QName.from_alias(tag=part, ns=ns, nsmap=nsmap).uri for part in path.split('/'))
             self._inner_serializer = self._build_field_serializer(
@@ -68,6 +75,11 @@ class WrappedSerializerFactory:
                 return self._inner_serializer.deserialize(sub_element)
             else:
                 return None
+
+        def resolve_forward_refs(self) -> 'Serializer':
+            self._inner_serializer = self._inner_serializer.resolve_forward_refs()
+
+            return self
 
     @classmethod
     def build(

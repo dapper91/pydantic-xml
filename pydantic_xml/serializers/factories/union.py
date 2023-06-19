@@ -1,4 +1,4 @@
-from copy import deepcopy
+import typing
 from typing import Any, List, Optional, Type
 
 import pydantic as pd
@@ -8,7 +8,7 @@ from pydantic_xml import errors
 from pydantic_xml.element import XmlElementReader, XmlElementWriter
 from pydantic_xml.serializers.encoder import XmlEncoder
 from pydantic_xml.serializers.factories.model import ModelSerializerFactory
-from pydantic_xml.serializers.serializer import Location, PydanticShapeType, Serializer, is_xml_model
+from pydantic_xml.serializers.serializer import Location, PydanticShapeType, Serializer, SubFieldWrapper, is_xml_model
 
 
 class UnionSerializerFactory:
@@ -25,10 +25,15 @@ class UnionSerializerFactory:
 
             inner_serializers: List[Serializer] = []
             for sub_field in model_field.sub_fields:
-                sub_field = deepcopy(sub_field)
-                sub_field.name = model_field.name
-                sub_field.alias = model_field.alias
-                sub_field.field_info = model_field.field_info
+                sub_field = typing.cast(
+                    pd.fields.ModelField,
+                    SubFieldWrapper(
+                        model_field.name,
+                        model_field.alias,
+                        model_field.field_info,
+                        sub_field,
+                    ),
+                )
 
                 inner_serializers.append(self._build_field_serializer(model, sub_field, ctx))
 
@@ -55,10 +60,15 @@ class UnionSerializerFactory:
 
             inner_serializers: List[ModelSerializerFactory.ModelSerializer] = []
             for sub_field in model_field.sub_fields:
-                sub_field = deepcopy(sub_field)
-                sub_field.name = model_field.name
-                sub_field.alias = model_field.alias
-                sub_field.field_info = model_field.field_info
+                sub_field = typing.cast(
+                    pd.fields.ModelField,
+                    SubFieldWrapper(
+                        model_field.name,
+                        model_field.alias,
+                        model_field.field_info,
+                        sub_field,
+                    ),
+                )
 
                 serializer = self._build_field_serializer(model, sub_field, ctx)
                 assert isinstance(serializer, ModelSerializerFactory.ModelSerializer), "unexpected serializer type"
@@ -102,6 +112,14 @@ class UnionSerializerFactory:
                 raise last_error
 
             return result
+
+        def resolve_forward_refs(self) -> 'Serializer':
+            self._inner_serializers = [
+                typing.cast(ModelSerializerFactory.ModelSerializer, serializer.resolve_forward_refs())
+                for serializer in self._inner_serializers
+            ]
+
+            return self
 
     @classmethod
     def build(

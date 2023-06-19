@@ -4,7 +4,7 @@ import sys
 import typing
 from enum import IntEnum
 from inspect import isclass
-from typing import Any, Dict, Optional, Tuple, Type, Union
+from typing import Any, Dict, ForwardRef, Optional, Tuple, Type, Union
 
 if sys.version_info < (3, 10):
     UnionTypes = (Union,)
@@ -20,6 +20,17 @@ from pydantic_xml.typedefs import NsMap
 
 from . import factories
 from .encoder import XmlEncoder
+
+
+class SubFieldWrapper:
+    def __init__(self, name: str, alias: str, field_info: pd.fields.FieldInfo, model_field: pd.fields.ModelField):
+        self.model_field = model_field
+        self.name = name
+        self.alias = alias
+        self.field_info = field_info
+
+    def __getattr__(self, item: str) -> Any:
+        return getattr(self.model_field, item)
 
 
 class Location(IntEnum):
@@ -120,6 +131,15 @@ class Serializer(abc.ABC):
         :return: deserialized value
         """
 
+    def resolve_forward_refs(self) -> 'Serializer':
+        """
+        Resolve forward references if exist
+
+        :return: resolved serializer
+        """
+
+        return self
+
     @classmethod
     def _get_field_location(cls, field_info: pd.fields.FieldInfo) -> Location:
         if isinstance(field_info, pxml.XmlElementInfo):
@@ -156,21 +176,21 @@ class Serializer(abc.ABC):
             model_field: pd.fields.ModelField,
             ctx: Context,
     ) -> 'Serializer':
-        field_type = model_field.type_
-        field_info = model_field.field_info
+        if cls._has_forward_refs(model_field):
+            return factories.ForwardRefSerializerFactory.build(model, model_field, ctx)
 
         shape_type = PydanticShapeType.from_shape(model_field.shape)
         if shape_type is PydanticShapeType.UNKNOWN:
             raise TypeError(f"fields of type {model_field.type_} are not supported")
 
-        if is_xml_model(field_type):
+        if is_xml_model(model_field.type_):
             is_model_field = True
         else:
             is_model_field = False
 
         is_union_type = is_union(model_field.outer_type_) and not is_optional(model_field.outer_type_)
 
-        field_location = cls._get_field_location(field_info)
+        field_location = cls._get_field_location(model_field.field_info)
 
         if field_location is Location.WRAPPED:
             return factories.WrappedSerializerFactory.build(model, model_field, ctx)
@@ -188,3 +208,14 @@ class Serializer(abc.ABC):
             return factories.HeterogeneousSerializerFactory.build(model, model_field, field_location, ctx)
         else:
             raise AssertionError("unreachable")
+
+    @classmethod
+    def _has_forward_refs(cls, model_field: pd.fields.ModelField) -> bool:
+        if isinstance(model_field.type_, ForwardRef):
+            return True
+
+        for field in model_field.sub_fields or []:
+            if isinstance(field.type_, ForwardRef):
+                return True
+
+        return False
