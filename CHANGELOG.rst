@@ -1,6 +1,12 @@
 Changelog
 =========
 
+0.6.3 (2023-06-19)
+------------------
+
+- forward refs support added. See https://github.com/dapper91/pydantic-xml/pull/61
+
+
 0.6.2 (2023-06-10)
 ------------------
 
