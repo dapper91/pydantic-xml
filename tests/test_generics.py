@@ -3,7 +3,7 @@ from typing import Generic, TypeVar
 import pytest
 from helpers import assert_xml_equal
 
-from pydantic_xml import BaseGenericXmlModel, BaseXmlModel, attr, errors
+from pydantic_xml import BaseGenericXmlModel, BaseXmlModel, attr, element, errors
 
 
 def test_root_generic_model():
@@ -62,6 +62,60 @@ def test_generic_submodel():
     expected_obj = TestModel(
         model2=GenericSubModel[int](attr1=1),
         model3=GenericSubModel[float](attr1=1.1),
+    )
+
+    assert actual_obj == expected_obj
+
+    actual_xml = actual_obj.to_xml()
+    assert_xml_equal(actual_xml, xml)
+
+
+def test_generic_list():
+    GenericType = TypeVar('GenericType')
+
+    class GenericModel(BaseGenericXmlModel, Generic[GenericType], tag="model1"):
+        elems: list[GenericType] = element(tag="elem")
+
+    xml = '''
+    <model1>
+        <elem>foo</elem>
+        <elem>bar</elem>
+    </model1>
+    '''
+
+    actual_obj = GenericModel[str].from_xml(xml)
+    expected_obj = GenericModel(
+        elems = ["foo", "bar"]
+    )
+
+    assert actual_obj == expected_obj
+
+    actual_xml = actual_obj.to_xml()
+    assert_xml_equal(actual_xml, xml)
+
+
+def test_generic_list_of_submodels():
+    GenericType = TypeVar('GenericType')
+
+    class SubModel(BaseXmlModel, tag="model2"):
+        attr1: str = attr()
+
+    class GenericModel(BaseGenericXmlModel, Generic[GenericType], tag="model1"):
+        elems: list[GenericType] = element()
+
+    xml = '''
+    <model1>
+        <model2 attr1="foo"/>
+        <model2 attr1="bar"/>
+    </model1>
+    '''
+
+    actual_obj = GenericModel[SubModel].from_xml(xml)
+    expected_obj = GenericModel(
+        elems=[
+            SubModel(attr1="foo"),
+            SubModel(attr1="bar"),
+        ],
     )
 
     assert actual_obj == expected_obj
