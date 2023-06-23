@@ -2,7 +2,11 @@ from pydantic_xml import BaseXmlModel, element
 
 
 # [model-start]
-class Company(BaseXmlModel, tag='Company', search_mode='ordered'):
+class Company(
+    BaseXmlModel,
+    tag='Company',
+    search_mode='ordered',
+):
     founded: str = element(tag='Founded')
     website: str = element(tag='WebSite')
 # [model-end]

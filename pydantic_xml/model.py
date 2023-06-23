@@ -144,7 +144,8 @@ class XmlWrapperInfo(XmlEntityInfo):
 def attr(**kwargs: Any) -> Any:
     """
     Marks a pydantic field as an xml attribute.
-    Method parameters are identical to :py:class:`pydantic_xml.XmlAttributeInfo`.
+
+    :param kwargs: see :py:class:`pydantic_xml.XmlAttributeInfo`
     """
 
     return XmlAttributeInfo(**kwargs)
@@ -153,7 +154,8 @@ def attr(**kwargs: Any) -> Any:
 def element(**kwargs: Any) -> Any:
     """
     Marks a pydantic field as an xml element.
-    Method parameters are identical to :py:class:`pydantic_xml.XmlElementInfo`.
+
+    :param kwargs: see :py:class:`pydantic_xml.XmlElementInfo`
     """
 
     return XmlElementInfo(**kwargs)
@@ -162,7 +164,9 @@ def element(**kwargs: Any) -> Any:
 def wrapped(*args: Any, **kwargs: Any) -> Any:
     """
     Marks a pydantic field as a wrapped xml entity.
-    Method parameters are identical to :py:class:`pydantic_xml.XmlWrapperInfo`.
+
+    :param args: see :py:class:`pydantic_xml.XmlWrapperInfo`
+    :param kwargs: see :py:class:`pydantic_xml.XmlWrapperInfo`
     """
 
     return XmlWrapperInfo(*args, **kwargs)

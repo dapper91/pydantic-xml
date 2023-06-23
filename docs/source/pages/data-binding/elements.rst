@@ -195,9 +195,9 @@ A model supports several element search strategies (modes). Each strategy has it
 Strict (default)
 ................
 
-An element to which a field will be bound is searched sequentially one by one (without skipping unknown elements).
+The element to which a field will be bound is searched sequentially one by one (without skipping unknown elements).
 If the tag of a next element doesn't match the field tag that field is considered unbound.
-This mode is used when strong document validation is required. If you parse a very large document it is the best
+This mode is used when strong document validation is required. If you parse a large document it is the best
 choice because it works in predictable time since it doesn't require any look-ahead operations.
 
 .. grid:: 2
@@ -237,9 +237,9 @@ choice because it works in predictable time since it doesn't require any look-ah
 Ordered
 .......
 
-An element to which a field will be bound is searched sequentially skipping unknown elements.
+The element to which a field will be bound is searched sequentially skipping unknown elements.
 If the tag of a next element doesn't match the field tag that element is skipped and the search continues.
-This mode is used when element order matters but unexpected (or irrelevant) elements could appear in a document.
+This mode is used when the elements order matters but unexpected (or irrelevant) elements could appear in a document.
 
 .. grid:: 2
     :gutter: 2
@@ -276,7 +276,7 @@ This mode is used when element order matters but unexpected (or irrelevant) elem
 
     .. code-block:: python
 
-       class Model(BaseXmlModel):
+       class Model(BaseXmlModel, search_mode='ordered'):
            field1: Optional[str] = element(tag='element1')
            field2: str = element(tag='element2')
            field3: str = element(tag='element1')
@@ -297,10 +297,11 @@ This mode is used when element order matters but unexpected (or irrelevant) elem
 Unordered
 .........
 
-An element to which a field will be bound is searched in random order.
-This mode is used when element order doesn't matter.
-The time complexity of this strategy is worst case is
-``O(F*E)`` where ``F`` - is the number of fields, ``E`` - the number of sub-elements.
+The element to which a field will be bound is searched among all sub-elements in any order.
+This mode is used when the elements order doesn't matter.
+The time complexity of this strategy in worst case is
+``O(F*E)`` where ``F`` - is the number of fields, ``E`` - the number of sub-elements so that it is not suitable
+for large documents.
 
 .. grid:: 2
     :gutter: 2
