@@ -1,9 +1,9 @@
-from typing import Type
+from typing import Any, Type
 
 from pydantic_xml import config
 from pydantic_xml.element import XmlElement as BaseXmlElement
 
-XmlElement: Type[BaseXmlElement]
+XmlElement: Type[BaseXmlElement[Any]]
 
 if config.FORCE_STD_XML:
     from .std import *  # noqa: F403
