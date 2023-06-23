@@ -1,6 +1,14 @@
 Changelog
 =========
 
+0.7.0 (2023-06-24)
+------------------
+
+- from_xml, from_xml_tree methods return type bound to cls type. This resolves the problem with mypy checker.
+  See https://github.com/dapper91/pydantic-xml/issues/65
+- wrapped sub-elements serialization bug fixed. See https://github.com/dapper91/pydantic-xml/pull/70
+
+
 0.6.3 (2023-06-19)
 ------------------
 
