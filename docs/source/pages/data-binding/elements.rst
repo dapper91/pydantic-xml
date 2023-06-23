@@ -276,7 +276,7 @@ This mode is used when element order matters but unexpected (or irrelevant) elem
 
     .. code-block:: python
 
-       class Model(BaseXmlModel):
+       class Model(BaseXmlModel, search_mode='ordered'):
            field1: Optional[str] = element(tag='element1')
            field2: str = element(tag='element2')
            field3: str = element(tag='element1')
