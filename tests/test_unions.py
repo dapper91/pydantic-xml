@@ -150,6 +150,31 @@ def test_primitive_union_tuple():
     assert_xml_equal(actual_xml, xml)
 
 
+def test_root_union():
+    class SubModel1(BaseXmlModel, tag='model1'):
+        attr1: int = attr()
+
+    class SubModel2(BaseXmlModel, tag='model2'):
+        element1: float
+
+    class TestModel(BaseXmlModel, tag='model'):
+        __root__: Union[SubModel1, SubModel2]
+
+    xml = '''
+    <model>
+        <model2>inf</model2>
+    </model>
+    '''
+
+    actual_obj = TestModel.from_xml(xml)
+    expected_obj = TestModel(__root__=SubModel2(element1=float('inf')))
+
+    assert actual_obj == expected_obj
+
+    actual_xml = actual_obj.to_xml()
+    assert_xml_equal(actual_xml, xml)
+
+
 def test_submodel_definition_errors():
     with pytest.raises(TypeError):
         class SubModel(BaseXmlModel):

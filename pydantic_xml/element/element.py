@@ -257,6 +257,7 @@ class XmlElement(XmlElementReader, XmlElementWriter, Generic[NativeElement]):
 
     def append_element(self, element: 'XmlElement[NativeElement]') -> None:
         self._state.elements.append(element)
+        self._state.next_element_idx += 1
 
     def pop_text(self) -> Optional[str]:
         result, self._state.text = self._state.text, None
@@ -295,6 +296,7 @@ class XmlElement(XmlElementReader, XmlElementWriter, Generic[NativeElement]):
         if (sub_element := self._find_element(tag, search_mode)) is None:
             sub_element = self.make_element(tag=tag, nsmap=nsmap)
             self._state.elements.append(sub_element)
+            self._state.next_element_idx += 1
 
         return sub_element
 
