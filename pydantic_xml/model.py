@@ -1,5 +1,6 @@
 import functools as ft
-from typing import Any, Callable, ClassVar, Dict, Optional, Tuple, Type, Union
+import typing
+from typing import Any, Callable, ClassVar, Dict, Optional, Tuple, Type, TypeVar, Union
 
 import pydantic as pd
 import pydantic.fields
@@ -144,7 +145,8 @@ class XmlWrapperInfo(XmlEntityInfo):
 def attr(**kwargs: Any) -> Any:
     """
     Marks a pydantic field as an xml attribute.
-    Method parameters are identical to :py:class:`pydantic_xml.XmlAttributeInfo`.
+
+    :param kwargs: see :py:class:`pydantic_xml.XmlAttributeInfo`
     """
 
     return XmlAttributeInfo(**kwargs)
@@ -153,7 +155,8 @@ def attr(**kwargs: Any) -> Any:
 def element(**kwargs: Any) -> Any:
     """
     Marks a pydantic field as an xml element.
-    Method parameters are identical to :py:class:`pydantic_xml.XmlElementInfo`.
+
+    :param kwargs: see :py:class:`pydantic_xml.XmlElementInfo`
     """
 
     return XmlElementInfo(**kwargs)
@@ -162,7 +165,9 @@ def element(**kwargs: Any) -> Any:
 def wrapped(*args: Any, **kwargs: Any) -> Any:
     """
     Marks a pydantic field as a wrapped xml entity.
-    Method parameters are identical to :py:class:`pydantic_xml.XmlWrapperInfo`.
+
+    :param args: see :py:class:`pydantic_xml.XmlWrapperInfo`
+    :param kwargs: see :py:class:`pydantic_xml.XmlWrapperInfo`
     """
 
     return XmlWrapperInfo(*args, **kwargs)
@@ -197,6 +202,9 @@ class XmlModelMeta(pd.main.ModelMetaclass):
         if self_config := namespace.get('Config'):
             xml_encoders.update(getattr(self_config, 'xml_encoders', {}))
             setattr(self_config, 'xml_encoders', xml_encoders)
+
+
+ModelT = TypeVar('ModelT', bound='BaseXmlModel')
 
 
 class BaseXmlModel(pd.BaseModel, metaclass=XmlModelMeta):
@@ -264,7 +272,7 @@ class BaseXmlModel(pd.BaseModel, metaclass=XmlModelMeta):
             cls.__xml_serializer__.resolve_forward_refs()
 
     @classmethod
-    def from_xml_tree(cls, root: etree.Element) -> Optional['BaseXmlModel']:
+    def from_xml_tree(cls: Type[ModelT], root: etree.Element) -> ModelT:
         """
         Deserializes an xml element tree to an object of `cls` type.
 
@@ -275,7 +283,7 @@ class BaseXmlModel(pd.BaseModel, metaclass=XmlModelMeta):
         assert cls.__xml_serializer__ is not None, f"model {cls.__name__} is partially initialized"
 
         if root.tag == cls.__xml_serializer__.element_name:
-            obj = cls.__xml_serializer__.deserialize(XmlElement.from_native(root))
+            obj = typing.cast(ModelT, cls.__xml_serializer__.deserialize(XmlElement.from_native(root)))
             return obj
         else:
             raise errors.ParsingError(
@@ -283,7 +291,7 @@ class BaseXmlModel(pd.BaseModel, metaclass=XmlModelMeta):
             )
 
     @classmethod
-    def from_xml(cls, source: Union[str, bytes]) -> Optional['BaseXmlModel']:
+    def from_xml(cls: Type[ModelT], source: Union[str, bytes]) -> ModelT:
         """
         Deserializes an xml string to an object of `cls` type.
 
@@ -335,6 +343,9 @@ class BaseXmlModel(pd.BaseModel, metaclass=XmlModelMeta):
         return etree.tostring(self.to_xml_tree(encoder=encoder, skip_empty=skip_empty), **kwargs)
 
 
+GenericModelT = TypeVar('GenericModelT', bound='BaseGenericXmlModel')
+
+
 class BaseGenericXmlModel(BaseXmlModel, pd.generics.GenericModel):
     """
     Base pydantic-xml generic model.
@@ -360,7 +371,7 @@ class BaseGenericXmlModel(BaseXmlModel, pd.generics.GenericModel):
             super().__init_serializer__()
 
     @classmethod
-    def from_xml_tree(cls, root: etree.Element) -> Optional['BaseXmlModel']:
+    def from_xml_tree(cls: Type[GenericModelT], root: etree.Element) -> GenericModelT:
         """
         Deserializes an xml element tree to an object of `cls` type.
 

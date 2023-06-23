@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pydantic-xml"
-version = "0.6.3"
+version = "0.7.0"
 description = "pydantic xml extension"
 authors = ["Dmitry Pershin <dapper1291@gmail.com>"]
 license = "Unlicense"
@@ -53,6 +53,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.mypy]
 allow_redefinition = true
+disallow_any_generics = true
 disallow_incomplete_defs = true
 disallow_untyped_decorators = false
 disallow_untyped_defs = true

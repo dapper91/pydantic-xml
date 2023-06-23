@@ -1,3 +1,4 @@
+import dataclasses as dc
 import typing
 from typing import Any, List, Optional, Type
 
@@ -70,7 +71,11 @@ class UnionSerializerFactory:
                     ),
                 )
 
-                serializer = self._build_field_serializer(model, sub_field, ctx)
+                serializer = self._build_field_serializer(
+                    model,
+                    sub_field,
+                    dc.replace(ctx, parent_is_root=False),
+                )
                 assert isinstance(serializer, ModelSerializerFactory.ModelSerializer), "unexpected serializer type"
 
                 inner_serializers.append(serializer)

@@ -121,6 +121,36 @@ def test_list_of_dicts_extraction():
     assert_xml_equal(actual_xml, xml)
 
 
+def test_root_list_of_submodels_extraction():
+    class TestSubModel(BaseXmlModel, tag='model2'):
+        text: int
+
+    class TestModel(BaseXmlModel, tag='model1'):
+        __root__: List[TestSubModel] = element()
+
+    xml = '''
+    <model1>
+        <model2>1</model2>
+        <model2>2</model2>
+        <model2>3</model2>
+    </model1>
+    '''
+
+    actual_obj = TestModel.from_xml(xml)
+    expected_obj = TestModel(
+        __root__=[
+            TestSubModel(text=1),
+            TestSubModel(text=2),
+            TestSubModel(text=3),
+        ],
+    )
+
+    assert actual_obj == expected_obj
+
+    actual_xml = actual_obj.to_xml()
+    assert_xml_equal(actual_xml, xml)
+
+
 def test_homogeneous_definition_errors():
     with pytest.raises(errors.ModelFieldError):
         class TestModel(BaseXmlModel):

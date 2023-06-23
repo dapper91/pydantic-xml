@@ -1,6 +1,6 @@
 import abc
 from enum import Enum
-from typing import Callable, Dict, Generic, List, Optional, Sequence, TypeVar
+from typing import Any, Callable, Dict, Generic, List, Optional, Sequence, TypeVar
 
 from pydantic_xml.typedefs import NsMap
 
@@ -47,7 +47,7 @@ class XmlElementReader(abc.ABC):
         """
 
     @abc.abstractmethod
-    def pop_element(self, tag: str, search_mode: 'SearchMode') -> Optional['XmlElement']:
+    def pop_element(self, tag: str, search_mode: 'SearchMode') -> Optional['XmlElement[Any]']:
         """
         Extracts a sub-element from the xml element matching `tag`.
 
@@ -57,7 +57,7 @@ class XmlElementReader(abc.ABC):
         """
 
     @abc.abstractmethod
-    def find_sub_element(self, path: Sequence[str], search_mode: 'SearchMode') -> Optional['XmlElement']:
+    def find_sub_element(self, path: Sequence[str], search_mode: 'SearchMode') -> Optional['XmlElement[Any]']:
         """
         Searches for an element at the provided path. If the element is not found returns `None`.
 
@@ -67,7 +67,7 @@ class XmlElementReader(abc.ABC):
         """
 
     @abc.abstractmethod
-    def create_snapshot(self) -> 'XmlElement':
+    def create_snapshot(self) -> 'XmlElement[Any]':
         """
         Creates a snapshot of the element. The snapshot can be modified not affecting the original one.
 
@@ -75,7 +75,7 @@ class XmlElementReader(abc.ABC):
         """
 
     @abc.abstractmethod
-    def apply_snapshot(self, snapshot: 'XmlElement') -> None:
+    def apply_snapshot(self, snapshot: 'XmlElement[Any]') -> None:
         """
         Applies a snapshot to the current element.
         """
@@ -121,7 +121,7 @@ class XmlElementWriter(abc.ABC):
         """
 
     @abc.abstractmethod
-    def append_element(self, element: 'XmlElement') -> None:
+    def append_element(self, element: 'XmlElement[Any]') -> None:
         """
         Appends a new sub-element to the xml element.
 
@@ -129,7 +129,7 @@ class XmlElementWriter(abc.ABC):
         """
 
     @abc.abstractmethod
-    def make_element(self, tag: str, nsmap: Optional[NsMap]) -> 'XmlElement':
+    def make_element(self, tag: str, nsmap: Optional[NsMap]) -> 'XmlElement[Any]':
         """
         Creates an element of the current element type.
 
@@ -139,7 +139,7 @@ class XmlElementWriter(abc.ABC):
         """
 
     @abc.abstractmethod
-    def find_element_or_create(self, tag: str, search_mode: 'SearchMode', nsmap: Optional[NsMap]) -> 'XmlElement':
+    def find_element_or_create(self, tag: str, search_mode: 'SearchMode', nsmap: Optional[NsMap]) -> 'XmlElement[Any]':
         """
         Searches for an element with the provided tag.
         If the element is found returns it otherwise creates a new one.
@@ -159,14 +159,16 @@ class XmlElement(XmlElementReader, XmlElementWriter, Generic[NativeElement]):
     Xml element.
     """
 
-    class State:
+    NativeElementInner = TypeVar('NativeElementInner')
+
+    class State(Generic[NativeElementInner]):
         __slots__ = ('text', 'attrib', 'elements', 'next_element_idx')
 
         def __init__(
                 self,
                 text: Optional[str],
                 attrib: Optional[Dict[str, str]],
-                elements: List['XmlElement'],
+                elements: List['XmlElement[XmlElement.NativeElementInner]'],
                 next_element_idx: int,
         ):
             self.text = text
@@ -178,7 +180,7 @@ class XmlElement(XmlElementReader, XmlElementWriter, Generic[NativeElement]):
 
     @classmethod
     @abc.abstractmethod
-    def from_native(cls, element: NativeElement) -> 'XmlElement':
+    def from_native(cls, element: NativeElement) -> 'XmlElement[NativeElement]':
         """
         Creates a instance of `XmlElement` from native element.
 
@@ -199,7 +201,7 @@ class XmlElement(XmlElementReader, XmlElementWriter, Generic[NativeElement]):
             tag: str,
             text: Optional[str] = None,
             attributes: Optional[Dict[str, str]] = None,
-            elements: Optional[List['XmlElement']] = None,
+            elements: Optional[List['XmlElement[NativeElement]']] = None,
             nsmap: Optional[NsMap] = None,
     ):
         self._tag = tag
@@ -215,7 +217,7 @@ class XmlElement(XmlElementReader, XmlElementWriter, Generic[NativeElement]):
     def tag(self) -> str:
         return self._tag
 
-    def create_snapshot(self) -> 'XmlElement':
+    def create_snapshot(self) -> 'XmlElement[NativeElement]':
         element = self.__class__(
             tag=self._tag,
             text=self._state.text,
@@ -227,7 +229,7 @@ class XmlElement(XmlElementReader, XmlElementWriter, Generic[NativeElement]):
 
         return element
 
-    def apply_snapshot(self, snapshot: 'XmlElement') -> None:
+    def apply_snapshot(self, snapshot: 'XmlElement[NativeElement]') -> None:
         self._tag = snapshot._tag
         self._nsmap = snapshot._nsmap
         self._state.text = snapshot._state.text
@@ -253,8 +255,9 @@ class XmlElement(XmlElementReader, XmlElementWriter, Generic[NativeElement]):
     def set_attributes(self, attributes: Dict[str, str]) -> None:
         self._state.attrib = dict(attributes)
 
-    def append_element(self, element: 'XmlElement') -> None:
+    def append_element(self, element: 'XmlElement[NativeElement]') -> None:
         self._state.elements.append(element)
+        self._state.next_element_idx += 1
 
     def pop_text(self) -> Optional[str]:
         result, self._state.text = self._state.text, None
@@ -269,12 +272,12 @@ class XmlElement(XmlElementReader, XmlElementWriter, Generic[NativeElement]):
 
         return result
 
-    def pop_element(self, tag: str, search_mode: 'SearchMode') -> Optional['XmlElement']:
+    def pop_element(self, tag: str, search_mode: 'SearchMode') -> Optional['XmlElement[NativeElement]']:
         searcher = get_searcher(search_mode)
 
         return searcher(self._state, tag, False)
 
-    def find_sub_element(self, path: Sequence[str], search_mode: 'SearchMode') -> Optional['XmlElement']:
+    def find_sub_element(self, path: Sequence[str], search_mode: 'SearchMode') -> Optional['XmlElement[NativeElement]']:
         assert len(path) > 0, "path can't be empty"
 
         root, path = path[0], path[1:]
@@ -284,14 +287,20 @@ class XmlElement(XmlElementReader, XmlElementWriter, Generic[NativeElement]):
 
         return element
 
-    def find_element_or_create(self, tag: str, search_mode: 'SearchMode', nsmap: Optional[NsMap]) -> 'XmlElement':
+    def find_element_or_create(
+            self,
+            tag: str,
+            search_mode: 'SearchMode',
+            nsmap: Optional[NsMap],
+    ) -> 'XmlElement[NativeElement]':
         if (sub_element := self._find_element(tag, search_mode)) is None:
             sub_element = self.make_element(tag=tag, nsmap=nsmap)
             self._state.elements.append(sub_element)
+            self._state.next_element_idx += 1
 
         return sub_element
 
-    def _find_element(self, tag: str, search_mode: 'SearchMode') -> Optional['XmlElement']:
+    def _find_element(self, tag: str, search_mode: 'SearchMode') -> Optional['XmlElement[NativeElement]']:
         searcher = get_searcher(search_mode)
 
         return searcher(self._state, tag, True)
@@ -311,7 +320,7 @@ class SearchMode(str, Enum):
     UNORDERED = 'unordered'
 
 
-Searcher = Callable[[XmlElement.State, str, bool], Optional[XmlElement]]
+Searcher = Callable[[XmlElement.State[Any], str, bool], Optional[XmlElement]]
 
 
 def get_searcher(search_mode: SearchMode) -> Searcher:
@@ -325,7 +334,7 @@ def get_searcher(search_mode: SearchMode) -> Searcher:
         raise AssertionError('unreachable')
 
 
-def strict_search(state: XmlElement.State, tag: str, look_behind: bool = False) -> Optional[XmlElement]:
+def strict_search(state: XmlElement.State[Any], tag: str, look_behind: bool = False) -> Optional[XmlElement[Any]]:
     """
     Searches for a sub-element sequentially one by one.
 
@@ -335,7 +344,7 @@ def strict_search(state: XmlElement.State, tag: str, look_behind: bool = False) 
     :return: found element or `None` if the element not found
     """
 
-    result: Optional['XmlElement'] = None
+    result: Optional[XmlElement[Any]] = None
 
     if look_behind and (result := _look_behind(state, tag)) is not None:
         return result
@@ -347,7 +356,7 @@ def strict_search(state: XmlElement.State, tag: str, look_behind: bool = False) 
     return result
 
 
-def ordered_search(state: XmlElement.State, tag: str, look_behind: bool = False) -> Optional[XmlElement]:
+def ordered_search(state: XmlElement.State[Any], tag: str, look_behind: bool = False) -> Optional[XmlElement[Any]]:
     """
     Searches for an element sequentially skipping unmatched ones.
 
@@ -357,7 +366,7 @@ def ordered_search(state: XmlElement.State, tag: str, look_behind: bool = False)
     :return: found element or `None` if the element not found
     """
 
-    result: Optional['XmlElement'] = None
+    result: Optional[XmlElement[Any]] = None
 
     if look_behind and (result := _look_behind(state, tag)) is not None:
         return result
@@ -375,7 +384,11 @@ def ordered_search(state: XmlElement.State, tag: str, look_behind: bool = False)
     return result
 
 
-def unordered_search(state: XmlElement.State, tag: str, look_behind: bool = False) -> Optional[XmlElement]:
+def unordered_search(
+        state: XmlElement.State[Any],
+        tag: str,
+        look_behind: bool = False,
+) -> Optional[XmlElement[Any]]:
     """
     Searches search for an element ignoring elements order.
 
@@ -385,7 +398,7 @@ def unordered_search(state: XmlElement.State, tag: str, look_behind: bool = Fals
     :return: found element or `None` if the requested element not found
     """
 
-    result: Optional['XmlElement'] = None
+    result: Optional[XmlElement[Any]] = None
 
     if look_behind and (result := _look_behind(state, tag)) is not None:
         return result
@@ -402,7 +415,7 @@ def unordered_search(state: XmlElement.State, tag: str, look_behind: bool = Fals
     return result
 
 
-def _look_behind(state: XmlElement.State, tag: str) -> Optional[XmlElement]:
+def _look_behind(state: XmlElement.State[Any], tag: str) -> Optional[XmlElement[Any]]:
     if state.next_element_idx != 0:
         candidate = state.elements[state.next_element_idx - 1]
         if candidate.tag == tag:

@@ -1,8 +1,12 @@
 .. _misc:
 
 
+Encoding
+~~~~~~~~
+
+
 Custom type encoding
-~~~~~~~~~~~~~~~~~~~~
+____________________
 
 ``pydantic-xml`` uses ``pydantic`` default encoder to encode fields data during xml serialization. To alter the default
 behaviour ``pydantic`` provides a mechanism to `customize <https://docs.pydantic.dev/usage/exporting_models/#json_encoders>`_
@@ -11,7 +15,7 @@ The api is similar to the json one:
 
 .. code-block:: python
 
-    class Model:
+    class Model(BaseXmlModel):
         class Config:
             xml_encoders = {
                 bytes: base64.b64encode,
@@ -38,6 +42,51 @@ The following example illustrate how to encode :py:class:`bytes` typed fields as
 
 .. literalinclude:: ../../../examples/custom-encoder/doc.xml
     :language: xml
+
+
+None type encoding
+__________________
+
+Since xml format doesn't support ``null`` type natively it is not obvious how to encode ``None`` fields
+(ignore it, encode it as an empty string or mark it as ``xsi:nil``) the library doesn't implement
+``None`` type encoding by default.
+
+You can define your own encoding format for the model:
+
+.. code-block:: python
+
+    from typing import Optional
+    from pydantic_xml import BaseXmlModel, element
+
+
+    class Company(BaseXmlModel):
+        class Config:
+            xml_encoders = {
+                type(None): lambda o: '',  # encodes None field as an empty string
+            }
+
+        title: Optional[str] = element()
+
+
+    company = Company()
+    assert company.to_xml() == b'<Company><title /></Company>'
+
+
+or drop ``None`` fields at all:
+
+.. code-block:: python
+
+    from typing import Optional
+    from pydantic_xml import BaseXmlModel, element
+
+
+    class Company(BaseXmlModel):
+        title: Optional[str] = element()
+
+
+    company = Company()
+    assert company.to_xml(skip_empty=True) == b'<Company />'
+
 
 
 Default namespace
