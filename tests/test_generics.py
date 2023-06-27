@@ -1,4 +1,4 @@
-from typing import Generic, TypeVar
+from typing import Generic, List, TypeVar
 
 import pytest
 from helpers import assert_xml_equal
@@ -74,7 +74,7 @@ def test_generic_list():
     GenericType = TypeVar('GenericType')
 
     class GenericModel(BaseGenericXmlModel, Generic[GenericType], tag="model1"):
-        elems: list[GenericType] = element(tag="elem")
+        elems: List[GenericType] = element(tag="elem")
 
     xml = '''
     <model1>
@@ -101,7 +101,7 @@ def test_generic_list_of_submodels():
         attr1: str = attr()
 
     class GenericModel(BaseGenericXmlModel, Generic[GenericType], tag="model1"):
-        elems: list[GenericType] = element()
+        elems: List[GenericType] = element()
 
     xml = '''
     <model1>
