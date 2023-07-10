@@ -69,6 +69,48 @@ def test_model_union():
     assert_xml_equal(actual_xml, xml)
 
 
+def test_model_union_similar():
+    class SubModel1(BaseXmlModel, tag='model1'):
+        text: str = element()
+
+    class SubModel2(BaseXmlModel, tag='model2'):
+        text: str = element()
+
+    class TestModel(BaseXmlModel, tag='model'):
+        class Config:
+            smart_union = True
+
+        field1: Union[SubModel1, SubModel2] = element()
+
+    xml = '''
+    <model><model1><text>foo</text></model1></model>
+    '''
+
+    actual_obj = TestModel.from_xml(xml)
+    expected_obj = TestModel(
+        field1=SubModel1(text="foo"),
+    )
+
+    assert actual_obj == expected_obj
+
+    actual_xml = actual_obj.to_xml()
+    assert_xml_equal(actual_xml, xml)
+
+    xml = '''
+    <model><model2><text>foo</text></model2></model>
+    '''
+
+    actual_obj = TestModel.from_xml(xml)
+    expected_obj = TestModel(
+        field1=SubModel2(text="foo"),
+    )
+
+    assert actual_obj == expected_obj
+
+    actual_xml = actual_obj.to_xml()
+    assert_xml_equal(actual_xml, xml)
+
+
 def test_primitive_union_list():
     class TestModel(BaseXmlModel, tag='model'):
         sublements: List[Union[int, float, str]] = element(tag='model1')
