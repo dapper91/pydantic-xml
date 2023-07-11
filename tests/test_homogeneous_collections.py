@@ -3,7 +3,7 @@ from typing import Dict, List, Set, Tuple
 import pytest
 from helpers import assert_xml_equal
 
-from pydantic_xml import BaseXmlModel, attr, element, errors
+from pydantic_xml import BaseXmlModel, RootXmlModel, attr, element, errors
 
 
 def test_set_of_primitives_extraction():
@@ -65,8 +65,8 @@ def test_tuple_of_submodels_extraction():
 
 
 def test_list_of_root_submodels_extraction():
-    class SubModel(BaseXmlModel):
-        __root__: int
+    class SubModel(RootXmlModel):
+        root: int
 
     class RootModel(BaseXmlModel, tag='model'):
         elements: List[SubModel] = element(tag='element')
@@ -82,9 +82,9 @@ def test_list_of_root_submodels_extraction():
     actual_obj = RootModel.from_xml(xml)
     expected_obj = RootModel(
         elements=[
-            SubModel(__root__=1),
-            SubModel(__root__=2),
-            SubModel(__root__=3),
+            SubModel(1),
+            SubModel(2),
+            SubModel(3),
         ],
     )
 
@@ -125,8 +125,8 @@ def test_root_list_of_submodels_extraction():
     class TestSubModel(BaseXmlModel, tag='model2'):
         text: int
 
-    class TestModel(BaseXmlModel, tag='model1'):
-        __root__: List[TestSubModel] = element()
+    class TestModel(RootXmlModel, tag='model1'):
+        root: List[TestSubModel] = element()
 
     xml = '''
     <model1>
@@ -138,7 +138,7 @@ def test_root_list_of_submodels_extraction():
 
     actual_obj = TestModel.from_xml(xml)
     expected_obj = TestModel(
-        __root__=[
+        [
             TestSubModel(text=1),
             TestSubModel(text=2),
             TestSubModel(text=3),
@@ -151,7 +151,7 @@ def test_root_list_of_submodels_extraction():
     assert_xml_equal(actual_xml, xml)
 
 
-def test_homogeneous_definition_errors():
+def test_homogeneous_collection_definition_errors():
     with pytest.raises(errors.ModelFieldError):
         class TestModel(BaseXmlModel):
             attr1: List[int] = attr()
@@ -165,24 +165,9 @@ def test_homogeneous_definition_errors():
             attr1: List[Tuple[int]]
 
     with pytest.raises(errors.ModelFieldError):
-        class TestModel(BaseXmlModel):
-            __root__: List[int]
+        class TestModel(RootXmlModel):
+            root: List[List[int]]
 
     with pytest.raises(errors.ModelFieldError):
-        class TestModel(BaseXmlModel):
-            __root__: List[List[int]]
-
-    with pytest.raises(errors.ModelFieldError):
-        class TestModel(BaseXmlModel):
-            __root__: List[Tuple[int, ...]]
-
-    with pytest.raises(errors.ModelFieldError):
-        class TestModel(BaseXmlModel):
-            __root__: List[Dict[int, int]]
-
-    with pytest.raises(errors.ModelFieldError):
-        class TestSubModel(BaseXmlModel):
-            attr: int
-
-        class TestModel(BaseXmlModel):
-            __root__: List[TestSubModel]
+        class TestModel(RootXmlModel):
+            root: List[Tuple[int, ...]]

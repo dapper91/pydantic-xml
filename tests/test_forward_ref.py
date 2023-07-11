@@ -2,19 +2,19 @@ from typing import Generic, List, NewType, Optional, Tuple, TypeVar, Union
 
 from helpers import assert_xml_equal
 
-from pydantic_xml import BaseGenericXmlModel, BaseXmlModel, attr, element, wrapped
+from pydantic_xml import BaseXmlModel, RootXmlModel, attr, element, wrapped
 
 
 def test_primitive_forward_ref():
     class TestModel(BaseXmlModel, tag='model1'):
         data: 'CustomInt'
         attr1: 'CustomInt' = attr()
-        attr2: Optional['CustomInt'] = attr()
+        attr2: Optional['CustomInt'] = attr(default=None)
         element1: 'CustomInt' = element()
 
     CustomInt = NewType('CustomInt', int)
 
-    TestModel.update_forward_refs(**locals())
+    TestModel.model_rebuild(_types_namespace=locals())
 
     xml = '''
     <model1 attr1="1">1<element1>1</element1></model1>
@@ -36,7 +36,7 @@ def test_submodel_forward_ref():
     class TestSubModel(BaseXmlModel, tag='model2'):
         attr1: str = attr()
 
-    TestModel.update_forward_refs(**locals())
+    TestModel.model_rebuild(_types_namespace=locals())
 
     xml = '''
     <model1>
@@ -55,9 +55,9 @@ def test_submodel_forward_ref():
 
 def test_recursive_forward_ref():
     class TestModel(BaseXmlModel, tag='model1'):
-        model1: Optional['TestModel'] = element()
+        model1: Optional['TestModel'] = element(default=None)
 
-    TestModel.update_forward_refs(**locals())
+    TestModel.model_rebuild(_types_namespace=locals())
 
     xml = '''
     <model1>
@@ -80,7 +80,7 @@ def test_primitive_list_forward_ref():
 
     CustomInt = NewType('CustomStr', int)
 
-    TestModel.update_forward_refs(**locals())
+    TestModel.model_rebuild(_types_namespace=locals())
 
     xml = '''
     <model1>
@@ -110,7 +110,7 @@ def test_submodel_list_forward_ref():
     class TestSubModel(BaseXmlModel, tag='model2'):
         attr1: str = attr()
 
-    TestModel.update_forward_refs(**locals())
+    TestModel.model_rebuild(_types_namespace=locals())
 
     xml = '''
     <model1>
@@ -139,7 +139,7 @@ def test_primitive_tuple_forward_ref():
 
     CustomInt = NewType('CustomInt', int)
 
-    TestModel.update_forward_refs(**locals())
+    TestModel.model_rebuild(_types_namespace=locals())
 
     xml = '''
     <model1>
@@ -168,7 +168,7 @@ def test_submodel_tuple_forward_ref():
     class TestSubModel(BaseXmlModel, tag='model2'):
         attr1: str = attr()
 
-    TestModel.update_forward_refs(**locals())
+    TestModel.model_rebuild(_types_namespace=locals())
 
     xml = '''
     <model1>
@@ -192,23 +192,23 @@ def test_submodel_tuple_forward_ref():
 
 def test_primitive_union_forward_ref():
     class TestModel(BaseXmlModel, tag='model1'):
-        field1: Union['CustomInt', 'CustomStr'] = element()
-        field2: Union['CustomInt', 'CustomStr'] = element()
+        field1: Union['CustomInt', 'CustomFloat'] = element()
+        field2: Union['CustomInt', 'CustomFloat'] = element()
 
     CustomInt = NewType('CustomInt', int)
-    CustomStr = NewType('CustomStr', str)
+    CustomFloat = NewType('CustomStr', float)
 
-    TestModel.update_forward_refs(**locals())
+    TestModel.model_rebuild(_types_namespace=locals())
 
     xml = '''
     <model1>
         <field1>1</field1>
-        <field2>a</field2>
+        <field2>1.1</field2>
     </model1>
     '''
 
     actual_obj = TestModel.from_xml(xml)
-    expected_obj = TestModel(field1=CustomInt(1), field2=CustomStr('a'))
+    expected_obj = TestModel(field1=CustomInt(1), field2=CustomFloat(1.1))
 
     assert actual_obj == expected_obj
 
@@ -227,7 +227,7 @@ def test_submodel_union_forward_ref():
     class TestSubModel2(BaseXmlModel, tag='model3'):
         attr1: str = attr()
 
-    TestModel.update_forward_refs(**locals())
+    TestModel.model_rebuild(_types_namespace=locals())
 
     xml = '''
     <model1>
@@ -246,13 +246,13 @@ def test_submodel_union_forward_ref():
 
 
 def test_root_model_forward_ref():
-    class TestModel(BaseXmlModel, tag='model1'):
-        __root__: 'TestSubModel'
+    class TestModel(RootXmlModel, tag='model1'):
+        root: 'TestSubModel'
 
-    class TestSubModel(BaseXmlModel, tag='model2'):
-        __root__: int
+    class TestSubModel(RootXmlModel, tag='model2'):
+        root: int
 
-    TestModel.update_forward_refs(**locals())
+    TestModel.model_rebuild(_types_namespace=locals())
 
     xml = '''
     <model1>
@@ -261,9 +261,7 @@ def test_root_model_forward_ref():
     '''
 
     actual_obj = TestModel.from_xml(xml)
-    expected_obj = TestModel(
-        __root__=TestSubModel(__root__=1),
-    )
+    expected_obj = TestModel(TestSubModel(1))
 
     assert actual_obj == expected_obj
 
@@ -279,7 +277,7 @@ def test_wrapped_primitive_forward_ref():
 
     CustomInt = NewType('CustomInt', int)
 
-    TestModel.update_forward_refs(**locals())
+    TestModel.model_rebuild(_types_namespace=locals())
 
     xml = '''
     <model1>
@@ -299,12 +297,12 @@ def test_wrapped_primitive_forward_ref():
 def test_wrapped_model_forward_ref():
     class TestModel(BaseXmlModel, tag='model1'):
         data: 'TestSubModel' = wrapped('model2/model3', element())
-        empty: Optional['TestSubModel'] = wrapped('model2/model4', element())
+        empty: Optional['TestSubModel'] = wrapped('model2/model4', element(default=None))
 
     class TestSubModel(BaseXmlModel, tag='model4'):
         attr1: int = attr()
 
-    TestModel.update_forward_refs(**locals())
+    TestModel.model_rebuild(_types_namespace=locals())
 
     xml = '''
     <model1>
@@ -328,12 +326,12 @@ def test_wrapped_model_forward_ref():
 def test_generic_model_forward_ref():
     GenericType1 = TypeVar('GenericType1')
 
-    class GenericModel(BaseGenericXmlModel, Generic[GenericType1], tag='model1'):
+    class GenericModel(BaseXmlModel, Generic[GenericType1], tag='model1'):
         attr1: GenericType1 = attr()
         attr2: 'CustomFloat' = attr()
 
     globals()['CustomFloat'] = NewType('CustomFloat', float)
-    GenericModel.update_forward_refs()
+    GenericModel.model_rebuild()
 
     xml1 = '''
     <model1 attr1="1" attr2="2.2"/>

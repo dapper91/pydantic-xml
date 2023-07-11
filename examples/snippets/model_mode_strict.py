@@ -1,3 +1,5 @@
+from unittest.mock import ANY
+
 import pydantic
 
 from pydantic_xml import BaseXmlModel, element
@@ -33,8 +35,10 @@ except pydantic.ValidationError as e:
     error = e.errors()[0]
     assert error == {
         'loc': ('founded',),
-        'msg': 'field required',
-        'type': 'value_error.missing',
+        'msg': 'Field required',
+        'type': 'missing',
+        'input': ANY,
+        'url': ANY,
     }
 else:
     raise AssertionError('exception not raised')

@@ -4,13 +4,13 @@ from typing import Generic, TypeVar
 
 from pydantic import HttpUrl
 
-from pydantic_xml import BaseGenericXmlModel, BaseXmlModel, element
+from pydantic_xml import BaseXmlModel, element
 
 AuthType = TypeVar('AuthType')
 
 
 class SoapHeader(
-    BaseGenericXmlModel, Generic[AuthType],
+    BaseXmlModel, Generic[AuthType],
     tag='Header',
     ns='soap',
 ):
@@ -25,7 +25,7 @@ MethodType = TypeVar('MethodType', bound=SoapMethod)
 
 
 class SoapBody(
-    BaseGenericXmlModel, Generic[MethodType],
+    BaseXmlModel, Generic[MethodType],
     tag='Body',
     ns='soap',
 ):
@@ -37,7 +37,7 @@ BodyType = TypeVar('BodyType', bound=SoapBody)
 
 
 class SoapEnvelope(
-    BaseGenericXmlModel,
+    BaseXmlModel,
     Generic[HeaderType, BodyType],
     tag='Envelope',
     ns='soap',

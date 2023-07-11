@@ -1,5 +1,7 @@
 from typing import List, Union
 
+import pydantic as pd
+
 from pydantic_xml import BaseXmlModel, attr, element
 
 
@@ -11,19 +13,15 @@ class VehicleTemplate(BaseXmlModel):
 
 
 class Car(VehicleTemplate, tag='car'):
-    class Config:
-        fields = {
-            "title": {"alias": "make"},
-            "engine": {"alias": "motor"},
-        }
+    model_config = pd.ConfigDict(
+        alias_generator=lambda field: {'title': 'make', 'engine': 'motor'}.get(field, field),
+    )
 
 
 class Airplane(VehicleTemplate, tag='airplane'):
-    class Config:
-        fields = {
-            "drivers": {"alias": "pilots"},
-            "title": {"alias": "model"},
-        }
+    model_config = pd.ConfigDict(
+        alias_generator=lambda field: {'drivers': 'pilots', 'title': 'model'}.get(field, field),
+    )
 
 
 class Vehicles(BaseXmlModel, tag='vehicles'):
@@ -70,4 +68,4 @@ json_doc = '''
 '''  # [json-end]
 
 vehicles = Vehicles.from_xml(xml_doc)
-assert vehicles == Vehicles.parse_raw(json_doc)
+assert vehicles == Vehicles.model_validate_json(json_doc)

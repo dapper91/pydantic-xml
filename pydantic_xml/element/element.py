@@ -320,7 +320,7 @@ class SearchMode(str, Enum):
     UNORDERED = 'unordered'
 
 
-Searcher = Callable[[XmlElement.State[NativeElement], str, bool], Optional[XmlElement]]
+Searcher = Callable[[XmlElement.State[NativeElement], str, bool], Optional[XmlElement[NativeElement]]]
 
 
 def get_searcher(search_mode: SearchMode) -> Searcher[NativeElement]:
@@ -331,7 +331,7 @@ def get_searcher(search_mode: SearchMode) -> Searcher[NativeElement]:
     elif search_mode == SearchMode.UNORDERED:
         return unordered_search
     else:
-        raise AssertionError('unreachable')
+        raise AssertionError("unreachable")
 
 
 def strict_search(
@@ -374,7 +374,7 @@ def ordered_search(
     :return: found element or `None` if the element not found
     """
 
-    result: Optional[XmlElement[NativeElement]] = None
+    result: Optional[XmlElement[Any]] = None
 
     if look_behind and (result := _look_behind(state, tag)) is not None:
         return result

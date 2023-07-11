@@ -40,7 +40,7 @@ Links
 -----
 
 - `Source code <https://github.com/dapper91/pydantic-xml>`_
-- `Pydantic documentation <https://docs.pydantic.dev/1.10/>`_
+- `Pydantic documentation <https://docs.pydantic.dev>`_
 
 
 Indices and tables

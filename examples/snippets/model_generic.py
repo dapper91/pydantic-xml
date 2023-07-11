@@ -3,13 +3,13 @@ from uuid import UUID
 
 from pydantic import SecretStr
 
-from pydantic_xml import BaseGenericXmlModel, BaseXmlModel, attr, element
+from pydantic_xml import BaseXmlModel, attr, element
 
 # [model-start]
 AuthType = TypeVar('AuthType')
 
 
-class Request(BaseGenericXmlModel, Generic[AuthType], tag='request'):
+class Request(BaseXmlModel, Generic[AuthType], tag='request'):
     request_id: UUID = attr(name='id')
     timestamp: float = attr()
     auth: AuthType
@@ -50,7 +50,7 @@ json_doc_1 = '''
 '''  # [json-end]
 
 message = BasicRequest.from_xml(xml_doc_1)
-assert message == BasicRequest.parse_raw(json_doc_1)
+assert message == BasicRequest.model_validate_json(json_doc_1, strict=False)
 
 # [xml-start-2]
 xml_doc_2 = '''
@@ -74,4 +74,4 @@ json_doc_2 = '''
 '''  # [json-end-2]
 
 message = TokenRequest.from_xml(xml_doc_2)
-assert message == TokenRequest.parse_raw(json_doc_2)
+assert message == TokenRequest.model_validate_json(json_doc_2)

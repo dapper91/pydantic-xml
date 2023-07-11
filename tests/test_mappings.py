@@ -1,9 +1,9 @@
-from typing import Dict, List, Mapping
+from typing import Dict, List, Mapping, Union
 
 import pytest
 from helpers import assert_xml_equal
 
-from pydantic_xml import BaseXmlModel, attr, element, errors
+from pydantic_xml import BaseXmlModel, RootXmlModel, attr, element, errors
 
 
 def test_attrs_mapping_extraction():
@@ -43,15 +43,15 @@ def test_element_mapping_extraction():
 
 
 def test_root_model_attrs_mapping_extraction():
-    class TestModel(BaseXmlModel, tag='model'):
-        __root__: Dict[str, int]
+    class TestModel(RootXmlModel, tag='model'):
+        root: Dict[str, int]
 
     xml = '''
     <model attr1="1" attr2="2" attr3="3"/>
     '''
 
     actual_obj = TestModel.from_xml(xml)
-    expected_obj = TestModel(__root__={'attr1': 1, 'attr2': 2, 'attr3': 3})
+    expected_obj = TestModel({'attr1': 1, 'attr2': 2, 'attr3': 3})
 
     assert actual_obj == expected_obj
 
@@ -60,8 +60,8 @@ def test_root_model_attrs_mapping_extraction():
 
 
 def test_root_model_element_mapping_extraction():
-    class TestModel(BaseXmlModel, tag='model'):
-        __root__: Dict[str, int] = element(tag='element1')
+    class TestModel(RootXmlModel, tag='model'):
+        root: Dict[str, int] = element(tag='element1')
 
     xml = '''
     <model>
@@ -70,7 +70,7 @@ def test_root_model_element_mapping_extraction():
     '''
 
     actual_obj = TestModel.from_xml(xml)
-    expected_obj = TestModel(__root__={'attr1': 1, 'attr2': 2, 'attr3': 3})
+    expected_obj = TestModel({'attr1': 1, 'attr2': 2, 'attr3': 3})
 
     assert actual_obj == expected_obj
 
@@ -86,6 +86,14 @@ def test_mapping_definition_errors():
     with pytest.raises(errors.ModelFieldError):
         class TestModel(BaseXmlModel):
             element: Dict[str, List[int]]
+
+    with pytest.raises(errors.ModelFieldError):
+        class TestModel(BaseXmlModel):
+            element: Dict[str, Dict[str, int]]
+
+    with pytest.raises(errors.ModelFieldError):
+        class TestModel(BaseXmlModel):
+            element: Dict[str, Union[str, int]]
 
     with pytest.raises(errors.ModelFieldError):
         class TestSubModel(BaseXmlModel):

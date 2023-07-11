@@ -1,3 +1,5 @@
+from pydantic import constr
+
 from pydantic_xml import BaseXmlModel, element, wrapped
 
 
@@ -7,10 +9,7 @@ class Company(
     ns='co',
     nsmap={'co': 'http://company.org/co'},
 ):
-    class Config:
-        anystr_strip_whitespace = True  # to strip text whitespaces
-
-    city: str = wrapped(
+    city: constr(strip_whitespace=True) = wrapped(
         'Info',
         ns='co',
         entity=wrapped(
@@ -51,4 +50,4 @@ json_doc = '''
 '''  # [json-end]
 
 company = Company.from_xml(xml_doc)
-assert company == Company.parse_raw(json_doc)
+assert company == Company.model_validate_json(json_doc)

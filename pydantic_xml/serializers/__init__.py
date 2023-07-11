@@ -1,2 +1,1 @@
-from . import factories
-from .encoder import DEFAULT_ENCODER, XmlEncoder
+from . import factories, serializer
