@@ -1,6 +1,12 @@
 Changelog
 =========
 
+1.0.0 (2023-07-14)
+------------------
+
+- library api stabilized
+- custom root type serialization format changed.
+
 0.7.0 (2023-06-24)
 ------------------
 

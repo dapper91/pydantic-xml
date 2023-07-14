@@ -120,7 +120,8 @@ where ``ns`` is the element namespace alias and ``nsmap`` is a namespace mapping
                     :start-after: json-start
                     :end-before: json-end
 
-Namespace mapping can be declared for a model. In that case all fields inherit that mapping:
+Namespace and namespace mapping can be declared for a model. In that case all fields
+:ref:`except attributes <pages/data-binding/attributes:namespace inheritance>` inherit them:
 
 .. grid:: 2
     :gutter: 2

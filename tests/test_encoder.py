@@ -6,7 +6,7 @@ from enum import Enum
 import pytest
 from helpers import assert_xml_equal
 
-from pydantic_xml import BaseXmlModel, XmlEncoder, element
+from pydantic_xml import BaseXmlModel, element
 
 
 def test_primitive_types_encoding():

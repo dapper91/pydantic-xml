@@ -9,7 +9,7 @@ Custom type encoding
 ____________________
 
 ``pydantic-xml`` uses ``pydantic`` default encoder to encode fields data during xml serialization. To alter the default
-behaviour ``pydantic`` provides a mechanism to `customize <https://docs.pydantic.dev/usage/exporting_models/#json_encoders>`_
+behaviour ``pydantic`` provides a mechanism to `customize <https://docs.pydantic.dev/1.10/usage/exporting_models/#json_encoders>`_
 the default json encoding format for a particular type. ``pydantic-xml`` allows to do the same for xml serialization.
 The api is similar to the json one:
 

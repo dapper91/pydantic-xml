@@ -45,7 +45,7 @@ Template models
 
 ``pydantic`` aliases make it possible to declare so-called template models.
 The base model implements all data-validation and data-processing logic and
-fields mapping is described in inherited classes:
+fields mapping is described in the inherited classes:
 
 .. grid:: 2
     :gutter: 2

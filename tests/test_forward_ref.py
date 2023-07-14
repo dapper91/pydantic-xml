@@ -249,13 +249,15 @@ def test_root_model_forward_ref():
     class TestModel(BaseXmlModel, tag='model1'):
         __root__: 'TestSubModel'
 
-    class TestSubModel(BaseXmlModel):
+    class TestSubModel(BaseXmlModel, tag='model2'):
         __root__: int
 
     TestModel.update_forward_refs(**locals())
 
     xml = '''
-    <model1>1</model1>
+    <model1>
+        <model2>1</model2>
+    </model1>
     '''
 
     actual_obj = TestModel.from_xml(xml)

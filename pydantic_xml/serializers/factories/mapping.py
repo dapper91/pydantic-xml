@@ -25,7 +25,12 @@ class MappingSerializerFactory:
             self._ns_attrs = model.__xml_ns_attrs__
 
         def serialize(
-                self, element: XmlElementWriter, value: Dict[str, Any], *, encoder: XmlEncoder, skip_empty: bool = False
+                self,
+                element: XmlElementWriter,
+                value: Dict[str, Any],
+                *,
+                encoder: XmlEncoder,
+                skip_empty: bool = False,
         ) -> Optional[XmlElementWriter]:
             if value is None:
                 return element
@@ -62,7 +67,12 @@ class MappingSerializerFactory:
             self._search_mode = ctx.search_mode
 
         def serialize(
-                self, element: XmlElementWriter, value: Dict[str, Any], *, encoder: XmlEncoder, skip_empty: bool = False
+                self,
+                element: XmlElementWriter,
+                value: Dict[str, Any],
+                *,
+                encoder: XmlEncoder,
+                skip_empty: bool = False,
         ) -> Optional[XmlElementWriter]:
             if skip_empty and len(value) == 0:
                 return element

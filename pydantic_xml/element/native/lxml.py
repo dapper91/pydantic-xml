@@ -18,7 +18,7 @@ class XmlElement(BaseXmlElement[etree._Element]):
             tag=element.tag,
             text=element.text,
             attributes={
-                force_str(name): force_str(value)  # str transformation safe since lxml byte values are ASCII compatible
+                force_str(name): force_str(value)  # transformation is safe since lxml bytes values are ASCII compatible
                 for name, value in element.attrib.items()
             },
             elements=[
