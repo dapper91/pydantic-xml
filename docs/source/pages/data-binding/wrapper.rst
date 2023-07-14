@@ -4,7 +4,7 @@ Wrapper
 _______
 
 Some XML documents have deep element hierarchy which requires to declare a lot of "dumb" sub-models
-to extract the deepest element data. In such cases :py:func:`pydantic_xml.wrapped` can help.
+to extract the deepest element data. :py:func:`pydantic_xml.wrapped` helps to get rid of that.
 
 
 Wrapped entities

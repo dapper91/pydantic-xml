@@ -7,7 +7,7 @@ _____
 Root model
 **********
 
-Root model is bound the root xml element with the tag matching the model ``tag`` or class name.
+Root model is bound to the root xml element with the tag matching the model ``tag`` or class name.
 If the corresponding element not found :py:class:`pydantic_xml.ParsingError` exception is raised.
 
 .. grid:: 2
@@ -88,7 +88,7 @@ Namespace mapping is inherited by all the model field:
 Custom root type
 ****************
 
-``Pydantic`` supports so-called `custom root type <https://docs.pydantic.dev/usage/models/#custom-root-types>`_.
+``Pydantic`` supports so-called `custom root type <https://docs.pydantic.dev/1.10/usage/models/#custom-root-types>`_.
 
 It works for primitive types:
 
@@ -192,7 +192,7 @@ and model types:
 Self-referencing models
 ***********************
 
-``pydantic`` library supports `self-referencing models <https://pydantic-docs.helpmanual.io/usage/postponed_annotations/#self-referencing-models>`_.
+``pydantic`` library supports `self-referencing models <https://docs.pydantic.dev/1.10/usage/postponed_annotations/#self-referencing-models>`_.
 Within the model, you can refer to a not-yet-constructed model using a string.
 
 .. grid:: 2

@@ -7,7 +7,7 @@ __________
 Primitive types
 ***************
 
-Field of a primitive type marked as :py:func:`pydantic_xml.attr` is bound to a  local element attribute.
+Field of a primitive type marked as :py:func:`pydantic_xml.attr` is bound to a local element attribute.
 Parameter ``name`` is used to declare the attribute name from which the data is extracted.
 If it is omitted field name is used (respecting ``pydantic`` field aliases).
 
