@@ -25,13 +25,13 @@ repos:
         args:
           - --fix=no
   - repo: https://github.com/asottile/add-trailing-comma
-    rev: v2.4.0
+    rev: v3.0.0
     hooks:
       - id: add-trailing-comma
         stages:
           - commit
   - repo: https://github.com/pre-commit/mirrors-autopep8
-    rev: v2.0.1
+    rev: v2.0.2
     hooks:
       - id: autopep8
         stages:
@@ -63,7 +63,7 @@ repos:
           - --multi-line=9
           - --project=pydantic_xml
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v0.991
+    rev: v1.4.1
     hooks:
       - id: mypy
         stages:
@@ -72,5 +72,5 @@ repos:
         pass_filenames: false
         args: ["--package", "pydantic_xml"]
         additional_dependencies:
-          - pydantic
-          - lxml-stubs
+          - pydantic==1.9
+          - lxml-stubs==0.4.0
