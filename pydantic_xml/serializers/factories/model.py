@@ -171,10 +171,8 @@ class ModelSerializerFactory:
     ) -> 'Serializer':
         if field_location is Location.ELEMENT:
             return cls.ElementSerializer(model, model_field, ctx)
-        elif not ctx.parent_is_root and field_location is Location.MISSING:
+        elif field_location is Location.MISSING:
             return cls.ElementSerializer(model, model_field, ctx)
-        elif ctx.parent_is_root and field_location is Location.MISSING:
-            return cls.DeferredSerializer(model_field)
         elif field_location is Location.ATTRIBUTE:
             raise errors.ModelFieldError(
                 model.__name__, model_field.name, "attributes of model type are not supported",
