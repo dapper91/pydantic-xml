@@ -22,7 +22,7 @@ pydantic-xml extension
    :target: https://pydantic-xml.readthedocs.io/en/stable/
 
 
-``pydantic-xml`` is a `pydantic <https://docs.pydantic.dev>`_ extension providing model fields xml binding
+``pydantic-xml`` is a `pydantic <https://docs.pydantic.dev/1.10/>`_ extension providing model fields xml binding
 and xml serialization / deserialization.
 It is closely integrated with ``pydantic`` which means it supports most of its features.
 
@@ -33,16 +33,16 @@ Features
 - flexable attributes, elements and text binding
 - python collection types support (``Dict``, ``List``, ``Set``, ``Tuple``, ...)
 - ``Union`` type support
-- pydantic `generic <https://pydantic-docs.helpmanual.io/usage/models/#generic-models>`_ models support
+- pydantic `generic <https://docs.pydantic.dev/1.10/usage/models/#generic-models>`_ models support
 - `lxml <https://lxml.de/>`_ xml parser support
 - ``xml.etree.ElementTree`` standard library xml parser support
 
 What is not supported?
 ______________________
 
-- `dynamic model creation <https://docs.pydantic.dev/usage/models/#dynamic-model-creation>`_
-- `dataclasses <https://docs.pydantic.dev/usage/dataclasses/>`_
-- `discriminated unions <https://docs.pydantic.dev/usage/types/#discriminated-unions-aka-tagged-unions>`_
+- `dynamic model creation <https://docs.pydantic.dev/1.10/usage/models/#dynamic-model-creation>`_
+- `dataclasses <https://docs.pydantic.dev/1.10/usage/dataclasses/>`_
+- `discriminated unions <https://docs.pydantic.dev/1.10/usage/types/#discriminated-unions-aka-tagged-unions>`_
 
 Getting started
 ---------------
@@ -74,4 +74,4 @@ defines the XML document:
    </Company>
 
 
-Check `documentation <https://pydantic-xml.readthedocs.io/en/latest/>`_ for more information.
+See `documentation <https://pydantic-xml.readthedocs.io/en/latest/>`_ for more details.

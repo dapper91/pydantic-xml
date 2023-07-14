@@ -273,7 +273,7 @@ class XmlElement(XmlElementReader, XmlElementWriter, Generic[NativeElement]):
         return result
 
     def pop_element(self, tag: str, search_mode: 'SearchMode') -> Optional['XmlElement[NativeElement]']:
-        searcher = get_searcher(search_mode)
+        searcher: Searcher[NativeElement] = get_searcher(search_mode)
 
         return searcher(self._state, tag, False)
 
@@ -301,7 +301,7 @@ class XmlElement(XmlElementReader, XmlElementWriter, Generic[NativeElement]):
         return sub_element
 
     def _find_element(self, tag: str, search_mode: 'SearchMode') -> Optional['XmlElement[NativeElement]']:
-        searcher = get_searcher(search_mode)
+        searcher: Searcher[NativeElement] = get_searcher(search_mode)
 
         return searcher(self._state, tag, True)
 
@@ -320,10 +320,10 @@ class SearchMode(str, Enum):
     UNORDERED = 'unordered'
 
 
-Searcher = Callable[[XmlElement.State[Any], str, bool], Optional[XmlElement]]
+Searcher = Callable[[XmlElement.State[NativeElement], str, bool], Optional[XmlElement]]
 
 
-def get_searcher(search_mode: SearchMode) -> Searcher:
+def get_searcher(search_mode: SearchMode) -> Searcher[NativeElement]:
     if search_mode == SearchMode.STRICT:
         return strict_search
     elif search_mode == SearchMode.ORDERED:
@@ -334,7 +334,11 @@ def get_searcher(search_mode: SearchMode) -> Searcher:
         raise AssertionError('unreachable')
 
 
-def strict_search(state: XmlElement.State[Any], tag: str, look_behind: bool = False) -> Optional[XmlElement[Any]]:
+def strict_search(
+        state: XmlElement.State[NativeElement],
+        tag: str,
+        look_behind: bool = False,
+) -> Optional[XmlElement[NativeElement]]:
     """
     Searches for a sub-element sequentially one by one.
 
@@ -344,7 +348,7 @@ def strict_search(state: XmlElement.State[Any], tag: str, look_behind: bool = Fa
     :return: found element or `None` if the element not found
     """
 
-    result: Optional[XmlElement[Any]] = None
+    result: Optional[XmlElement[NativeElement]] = None
 
     if look_behind and (result := _look_behind(state, tag)) is not None:
         return result
@@ -356,7 +360,11 @@ def strict_search(state: XmlElement.State[Any], tag: str, look_behind: bool = Fa
     return result
 
 
-def ordered_search(state: XmlElement.State[Any], tag: str, look_behind: bool = False) -> Optional[XmlElement[Any]]:
+def ordered_search(
+        state: XmlElement.State[NativeElement],
+        tag: str,
+        look_behind: bool = False,
+) -> Optional[XmlElement[NativeElement]]:
     """
     Searches for an element sequentially skipping unmatched ones.
 
@@ -366,7 +374,7 @@ def ordered_search(state: XmlElement.State[Any], tag: str, look_behind: bool = F
     :return: found element or `None` if the element not found
     """
 
-    result: Optional[XmlElement[Any]] = None
+    result: Optional[XmlElement[NativeElement]] = None
 
     if look_behind and (result := _look_behind(state, tag)) is not None:
         return result
@@ -385,10 +393,10 @@ def ordered_search(state: XmlElement.State[Any], tag: str, look_behind: bool = F
 
 
 def unordered_search(
-        state: XmlElement.State[Any],
+        state: XmlElement.State[NativeElement],
         tag: str,
         look_behind: bool = False,
-) -> Optional[XmlElement[Any]]:
+) -> Optional[XmlElement[NativeElement]]:
     """
     Searches search for an element ignoring elements order.
 
@@ -398,7 +406,7 @@ def unordered_search(
     :return: found element or `None` if the requested element not found
     """
 
-    result: Optional[XmlElement[Any]] = None
+    result: Optional[XmlElement[NativeElement]] = None
 
     if look_behind and (result := _look_behind(state, tag)) is not None:
         return result
@@ -415,7 +423,7 @@ def unordered_search(
     return result
 
 
-def _look_behind(state: XmlElement.State[Any], tag: str) -> Optional[XmlElement[Any]]:
+def _look_behind(state: XmlElement.State[NativeElement], tag: str) -> Optional[XmlElement[NativeElement]]:
     if state.next_element_idx != 0:
         candidate = state.elements[state.next_element_idx - 1]
         if candidate.tag == tag:

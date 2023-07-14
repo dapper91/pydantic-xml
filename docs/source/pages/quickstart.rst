@@ -11,7 +11,7 @@ To declare an xml serializable / deserializable model inherit it
 from :py:class:`pydantic_xml.BaseXmlModel` base class. It collects
 data binding meta-information and generates xml serializer for the model.
 
-To serializes the object to an xml string use :py:meth:`pydantic_xml.BaseXmlModel.to_xml` method,
+To serialize the object into an xml string use :py:meth:`pydantic_xml.BaseXmlModel.to_xml` method,
 :py:meth:`pydantic_xml.BaseXmlModel.from_xml` to deserialize it.
 For more information see :ref:`XML serialization <pages/misc:xml serialization>`.
 
@@ -123,7 +123,7 @@ For more information see :ref:`mappings <pages/data-binding/mappings:mappings>`.
 4. Primitive collection
 ***********************
 
-field of a primitive collection type (``List[str]``, ``Set[int]``, ``Tuple[flaot, float]`` ...) is bound to
+field of a primitive collection type (``List[str]``, ``Set[int]``, ``Tuple[float, float]`` ...) is bound to
 sub-elements text if the field is marked as :py:func:`pydantic_xml.element`:
 
 .. literalinclude:: ../../../examples/snippets/homogeneous_primitives.py
@@ -167,7 +167,7 @@ For more information see
 **********
 
 wrapped field (marked as :py:func:`pydantic_xml.wrapped`) is bound to a sub-element located
-at the provided path. Then depending on the field type rules are the same as described above:
+at the provided path. Then depending on the field type the rules are the same as described above:
 
 .. literalinclude:: ../../../examples/snippets/wrapper.py
   :language: xml

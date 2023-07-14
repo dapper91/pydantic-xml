@@ -51,7 +51,7 @@ Model homogeneous collection
 
 Field of a model homogeneous collection type is bound to sub-elements. Then the sub-element is used
 as a root for that sub-model. For more information see :ref:`model data binding <pages/data-binding/models:model>`.
-Parameter ``tag`` is used to declare a sub-elements tag to which the sub-models are bound.
+Parameter ``tag`` is used to declare sub-elements tag to which the sub-models are bound.
 If it is omitted the sub-model ``tag`` parameter is used.
 If it is omitted too field name is used (respecting ``pydantic`` field aliases).
 

@@ -4,7 +4,7 @@
 Generic models
 ______________
 
-``pydantic`` library supports `generic-models <https://pydantic-docs.helpmanual.io/usage/models/#generic-models>`_.
+``pydantic`` library supports `generic-models <https://docs.pydantic.dev/1.10/usage/models/#generic-models>`_.
 To declare one inherit your model from :py:class:`pydantic_xml.BaseGenericXmlModel`,
 the rest is the same as ``pydantic`` generic model declaration:
 
