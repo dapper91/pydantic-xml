@@ -5,9 +5,11 @@ on:
     branches:
       - dev
       - master
+      - v1
   push:
     branches:
       - master
+      - v1
 
 jobs:
   test:
