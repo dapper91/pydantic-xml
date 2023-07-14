@@ -41,11 +41,11 @@ docs = ['Sphinx', 'toml', 'sphinx_design', 'furo', 'sphinx-copybutton']
 
 [tool.poetry.dev-dependencies]
 lxml-stubs = "^0.4.0"
-mypy = "^0.971"
-pre-commit = "^2.20.0"
-pytest = "^7.1.2"
-pytest-cov = "^3.0.0"
-xmldiff = "2.5"
+mypy = "^1.4.1"
+pre-commit = "^3.3.3"
+pytest = "^7.4.0"
+pytest-cov = "^4.1.0"
+xmldiff = "2.5.0"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
