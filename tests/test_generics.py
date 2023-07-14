@@ -85,7 +85,7 @@ def test_generic_list():
 
     actual_obj = GenericModel[str].from_xml(xml)
     expected_obj = GenericModel(
-        elems = ["foo", "bar"]
+        elems=["foo", "bar"],
     )
 
     assert actual_obj == expected_obj
