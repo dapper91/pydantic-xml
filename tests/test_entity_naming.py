@@ -1,8 +1,8 @@
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Union
 
 import pytest
 
-from pydantic_xml import BaseXmlModel, attr, element, wrapped
+from pydantic_xml import BaseXmlModel, RootXmlModel, attr, element, errors, wrapped
 
 
 @pytest.mark.parametrize(
@@ -63,8 +63,8 @@ def test_attribute_tag_declaration_order(expected_name, attribute_name):
     ],
 )
 def test_submodel_tag_declaration_order(model_name, model_tag, element_tag):
-    class TestSubModel(BaseXmlModel, tag=model_tag):
-        __root__: int
+    class TestSubModel(RootXmlModel, tag=model_tag):
+        root: int
 
     class TestModel(BaseXmlModel, tag='model'):
         model2: TestSubModel = element(tag=element_tag)
@@ -78,7 +78,7 @@ def test_submodel_tag_declaration_order(model_name, model_tag, element_tag):
     )
 
     actual_obj = TestModel.from_xml(xml)
-    expected_obj = TestModel(model2=TestSubModel(__root__=1))
+    expected_obj = TestModel(model2=TestSubModel(1))
 
     assert actual_obj == expected_obj
 
@@ -92,7 +92,7 @@ def test_submodel_tag_declaration_order(model_name, model_tag, element_tag):
 )
 def test_mapping_element_tag_declaration_order(model_name, element_tag):
     class TestModel(BaseXmlModel, tag='model'):
-        model1: Dict[str, str] = element(tag=element_tag)
+        model1: Dict[str, int] = element(tag=element_tag)
 
     xml = '''
     <model>
@@ -144,8 +144,8 @@ def test_homogeneous_collection_element_tag_declaration_order(model_name, elemen
     ],
 )
 def test_submodel_homogeneous_collection_tag_declaration_order(model_name, model_tag, element_tag):
-    class TestSubModel(BaseXmlModel, tag=model_tag):
-        __root__: int
+    class TestSubModel(RootXmlModel, tag=model_tag):
+        root: int
 
     class TestModel(BaseXmlModel, tag='model'):
         model2: List[TestSubModel] = element(tag=element_tag)
@@ -160,7 +160,7 @@ def test_submodel_homogeneous_collection_tag_declaration_order(model_name, model
     )
 
     actual_obj = TestModel.from_xml(xml)
-    expected_obj = TestModel(model2=[TestSubModel(__root__=1), TestSubModel(__root__=2)])
+    expected_obj = TestModel(model2=[TestSubModel(1), TestSubModel(2)])
 
     assert actual_obj == expected_obj
 
@@ -201,8 +201,8 @@ def test_heterogeneous_collection_element_tag_declaration_order(model_name, elem
     ],
 )
 def test_submodel_heterogeneous_collection_tag_declaration_order(model_name, model_tag, element_tag):
-    class TestSubModel(BaseXmlModel, tag=model_tag):
-        __root__: int
+    class TestSubModel(RootXmlModel, tag=model_tag):
+        root: int
 
     class TestModel(BaseXmlModel, tag='model'):
         model2: Tuple[TestSubModel, TestSubModel] = element(tag=element_tag)
@@ -217,7 +217,7 @@ def test_submodel_heterogeneous_collection_tag_declaration_order(model_name, mod
     )
 
     actual_obj = TestModel.from_xml(xml)
-    expected_obj = TestModel(model2=(TestSubModel(__root__=1), TestSubModel(__root__=2)))
+    expected_obj = TestModel(model2=(TestSubModel(1), TestSubModel(2)))
 
     assert actual_obj == expected_obj
 
@@ -259,8 +259,8 @@ def test_wrapped_element_tag_declaration_order(model_name, element_tag):
     ],
 )
 def test_wrapped_model_element_tag_declaration_order(model_name, model_tag, element_tag):
-    class TestSubModel(BaseXmlModel, tag=model_tag):
-        __root__: int
+    class TestSubModel(RootXmlModel, tag=model_tag):
+        root: int
 
     class TestModel(BaseXmlModel, tag='model'):
         model2: TestSubModel = wrapped('sub', element(tag=element_tag))
@@ -276,6 +276,60 @@ def test_wrapped_model_element_tag_declaration_order(model_name, model_tag, elem
     )
 
     actual_obj = TestModel.from_xml(xml)
-    expected_obj = TestModel(model2=TestSubModel(__root__=1))
+    expected_obj = TestModel(model2=TestSubModel(1))
 
     assert actual_obj == expected_obj
+
+
+def test_entity_name_not_provided_error():
+    with pytest.raises(errors.ModelFieldError):
+        class TestModel(RootXmlModel):
+            root: int = element()
+
+    with pytest.raises(errors.ModelFieldError):
+        class TestModel(RootXmlModel):
+            root: int = attr()
+
+    with pytest.raises(errors.ModelFieldError):
+        class TestModel(RootXmlModel):
+            root: List[int]
+
+    with pytest.raises(errors.ModelFieldError):
+        class TestModel(RootXmlModel):
+            root: Tuple[int, int]
+
+    with pytest.raises(errors.ModelFieldError):
+        class TestModel(RootXmlModel):
+            root: List[Dict[int, int]]
+
+    with pytest.raises(errors.ModelFieldError):
+        class TestModel(RootXmlModel):
+            root: Tuple[Dict[int, int], Dict[int, int]]
+
+    with pytest.raises(errors.ModelFieldError):
+        class TestModel(RootXmlModel):
+            root: List[Dict[int, int]]
+
+    with pytest.raises(errors.ModelFieldError):
+        class TestModel(RootXmlModel):
+            root: Tuple[Dict[int, int], Dict[int, int]]
+
+
+def test_wrapped_entity_name_not_provided_error():
+    with pytest.raises(errors.ModelFieldError):
+        class TestModel(RootXmlModel):
+            root: int = wrapped('sub', element())
+
+    with pytest.raises(errors.ModelFieldError):
+        class TestModel(RootXmlModel):
+            root: int = wrapped('sub', attr())
+
+
+def test_union_entity_name_not_provided_error():
+    with pytest.raises(errors.ModelFieldError):
+        class TestModel(RootXmlModel):
+            root: Union[int, str] = element()
+
+    with pytest.raises(errors.ModelFieldError):
+        class TestModel(RootXmlModel):
+            root: Union[int, str] = attr()

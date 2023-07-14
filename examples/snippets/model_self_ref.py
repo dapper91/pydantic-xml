@@ -6,7 +6,7 @@ from pydantic_xml import BaseXmlModel, attr, element
 # [model-start]
 class Directory(BaseXmlModel, tag="Directory"):
     name: str = attr(name='Name')
-    dirs: Optional[List['Directory']] = element(tag='Directory')
+    dirs: Optional[List['Directory']] = element(tag='Directory', default=None)
 # [model-end]
 
 
@@ -45,4 +45,5 @@ json_doc = '''
 '''  # [json-end]
 
 directory = Directory.from_xml(xml_doc)
-assert directory == Directory.parse_raw(json_doc)
+
+assert directory == Directory.model_validate_json(json_doc)

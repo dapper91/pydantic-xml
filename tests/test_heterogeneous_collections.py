@@ -3,7 +3,7 @@ from typing import Dict, List, Optional, Tuple
 import pytest
 from helpers import assert_xml_equal
 
-from pydantic_xml import BaseXmlModel, attr, element, errors
+from pydantic_xml import BaseXmlModel, RootXmlModel, attr, element, errors
 
 
 def test_set_of_primitives_extraction():
@@ -59,8 +59,8 @@ def test_tuple_of_submodel_extraction():
 
 
 def test_list_of_root_submodel_extraction():
-    class TestSubModel1(BaseXmlModel):
-        __root__: int
+    class TestSubModel1(RootXmlModel):
+        root: int
 
     class TestModel(BaseXmlModel, tag='model1'):
         elements: Tuple[float, TestSubModel1] = element(tag='element')
@@ -76,7 +76,7 @@ def test_list_of_root_submodel_extraction():
     expected_obj = TestModel(
         elements=[
             1.1,
-            TestSubModel1(__root__=2),
+            TestSubModel1(2),
         ],
     )
 
@@ -115,8 +115,8 @@ def test_root_tuple_of_submodels_extraction():
     class TestSubModel(BaseXmlModel, tag='model2'):
         text: int
 
-    class TestModel(BaseXmlModel, tag='model1'):
-        __root__: Tuple[TestSubModel, TestSubModel, TestSubModel] = element()
+    class TestModel(RootXmlModel, tag='model1'):
+        root: Tuple[TestSubModel, TestSubModel, TestSubModel]
 
     xml = '''
     <model1>
@@ -128,7 +128,7 @@ def test_root_tuple_of_submodels_extraction():
 
     actual_obj = TestModel.from_xml(xml)
     expected_obj = TestModel(
-        __root__=[
+        [
             TestSubModel(text=1),
             TestSubModel(text=2),
             TestSubModel(text=3),
@@ -141,41 +141,26 @@ def test_root_tuple_of_submodels_extraction():
     assert_xml_equal(actual_xml, xml)
 
 
-def test_heterogeneous_definition_errors():
+def test_heterogeneous_collection_definition_errors():
     with pytest.raises(errors.ModelFieldError):
         class TestModel(BaseXmlModel):
-            attr1: Tuple[int] = attr()
-
-    with pytest.raises(errors.ModelFieldError):
-        class TestModel(BaseXmlModel):
-            attr1: Tuple[List[int]]
+            attr1: Tuple[int, int] = attr()
 
     with pytest.raises(errors.ModelFieldError):
         class TestModel(BaseXmlModel):
-            attr1: Tuple[Tuple[int]]
+            attr1: Tuple[List[int], List[int]]
 
     with pytest.raises(errors.ModelFieldError):
         class TestModel(BaseXmlModel):
-            __root__: Tuple[int]
+            attr1: Tuple[Tuple[int], Tuple[int]]
 
     with pytest.raises(errors.ModelFieldError):
-        class TestModel(BaseXmlModel):
-            __root__: Tuple[List[int], int]
+        class TestModel(RootXmlModel):
+            root: Tuple[List[int], int]
 
     with pytest.raises(errors.ModelFieldError):
-        class TestModel(BaseXmlModel):
-            __root__: Tuple[Dict[int, int]]
+        class TestSubModel(RootXmlModel):
+            root: int
 
-    with pytest.raises(errors.ModelFieldError):
-        class TestSubModel(BaseXmlModel):
-            __root__: int
-
-        class TestModel(BaseXmlModel):
-            __root__: Tuple[TestSubModel, int]
-
-    with pytest.raises(errors.ModelFieldError):
-        class TestSubModel(BaseXmlModel):
-            attr: int
-
-        class TestModel(BaseXmlModel):
-            __root__: Tuple[TestSubModel]
+        class TestModel(RootXmlModel):
+            root: Tuple[TestSubModel, int]

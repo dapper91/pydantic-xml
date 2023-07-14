@@ -1,17 +1,118 @@
-import functools as ft
+import dataclasses as dc
 import typing
-from typing import Any, Callable, ClassVar, Dict, Optional, Tuple, Type, TypeVar, Union
+from typing import Any, Callable, ClassVar, Dict, Generic, Optional, Tuple, Type, TypeVar, Union
 
 import pydantic as pd
-import pydantic.fields
-import pydantic.generics
-import pydantic.json
+import pydantic_core as pdc
+from pydantic import BaseModel, RootModel
 
-from . import config, errors, serializers, utils
+from . import config, errors, utils
 from .element import SearchMode
 from .element.native import XmlElement, etree
-from .serializers.factories import ModelSerializerFactory
-from .utils import NsMap, register_nsmap
+from .serializers.factories.model import BaseModelSerializer
+from .serializers.serializer import Serializer, XmlEntityInfoP
+from .typedefs import EntityLocation
+from .utils import NsMap
+
+__all__ = (
+    'attr',
+    'element',
+    'wrapped',
+    'computed_attr',
+    'computed_element',
+    'BaseXmlModel',
+    'RootXmlModel',
+)
+
+
+@dc.dataclass
+class ComputedXmlEntityInfo(pd.fields.ComputedFieldInfo):
+    """
+    Computed field xml meta-information.
+    """
+
+    __slots__ = ('location', 'path', 'ns', 'nsmap', 'wrapped')
+
+    location: Optional[EntityLocation]
+    path: Optional[str]
+    ns: Optional[str]
+    nsmap: Optional[NsMap]
+    wrapped: Optional[XmlEntityInfoP]  # to be compliant with XmlEntityInfoP protocol
+
+    def __post_init__(self) -> None:
+        if config.REGISTER_NS_PREFIXES and self.nsmap:
+            utils.register_nsmap(self.nsmap)
+
+
+PropertyT = typing.TypeVar('PropertyT')
+
+
+def computed_entity(
+        location: EntityLocation,
+        prop: Optional[PropertyT] = None,
+        **kwargs: Any,
+) -> Union[PropertyT, Callable[[PropertyT], PropertyT]]:
+    def decorator(prop: Any) -> Any:
+        path = kwargs.pop('path', None)
+        ns = kwargs.pop('ns', None)
+        nsmap = kwargs.pop('nsmap', None)
+
+        descriptor_proxy = pd.computed_field(**kwargs)(prop)
+        descriptor_proxy.decorator_info = ComputedXmlEntityInfo(
+            location=location,
+            path=path,
+            ns=ns,
+            nsmap=nsmap,
+            wrapped=None,
+            **dc.asdict(descriptor_proxy.decorator_info),
+        )
+
+        return descriptor_proxy
+
+    if prop is None:
+        return decorator
+    else:
+        return decorator(prop)
+
+
+def computed_attr(
+        prop: Optional[PropertyT] = None,
+        *,
+        name: Optional[str] = None,
+        ns: Optional[str] = None,
+        **kwargs: Any,
+) -> Union[PropertyT, Callable[[PropertyT], PropertyT]]:
+    """
+    Marks a property as an xml attribute.
+
+    :param prop: decorated property
+    :param name: attribute name
+    :param ns: attribute xml namespace
+    :param kwargs: pydantic computed field arguments. See :py:class:`pydantic.computed_field`
+    """
+
+    return computed_entity(EntityLocation.ATTRIBUTE, prop, path=name, ns=ns, **kwargs)
+
+
+def computed_element(
+        prop: Optional[PropertyT] = None,
+        *,
+        tag: Optional[str] = None,
+        ns: Optional[str] = None,
+        nsmap: Optional[NsMap] = None,
+        **kwargs: Any,
+) -> Union[PropertyT, Callable[[PropertyT], PropertyT]]:
+    """
+    Marks a property as an xml element.
+
+    :param prop: decorated property
+    :param tag: element tag
+    :param ns: element xml namespace
+    :param nsmap: element xml namespace map
+    :param kwargs: pydantic computed field arguments. See :py:class:`pydantic.computed_field`
+    """
+
+    return computed_entity(EntityLocation.ELEMENT, prop, path=tag, ns=ns, nsmap=nsmap, **kwargs)
 
 
 class XmlEntityInfo(pd.fields.FieldInfo):
@@ -19,195 +120,110 @@ class XmlEntityInfo(pd.fields.FieldInfo):
     Field xml meta-information.
     """
 
+    __slots__ = ('location', 'path', 'ns', 'nsmap', 'wrapped')
 
-class XmlAttributeInfo(XmlEntityInfo):
+    def __init__(
+            self,
+            location: Optional[EntityLocation],
+            /,
+            path: Optional[str] = None,
+            ns: Optional[str] = None,
+            nsmap: Optional[NsMap] = None,
+            wrapped: Optional[pd.fields.FieldInfo] = None,
+            **kwargs: Any,
+    ):
+        if wrapped is not None:
+            # copy arguments from the wrapped entity to let pydantic know how to process the field
+            for entity_field_name in utils.get_slots(wrapped):
+                kwargs[entity_field_name] = getattr(wrapped, entity_field_name)
+
+        if kwargs.get('serialization_alias') is None:
+            kwargs['serialization_alias'] = kwargs.get('alias')
+
+        if kwargs.get('validation_alias') is None:
+            kwargs['validation_alias'] = kwargs.get('alias')
+
+        super().__init__(**kwargs)
+        self.location = location
+        self.path = path
+        self.ns = ns
+        self.nsmap = nsmap
+        self.wrapped: Optional[XmlEntityInfoP] = wrapped if isinstance(wrapped, XmlEntityInfo) else None
+
+        if config.REGISTER_NS_PREFIXES and nsmap:
+            utils.register_nsmap(nsmap)
+
+
+def attr(name: Optional[str] = None, ns: Optional[str] = None, **kwargs: Any) -> Any:
     """
-    Field xml attribute meta-information.
+    Marks a pydantic field as an xml attribute.
 
     :param name: attribute name
     :param ns: attribute xml namespace
     :param kwargs: pydantic field arguments. See :py:class:`pydantic.Field`
     """
 
-    __slots__ = ('_name', '_ns')
-
-    def __init__(
-            self,
-            name: Optional[str] = None,
-            ns: Optional[str] = None,
-            **kwargs: Any,
-    ):
-        super().__init__(**kwargs)
-        self._name = name
-        self._ns = ns
-
-    @property
-    def name(self) -> Optional[str]:
-        return self._name
-
-    @property
-    def ns(self) -> Optional[str]:
-        return self._ns
+    return XmlEntityInfo(EntityLocation.ATTRIBUTE, path=name, ns=ns, **kwargs)
 
 
-class XmlElementInfo(XmlEntityInfo):
+def element(tag: Optional[str] = None, ns: Optional[str] = None, nsmap: Optional[NsMap] = None, **kwargs: Any) -> Any:
     """
-    Field xml element meta-information.
+    Marks a pydantic field as an xml element.
 
     :param tag: element tag
     :param ns: element xml namespace
     :param nsmap: element xml namespace map
-    :param kwargs: pydantic field arguments
+    :param kwargs: pydantic field arguments. See :py:class:`pydantic.Field`
     """
 
-    __slots__ = ('_tag', '_ns', '_nsmap')
-
-    def __init__(
-            self,
-            tag: Optional[str] = None,
-            ns: Optional[str] = None,
-            nsmap: Optional[NsMap] = None,
-            **kwargs: Any,
-    ):
-        super().__init__(**kwargs)
-        self._tag = tag
-        self._ns = ns
-        self._nsmap = nsmap
-
-        if config.REGISTER_NS_PREFIXES and nsmap:
-            register_nsmap(nsmap)
-
-    @property
-    def tag(self) -> Optional[str]:
-        return self._tag
-
-    @property
-    def ns(self) -> Optional[str]:
-        return self._ns
-
-    @property
-    def nsmap(self) -> Optional[NsMap]:
-        return self._nsmap
+    return XmlEntityInfo(EntityLocation.ELEMENT, path=tag, ns=ns, nsmap=nsmap, **kwargs)
 
 
-class XmlWrapperInfo(XmlEntityInfo):
+def wrapped(
+        path: str,
+        entity: Optional[pd.fields.FieldInfo] = None,
+        ns: Optional[str] = None,
+        nsmap: Optional[NsMap] = None,
+        **kwargs: Any,
+) -> Any:
     """
-    Field xml wrapper meta-information.
+    Marks a pydantic field as a wrapped xml entity.
 
     :param entity: wrapped entity
     :param path: entity path
     :param ns: element xml namespace
     :param nsmap: element xml namespace map
-    :param kwargs: pydantic field arguments
+    :param kwargs: pydantic field arguments. See :py:class:`pydantic.Field`
     """
 
-    __slots__ = ('_entity', '_path', '_ns', '_nsmap')
-
-    def __init__(
-            self,
-            path: str,
-            entity: Optional[XmlEntityInfo] = None,
-            ns: Optional[str] = None,
-            nsmap: Optional[NsMap] = None,
-            **kwargs: Any,
-    ):
-        if entity is not None:
-            # copy arguments from the wrapped entity to let pydantic know how to process the field
-            for entity_field_name in utils.get_slots(entity):
-                kwargs[entity_field_name] = getattr(entity, entity_field_name)
-
-        super().__init__(**kwargs)
-        self._entity = entity
-        self._path = path
-        self._ns = ns
-        self._nsmap = nsmap
-
-        if config.REGISTER_NS_PREFIXES and nsmap:
-            register_nsmap(nsmap)
-
-    @property
-    def entity(self) -> Optional[XmlEntityInfo]:
-        return self._entity
-
-    @property
-    def path(self) -> str:
-        return self._path
-
-    @property
-    def ns(self) -> Optional[str]:
-        return self._ns
-
-    @property
-    def nsmap(self) -> Optional[NsMap]:
-        return self._nsmap
+    return XmlEntityInfo(EntityLocation.WRAPPED, path=path, ns=ns, nsmap=nsmap, wrapped=entity, **kwargs)
 
 
-def attr(**kwargs: Any) -> Any:
-    """
-    Marks a pydantic field as an xml attribute.
-
-    :param kwargs: see :py:class:`pydantic_xml.XmlAttributeInfo`
-    """
-
-    return XmlAttributeInfo(**kwargs)
-
-
-def element(**kwargs: Any) -> Any:
-    """
-    Marks a pydantic field as an xml element.
-
-    :param kwargs: see :py:class:`pydantic_xml.XmlElementInfo`
-    """
-
-    return XmlElementInfo(**kwargs)
-
-
-def wrapped(*args: Any, **kwargs: Any) -> Any:
-    """
-    Marks a pydantic field as a wrapped xml entity.
-
-    :param args: see :py:class:`pydantic_xml.XmlWrapperInfo`
-    :param kwargs: see :py:class:`pydantic_xml.XmlWrapperInfo`
-    """
-
-    return XmlWrapperInfo(*args, **kwargs)
-
-
-class XmlModelMeta(pd.main.ModelMetaclass):
+class XmlModelMeta(type(BaseModel)):  # type: ignore[misc]
     """
     Xml model metaclass.
     """
 
-    __is_base_model_defined__ = False
-
-    def __new__(mcls, name: str, bases: Tuple[type], namespace: Dict[str, Any], **kwargs: Any) -> Type['BaseXmlModel']:
-        if mcls.__is_base_model_defined__:
-            mcls._merge_configs(bases, namespace)
+    def __new__(
+            mcls,
+            name: str,
+            bases: Tuple[type],
+            namespace: Dict[str, Any],
+            **kwargs: Any,
+    ) -> Type['BaseXmlModel']:
+        is_abstract: bool = kwargs.pop('__xml_abstract__', False)
 
         cls = super().__new__(mcls, name, bases, namespace, **kwargs)
-        if mcls.__is_base_model_defined__:
-            cls.__init_serializer__()
-        else:
-            mcls.__is_base_model_defined__ = True
+        if not is_abstract:
+            cls.__build_serializer__()
 
         return cls
-
-    @classmethod
-    def _merge_configs(mcls, bases: Tuple[type], namespace: Dict[str, Any]) -> None:
-        xml_encoders: Dict[Type[Any], Callable[[Any], Any]] = {}
-        for base in reversed(bases):
-            if issubclass(base, BaseXmlModel) and base != BaseXmlModel:
-                xml_encoders.update(getattr(base.__config__, 'xml_encoders', {}))
-
-        if self_config := namespace.get('Config'):
-            xml_encoders.update(getattr(self_config, 'xml_encoders', {}))
-            setattr(self_config, 'xml_encoders', xml_encoders)
 
 
 ModelT = TypeVar('ModelT', bound='BaseXmlModel')
 
 
-class BaseXmlModel(pd.BaseModel, metaclass=XmlModelMeta):
+class BaseXmlModel(BaseModel, __xml_abstract__=True, metaclass=XmlModelMeta):
     """
     Base pydantic-xml model.
     """
@@ -217,12 +233,10 @@ class BaseXmlModel(pd.BaseModel, metaclass=XmlModelMeta):
     __xml_nsmap__: ClassVar[Optional[NsMap]]
     __xml_ns_attrs__: ClassVar[bool]
     __xml_search_mode__: ClassVar[SearchMode]
-    __xml_encoder__: ClassVar[serializers.XmlEncoder]
-    __xml_serializer__: ClassVar[Optional[ModelSerializerFactory.RootSerializer]] = None
+    __xml_serializer__: ClassVar[Optional[BaseModelSerializer]] = None
 
     def __init_subclass__(
             cls,
-            *args: Any,
             tag: Optional[str] = None,
             ns: Optional[str] = None,
             nsmap: Optional[NsMap] = None,
@@ -240,7 +254,7 @@ class BaseXmlModel(pd.BaseModel, metaclass=XmlModelMeta):
         :param search_mode: element search mode
         """
 
-        super().__init_subclass__(*args, **kwargs)
+        super().__init_subclass__(**kwargs)
 
         cls.__xml_tag__ = tag if tag is not None else getattr(cls, '__xml_tag__', None)
         cls.__xml_ns__ = ns if ns is not None else getattr(cls, '__xml_ns__', None)
@@ -249,27 +263,43 @@ class BaseXmlModel(pd.BaseModel, metaclass=XmlModelMeta):
         cls.__xml_search_mode__ = search_mode if search_mode is not None \
             else getattr(cls, '__xml_search_mode__', SearchMode.STRICT)
 
-        default_xml_encoder: Callable[[Any], Any]
-        if xml_encoders := getattr(cls.Config, 'xml_encoders', None):
-            default_xml_encoder = ft.partial(pd.json.custom_pydantic_encoder, xml_encoders)
-        else:
-            default_xml_encoder = pd.json.pydantic_encoder
-
-        cls.__xml_encoder__ = serializers.XmlEncoder(default=default_xml_encoder)
-
     @classmethod
-    def __init_serializer__(cls) -> None:
+    def __build_serializer__(cls) -> None:
+        if cls is BaseXmlModel:
+            return
+
+        if cls.__pydantic_generic_metadata__['parameters']:  # checks that all generic parameters are provided
+            return
+
         if config.REGISTER_NS_PREFIXES and cls.__xml_nsmap__:
-            register_nsmap(cls.__xml_nsmap__)
+            utils.register_nsmap(cls.__xml_nsmap__)
 
-        cls.__xml_serializer__ = ModelSerializerFactory.build_root(cls)
+        if cls.__pydantic_complete__:  # checks that all forward refs are resolved
+            serializer = Serializer.parse_core_schema(
+                schema=cls.__pydantic_core_schema__,
+                ctx=Serializer.Context(
+                    model_name=cls.__name__,
+                    namespaced_attrs=cls.__xml_ns_attrs__,
+                    search_mode=cls.__xml_search_mode__,
+                    entity_info=XmlEntityInfo(
+                        EntityLocation.ELEMENT,
+                        path=cls.__xml_tag__,
+                        ns=cls.__xml_ns__,
+                        nsmap=cls.__xml_nsmap__,
+                    ),
+                ),
+            )
+            assert isinstance(serializer, BaseModelSerializer), "unexpected serializer type"
+            cls.__xml_serializer__ = serializer
+        else:
+            cls.__xml_serializer__ = None
 
     @classmethod
-    def update_forward_refs(cls, **kwargs: Any) -> None:
-        super().update_forward_refs(**kwargs)
+    def model_rebuild(cls, **kwargs: Any) -> None:
+        super().model_rebuild(**kwargs)
 
-        if cls.__xml_serializer__ is not None:
-            cls.__xml_serializer__.resolve_forward_refs()
+        if cls.__xml_serializer__ is None and cls.__pydantic_complete__:
+            cls.__build_serializer__()
 
     @classmethod
     def from_xml_tree(cls: Type[ModelT], root: etree.Element) -> ModelT:
@@ -301,85 +331,51 @@ class BaseXmlModel(pd.BaseModel, metaclass=XmlModelMeta):
 
         return cls.from_xml_tree(etree.fromstring(source))
 
-    def to_xml_tree(
-            self,
-            *,
-            encoder: Optional[serializers.XmlEncoder] = None,
-            skip_empty: bool = False,
-    ) -> etree.Element:
+    def to_xml_tree(self, *, skip_empty: bool = False) -> etree.Element:
         """
         Serializes the object to an xml tree.
 
-        :param encoder: xml type encoder
         :param skip_empty: skip empty elements (elements without sub-elements, attributes and text, Nones)
         :return: object xml representation
         """
 
-        encoder = encoder or self.__xml_encoder__
-
         assert self.__xml_serializer__ is not None, f"model {type(self).__name__} is partially initialized"
 
         root = XmlElement(tag=self.__xml_serializer__.element_name, nsmap=self.__xml_serializer__.nsmap)
-        self.__xml_serializer__.serialize(root, self, encoder=encoder, skip_empty=skip_empty)
+        self.__xml_serializer__.serialize(
+            root, self, pdc.to_jsonable_python(self, by_alias=False), skip_empty=skip_empty,
+        )
 
         return root.to_native()
 
-    def to_xml(
-            self,
-            *,
-            encoder: Optional[serializers.XmlEncoder] = None,
-            skip_empty: bool = False,
-            **kwargs: Any,
-    ) -> Union[str, bytes]:
+    def to_xml(self, *, skip_empty: bool = False, **kwargs: Any) -> Union[str, bytes]:
         """
         Serializes the object to an xml string.
 
-        :param encoder: xml type encoder
         :param skip_empty: skip empty elements (elements without sub-elements, attributes and text, Nones)
         :param kwargs: additional xml serialization arguments
         :return: object xml representation
         """
 
-        return etree.tostring(self.to_xml_tree(encoder=encoder, skip_empty=skip_empty), **kwargs)
+        return etree.tostring(self.to_xml_tree(skip_empty=skip_empty), **kwargs)
 
 
-GenericModelT = TypeVar('GenericModelT', bound='BaseGenericXmlModel')
+RootModelRootType = TypeVar('RootModelRootType')
 
 
-class BaseGenericXmlModel(BaseXmlModel, pd.generics.GenericModel):
+class RootXmlModel(  # type: ignore[misc]
+    RootModel[RootModelRootType],
+    BaseXmlModel,
+    Generic[RootModelRootType],
+    __xml_abstract__=True,
+):
     """
-    Base pydantic-xml generic model.
+    Base pydantic-xml root model.
     """
-
-    def __class_getitem__(cls, params: Union[Type[Any], Tuple[Type[Any], ...]]) -> Type[Any]:
-        model = super().__class_getitem__(params)
-        model.__xml_tag__ = cls.__xml_tag__
-        model.__xml_ns__ = cls.__xml_ns__
-        model.__xml_nsmap__ = cls.__xml_nsmap__
-        model.__xml_ns_attrs__ = cls.__xml_ns_attrs__
-        model.__xml_search_mode__ = cls.__xml_search_mode__
-        model.__init_serializer__()
-
-        return model
 
     @classmethod
-    def __init_serializer__(cls) -> None:
-        # checks that the model is not generic
-        if not getattr(cls, '__concrete__', True):
-            cls.__xml_serializer__ = None
-        else:
-            super().__init_serializer__()
+    def __build_serializer__(cls) -> None:
+        if cls is RootXmlModel:
+            return
 
-    @classmethod
-    def from_xml_tree(cls: Type[GenericModelT], root: etree.Element) -> GenericModelT:
-        """
-        Deserializes an xml element tree to an object of `cls` type.
-
-        :param root: xml element to deserialize the object from
-        :return: deserialized object
-        """
-
-        if cls.__xml_serializer__ is None:
-            raise errors.ModelError(f"{cls.__name__} model is generic")
-
-        return super().from_xml_tree(root)
+        super().__build_serializer__()

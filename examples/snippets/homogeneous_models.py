@@ -11,7 +11,7 @@ class Social(BaseXmlModel):
 
 class Product(BaseXmlModel):
     status: Literal['running', 'development'] = attr()
-    launched: Optional[int] = attr()
+    launched: Optional[int] = attr(default=None)
     title: str
 
 
@@ -71,4 +71,4 @@ json_doc = '''
 '''  # [json-end]
 
 company = Company.from_xml(xml_doc)
-assert company == Company.parse_raw(json_doc)
+assert company == Company.model_validate_json(json_doc)

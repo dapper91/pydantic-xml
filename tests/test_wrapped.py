@@ -2,7 +2,7 @@ from typing import Dict, List, Optional
 
 from helpers import assert_xml_equal
 
-from pydantic_xml import BaseXmlModel, attr, element, wrapped
+from pydantic_xml import BaseXmlModel, RootXmlModel, attr, element, wrapped
 
 
 def test_wrapped_primitive_extraction():
@@ -90,8 +90,8 @@ def test_mult_wrapped_primitive_extraction():
 
 
 def test_wrapper_collection():
-    class TestSubModel(BaseXmlModel):
-        __root__: int = wrapped('model3/model4', attr(name='attr1'))
+    class TestSubModel(RootXmlModel):
+        root: int = wrapped('model3/model4', attr(name='attr1'))
 
     class TestModel(BaseXmlModel, tag='model1'):
         elements: List[TestSubModel] = element(tag='model2')
@@ -112,7 +112,7 @@ def test_wrapper_collection():
     '''
 
     actual_obj = TestModel.from_xml(xml)
-    expected_obj = TestModel(elements=[TestSubModel(__root__=1), TestSubModel(__root__=2)])
+    expected_obj = TestModel(elements=[TestSubModel(1), TestSubModel(2)])
 
     assert actual_obj == expected_obj
 
@@ -126,7 +126,7 @@ def test_wrapped_submodel_extraction():
 
     class TestModel(BaseXmlModel, tag='model1'):
         data: TestSubModel = wrapped('model2/model3', element())
-        empty: Optional[TestSubModel] = wrapped('model2/model4', element())
+        empty: Optional[TestSubModel] = wrapped('model2/model4', element(default=None))
 
     xml = '''
     <model1>
@@ -149,7 +149,7 @@ def test_wrapped_submodel_extraction():
 
 def test_wrapped_mapping_extraction():
     class TestModel(BaseXmlModel, tag='model1'):
-        attrs: Dict[str, str] = wrapped('model2/model3')
+        attrs: Dict[str, int] = wrapped('model2/model3')
 
     xml = '''
     <model1>
@@ -216,6 +216,30 @@ def test_wrapper_sequence():
     assert_xml_equal(actual_xml, xml)
 
 
+def test_wrapped_root():
+    class TestSubModel(BaseXmlModel, tag='model3'):
+        attr1: int = attr()
+
+    class TestModel(RootXmlModel, tag='model1'):
+        root: TestSubModel = wrapped('model2')
+
+    xml = '''
+    <model1>
+        <model2>
+            <model3 attr1="1"/>
+        </model2>
+    </model1>
+    '''
+
+    actual_obj = TestModel.from_xml(xml)
+    expected_obj = TestModel(TestSubModel(attr1=1))
+
+    assert actual_obj == expected_obj
+
+    actual_xml = actual_obj.to_xml()
+    assert_xml_equal(actual_xml, xml)
+
+
 def test_wrapper_element_interleaving():
     class TestModel(BaseXmlModel, tag='model1'):
         element1: int = element(tag='element1')
@@ -245,30 +269,6 @@ def test_wrapper_element_interleaving():
         element5=5,
         element6=6,
     )
-
-    assert actual_obj == expected_obj
-
-    actual_xml = actual_obj.to_xml()
-    assert_xml_equal(actual_xml, xml)
-
-
-def test_wrapped_root():
-    class TestSubModel(BaseXmlModel, tag='model3'):
-        attr1: int = attr()
-
-    class TestModel(BaseXmlModel, tag='model1'):
-        __root__: TestSubModel = wrapped('model2')
-
-    xml = '''
-    <model1>
-        <model2>
-            <model3 attr1="1"/>
-        </model2>
-    </model1>
-    '''
-
-    actual_obj = TestModel.from_xml(xml)
-    expected_obj = TestModel(__root__=TestSubModel(attr1=1))
 
     assert actual_obj == expected_obj
 

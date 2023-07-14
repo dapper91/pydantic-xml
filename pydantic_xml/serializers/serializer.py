@@ -1,221 +1,256 @@
 import abc
 import dataclasses as dc
-import sys
 import typing
+from collections import ChainMap
 from enum import IntEnum
-from inspect import isclass
-from typing import Any, Dict, ForwardRef, Optional, Tuple, Type, Union
+from functools import cached_property
+from typing import Any, Dict, Optional, Tuple
 
-if sys.version_info < (3, 10):
-    UnionTypes = (Union,)
-else:
-    from types import UnionType
-    UnionTypes = (Union, UnionType)
+from pydantic_core import core_schema as pcs
 
-import pydantic as pd
-
-import pydantic_xml as pxml
 from pydantic_xml.element import SearchMode, XmlElementReader, XmlElementWriter
-from pydantic_xml.typedefs import NsMap
+from pydantic_xml.errors import ModelError
+from pydantic_xml.typedefs import EntityLocation, NsMap
 
 from . import factories
-from .encoder import XmlEncoder
 
 
-class SubFieldWrapper:
-    def __init__(self, name: str, alias: str, field_info: pd.fields.FieldInfo, model_field: pd.fields.ModelField):
-        self.model_field = model_field
-        self.name = name
-        self.alias = alias
-        self.field_info = field_info
-
-    def __getattr__(self, item: str) -> Any:
-        return getattr(self.model_field, item)
-
-
-class Location(IntEnum):
-    """
-    Field data location.
-    """
-
-    MISSING = 0  # field location is not provided
-    ELEMENT = 1  # field data is located at xml element
-    ATTRIBUTE = 2  # field data is located at xml attribute
-    WRAPPED = 3  # field data is wrapped by an element
+class SchemaTypeFamily(IntEnum):
+    META = 0
+    PRIMITIVE = 1
+    MODEL = 2
+    HOMOGENEOUS_COLLECTION = 3
+    HETEROGENEOUS_COLLECTION = 4
+    MAPPING = 5
+    TYPED_MAPPING = 6
+    UNION = 7
+    DEFINITIONS = 8
+    DEFINITION_REF = 9
 
 
-class PydanticShapeType(IntEnum):
-    """
-    Pydantic shape type.
-    """
+TYPE_FAMILY = {
+    'none':             SchemaTypeFamily.PRIMITIVE,
+    'bool':             SchemaTypeFamily.PRIMITIVE,
+    'int':              SchemaTypeFamily.PRIMITIVE,
+    'float':            SchemaTypeFamily.PRIMITIVE,
+    'str':              SchemaTypeFamily.PRIMITIVE,
+    'bytes':            SchemaTypeFamily.PRIMITIVE,
+    'date':             SchemaTypeFamily.PRIMITIVE,
+    'time':             SchemaTypeFamily.PRIMITIVE,
+    'datetime':         SchemaTypeFamily.PRIMITIVE,
+    'timedelta':        SchemaTypeFamily.PRIMITIVE,
+    'url':              SchemaTypeFamily.PRIMITIVE,
+    'multi-host-url':   SchemaTypeFamily.PRIMITIVE,
+    'json':             SchemaTypeFamily.PRIMITIVE,
+    'literal':          SchemaTypeFamily.PRIMITIVE,
+    'lax-or-strict':    SchemaTypeFamily.PRIMITIVE,
+    'is-instance':      SchemaTypeFamily.PRIMITIVE,
 
-    UNKNOWN = 0
-    SCALAR = 1
-    HOMOGENEOUS = 2
-    HETEROGENEOUS = 3
-    MAPPING = 4
+    'model':            SchemaTypeFamily.MODEL,
 
-    __SHAPE_TYPES__: Dict[int, int] = {
-        pd.fields.SHAPE_SINGLETON:      SCALAR,
+    'tuple-variable':   SchemaTypeFamily.HOMOGENEOUS_COLLECTION,
+    'list':             SchemaTypeFamily.HOMOGENEOUS_COLLECTION,
+    'set':              SchemaTypeFamily.HOMOGENEOUS_COLLECTION,
+    'frozenset':        SchemaTypeFamily.HOMOGENEOUS_COLLECTION,
 
-        pd.fields.SHAPE_LIST:           HOMOGENEOUS,
-        pd.fields.SHAPE_SET:            HOMOGENEOUS,
-        pd.fields.SHAPE_TUPLE_ELLIPSIS: HOMOGENEOUS,
-        pd.fields.SHAPE_SEQUENCE:       HOMOGENEOUS,
-        pd.fields.SHAPE_ITERABLE:       HOMOGENEOUS,
-        pd.fields.SHAPE_FROZENSET:      HOMOGENEOUS,
-        pd.fields.SHAPE_DEQUE:          HOMOGENEOUS,
+    'tuple-positional': SchemaTypeFamily.HETEROGENEOUS_COLLECTION,
 
-        pd.fields.SHAPE_TUPLE:          HETEROGENEOUS,
+    'dict':             SchemaTypeFamily.MAPPING,
+    'typed-dict':       SchemaTypeFamily.TYPED_MAPPING,
 
-        pd.fields.SHAPE_MAPPING:        MAPPING,
-        pd.fields.SHAPE_DICT:           MAPPING,
-        pd.fields.SHAPE_DEFAULTDICT:    MAPPING,
+    'union':            SchemaTypeFamily.UNION,
 
-        pd.fields.SHAPE_GENERIC:        UNKNOWN,
-    }
+    'function-before':  SchemaTypeFamily.META,
+    'function-after':   SchemaTypeFamily.META,
+    'function-wrap':    SchemaTypeFamily.META,
+    'function-plain':   SchemaTypeFamily.META,
+    'default':          SchemaTypeFamily.META,
+    'nullable':         SchemaTypeFamily.META,
 
-    @classmethod
-    def from_shape(cls, shape: int) -> 'PydanticShapeType':
-        return cls(cls.__SHAPE_TYPES__.get(shape, cls.UNKNOWN))
+    'definitions':      SchemaTypeFamily.DEFINITIONS,
+    'definition-ref':   SchemaTypeFamily.DEFINITION_REF,
+}
 
 
-def is_xml_model(tp: Any) -> bool:
-    return isclass(tp) and issubclass(tp, pxml.BaseXmlModel)
-
-
-def is_union(type_: Any) -> bool:
-    return typing.get_origin(type_) in UnionTypes
-
-
-def is_optional(type_: Any) -> bool:
-    if not is_union(type_):
-        return False
-
-    union_args = typing.get_args(type_)
-    if len(union_args) != 2:
-        return False
-
-    return type(None) in union_args
+class XmlEntityInfoP(typing.Protocol):
+    location: Optional[EntityLocation]
+    path: Optional[str]
+    ns: Optional[str]
+    nsmap: Optional[NsMap]
+    wrapped: Optional['XmlEntityInfoP']
 
 
 class Serializer(abc.ABC):
-    """
-    Base field serializer/deserializer.
-    """
-
     @dc.dataclass(frozen=True)
     class Context:
-        search_mode: SearchMode
-        parent_is_root: bool = False
-        parent_ns: Optional[str] = None
-        parent_nsmap: Optional[NsMap] = None
+        model_name: str
+        field_name: Optional[str] = None
+        field_alias: Optional[str] = None
+        field_computed: bool = False
+        entity_info: Optional[XmlEntityInfoP] = None
 
-    @abc.abstractmethod
-    def serialize(self, element: XmlElementWriter, value: Any, *, encoder: XmlEncoder, skip_empty: bool = False) -> Any:
-        """
-        Serializes a value into an xml element.
+        namespaced_attrs: bool = False
+        search_mode: SearchMode = SearchMode.STRICT
 
-        :param element: element serialized value should be added to
-        :param value: value to be serialized
-        :param encoder: xml encoder to be used to serialize the value
-        :param skip_empty: skip empty elements (elements without sub-elements, attributes and text, Nones)
-        """
+        optional: bool = False
+        has_default: bool = False
+        definitions: Dict[str, pcs.CoreSchema] = dc.field(default_factory=dict)
 
-    @abc.abstractmethod
-    def deserialize(self, element: Optional[XmlElementReader]) -> Any:
-        """
-        Deserializes a value from an xml element.
+        parent_ctx: Optional['Serializer.Context'] = None
 
-        :param element: element deserialized value should be fetched from
-        :return: deserialized value
-        """
+        @property
+        def top(self) -> bool:
+            return self.parent_ctx is None
 
-    def resolve_forward_refs(self) -> 'Serializer':
-        """
-        Resolve forward references if exist
+        @property
+        def entity_location(self) -> Optional[EntityLocation]:
+            return self.entity_info.location if self.entity_info is not None else None
 
-        :return: resolved serializer
-        """
+        @property
+        def entity_path(self) -> Optional[str]:
+            return self.entity_info.path if self.entity_info is not None else None
 
-        return self
+        @property
+        def entity_ns(self) -> Optional[str]:
+            return self.entity_info.ns if self.entity_info is not None else None
+
+        @property
+        def entity_nsmap(self) -> Optional[NsMap]:
+            return self.entity_info.nsmap if self.entity_info is not None else None
+
+        @property
+        def entity_wrapped(self) -> Optional['XmlEntityInfoP']:
+            return self.entity_info.wrapped if self.entity_info is not None else None
+
+        @cached_property
+        def parent_ns(self) -> Optional[str]:
+            if parent_ctx := self.parent_ctx:
+                return parent_ctx.entity_ns or parent_ctx.parent_ns
+
+            return None
+
+        @cached_property
+        def parent_nsmap(self) -> Optional[NsMap]:
+            if parent_ctx := self.parent_ctx:
+                return {
+                    **(parent_ctx.entity_nsmap or {}),
+                    **(parent_ctx.parent_nsmap or {}),
+                }
+
+            return None
+
+        def child(self, **kwargs: Any) -> 'Serializer.Context':
+            """
+            Creates child context.
+
+            :param kwargs: context variables to be replaced
+            """
+
+            return dc.replace(self, parent_ctx=self, **kwargs)
+
+        def replace(self, **kwargs: Any) -> 'Serializer.Context':
+            return dc.replace(self, **kwargs)
 
     @classmethod
-    def _get_field_location(cls, field_info: pd.fields.FieldInfo) -> Location:
-        if isinstance(field_info, pxml.XmlElementInfo):
-            field_location = Location.ELEMENT
-        elif isinstance(field_info, pxml.XmlAttributeInfo):
-            field_location = Location.ATTRIBUTE
-        elif isinstance(field_info, pxml.XmlWrapperInfo):
-            field_location = Location.WRAPPED
-        else:
-            field_location = Location.MISSING
-
-        return field_location
+    def parse_core_schema(cls, schema: pcs.CoreSchema, ctx: Context) -> 'Serializer':
+        schema, ctx = cls.preprocess_schema(schema, ctx)
+        return cls.select_serializer(schema, ctx)
 
     @classmethod
-    def _get_entity_info(
-            cls,
-            model_field: pd.fields.ModelField,
-    ) -> Tuple[Optional[str], Optional[str], Optional[NsMap]]:
-        field_info = model_field.field_info
+    def preprocess_schema(cls, schema: pcs.CoreSchema, ctx: Context) -> Tuple[pcs.CoreSchema, Context]:
+        schema_type = schema['type']
+        if (type_family := TYPE_FAMILY.get(schema_type)) is None:
+            raise ModelError(f"type {schema_type} is not supported")
 
-        if isinstance(field_info, pxml.XmlElementInfo):
-            return field_info.tag, field_info.ns, field_info.nsmap
-        elif isinstance(field_info, pxml.XmlAttributeInfo):
-            return field_info.name, field_info.ns, None
-        elif isinstance(field_info, pxml.XmlWrapperInfo):
-            return field_info.path, field_info.ns, field_info.nsmap
-        else:
-            return None, None, None
+        if type_family is SchemaTypeFamily.META:
+            if schema_type == 'default':
+                ctx = ctx.replace(has_default=True)
+            elif schema_type == 'nullable':
+                ctx = ctx.replace(optional=True)
+
+            inner_schema = schema['schema']
+            return cls.preprocess_schema(inner_schema, ctx)
+
+        elif type_family is SchemaTypeFamily.DEFINITIONS:
+            schema = typing.cast(pcs.DefinitionsSchema, schema)
+            definitions = {
+                definition['ref']: definition
+                for definition in schema['definitions']
+            }
+            ctx = ctx.replace(definitions=ChainMap(definitions, ctx.definitions))
+
+            return cls.preprocess_schema(schema['schema'], ctx)
+
+        elif type_family is SchemaTypeFamily.DEFINITION_REF:
+            schema = typing.cast(pcs.DefinitionReferenceSchema, schema)
+            schema_ref = schema['schema_ref']
+            if typed_schema := ctx.definitions.get(schema_ref):
+                return cls.preprocess_schema(typed_schema, ctx)
+            else:
+                raise ModelError(f"schema reference {schema_ref} not found")
+
+        return schema, ctx
 
     @classmethod
-    def _build_field_serializer(
-            cls,
-            model: Type['pxml.BaseXmlModel'],
-            model_field: pd.fields.ModelField,
-            ctx: Context,
-    ) -> 'Serializer':
-        if cls._has_forward_refs(model_field):
-            return factories.ForwardRefSerializerFactory.build(model, model_field, ctx)
+    def select_serializer(cls, schema: pcs.CoreSchema, ctx: Context) -> 'Serializer':
+        schema_type = schema['type']
 
-        shape_type = PydanticShapeType.from_shape(model_field.shape)
-        if shape_type is PydanticShapeType.UNKNOWN:
-            raise TypeError(f"fields of type {model_field.type_} are not supported")
+        if (type_family := TYPE_FAMILY.get(schema_type)) is None:
+            raise ModelError(f"type {schema_type} is not supported")
 
-        if is_xml_model(model_field.type_):
-            is_model_field = True
-        else:
-            is_model_field = False
+        if ctx.entity_location is EntityLocation.WRAPPED:
+            return factories.wrapper.from_core_schema(schema, ctx)
 
-        is_union_type = is_union(model_field.outer_type_) and not is_optional(model_field.outer_type_)
+        if type_family is SchemaTypeFamily.PRIMITIVE:
+            schema = typing.cast(factories.primitive.PrimitiveTypeSchema, schema)
+            return factories.primitive.from_core_schema(schema, ctx)
 
-        field_location = cls._get_field_location(model_field.field_info)
+        elif type_family is SchemaTypeFamily.MODEL:
+            schema = typing.cast(pcs.ModelSchema, schema)
+            return factories.model.from_core_schema(schema, ctx)
 
-        if field_location is Location.WRAPPED:
-            return factories.WrappedSerializerFactory.build(model, model_field, ctx)
-        elif is_union_type:
-            return factories.UnionSerializerFactory.build(model, model_field, field_location, ctx)
-        elif shape_type is PydanticShapeType.SCALAR and not is_model_field:
-            return factories.PrimitiveTypeSerializerFactory.build(model, model_field, field_location, ctx)
-        elif shape_type is PydanticShapeType.SCALAR and is_model_field:
-            return factories.ModelSerializerFactory.build(model, model_field, field_location, ctx)
-        elif shape_type is PydanticShapeType.MAPPING:
-            return factories.MappingSerializerFactory.build(model, model_field, field_location, ctx)
-        elif shape_type is PydanticShapeType.HOMOGENEOUS:
-            return factories.HomogeneousSerializerFactory.build(model, model_field, field_location, ctx)
-        elif shape_type is PydanticShapeType.HETEROGENEOUS:
-            return factories.HeterogeneousSerializerFactory.build(model, model_field, field_location, ctx)
+        elif type_family is SchemaTypeFamily.HOMOGENEOUS_COLLECTION:
+            schema = typing.cast(factories.homogeneous.HomogeneousCollectionTypeSchema, schema)
+            return factories.homogeneous.from_core_schema(schema, ctx)
+
+        elif type_family is SchemaTypeFamily.HETEROGENEOUS_COLLECTION:
+            schema = typing.cast(pcs.TuplePositionalSchema, schema)
+            return factories.heterogeneous.from_core_schema(schema, ctx)
+
+        elif type_family is SchemaTypeFamily.MAPPING:
+            schema = typing.cast(pcs.DictSchema, schema)
+            return factories.mapping.from_core_schema(schema, ctx)
+
+        elif type_family is SchemaTypeFamily.TYPED_MAPPING:
+            schema = typing.cast(pcs.TypedDictSchema, schema)
+            return factories.typed_mapping.from_core_schema(schema, ctx)
+
+        elif type_family is SchemaTypeFamily.UNION:
+            schema = typing.cast(pcs.UnionSchema, schema)
+            return factories.union.from_core_schema(schema, ctx)
+
         else:
             raise AssertionError("unreachable")
 
-    @classmethod
-    def _has_forward_refs(cls, model_field: pd.fields.ModelField) -> bool:
-        if isinstance(model_field.type_, ForwardRef):
-            return True
+    @abc.abstractmethod
+    def serialize(
+            self, element: XmlElementWriter, value: Any, encoded: Any, *, skip_empty: bool = False,
+    ) -> Optional[XmlElementWriter]:
+        """
+        Serializes a value to the provided xml element.
 
-        for field in model_field.sub_fields or []:
-            if isinstance(field.type_, ForwardRef):
-                return True
+        :param element: xml element the value is serialized to
+        :param value: original value
+        :param encoded: encoded value (encoded by pydantic)
+        :param skip_empty: skip empty element
+        :return: created sub-element or original one if sub-element has not been created
+        """
 
-        return False
+    @abc.abstractmethod
+    def deserialize(self, element: Optional[XmlElementReader]) -> Optional[Any]:
+        """
+        Deserializes a value from the xml element.
+
+        :param element: xml element the value is deserialized from
+        :return: deserialized value
+        """

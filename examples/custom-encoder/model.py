@@ -3,16 +3,20 @@ import pathlib
 from typing import List, Optional, Union
 from xml.etree.ElementTree import canonicalize
 
-import pydantic
+from pydantic import field_serializer, field_validator
 
-from pydantic_xml import BaseXmlModel, attr, element
+from pydantic_xml import BaseXmlModel, RootXmlModel, attr, element
 
 
 class File(BaseXmlModel):
     name: str = attr()
     content: bytes = element()
 
-    @pydantic.validator('content', pre=True)
+    @field_serializer('content')
+    def encode_content(self, value: bytes) -> str:
+        return base64.b64encode(value).decode()
+
+    @field_validator('content', mode='before')
     def decode_content(cls, value: Optional[Union[str, bytes]]) -> Optional[bytes]:
         if isinstance(value, str):
             return base64.b64decode(value)
@@ -20,13 +24,8 @@ class File(BaseXmlModel):
         return value
 
 
-class Files(BaseXmlModel, tag='files'):
-    class Config:
-        xml_encoders = {
-            bytes: lambda value: base64.b64encode(value).decode(),
-        }
-
-    __root__: List[File] = element(tag='file', default=[])
+class Files(RootXmlModel, tag='files'):
+    root: List[File] = element(tag='file', default=[])
 
 
 files = Files()
@@ -34,7 +33,7 @@ for filename in ['./file1.txt', './file2.txt']:
     with open(filename, 'rb') as f:
         content = f.read()
 
-    files.__root__.append(File(name=filename, content=content))
+    files.root.append(File(name=filename, content=content))
 
 expected_xml_doc = pathlib.Path('./doc.xml').read_bytes()
 

@@ -40,16 +40,16 @@ def test_root_not_found_error():
 
 def test_skip_empty():
     class TestSubModel(BaseXmlModel, tag='model'):
-        text: Optional[str]
-        element1: Optional[str] = element()
-        attr1: Optional[str] = attr()
+        text: Optional[str] = None
+        element1: Optional[str] = element(default=None)
+        attr1: Optional[str] = attr(default=None)
 
     class TestModel(BaseXmlModel, tag='model'):
         model: TestSubModel
         list: List[TestSubModel] = []
         tuple: Optional[Tuple[TestSubModel, TestSubModel]] = None
         attrs: Dict[str, str] = {}
-        wrapped: Optional[str] = wrapped('envelope')
+        wrapped: Optional[str] = wrapped('envelope', default=None)
 
     xml = '''
     <model/>
@@ -66,9 +66,9 @@ def test_self_ref_models():
         attr1: int = attr()
         element1: float = element()
 
-        model1: Optional['TestModel'] = element(tag='model1')
-        models1: Optional[List['TestModel']] = element(tag='item1')
-        models2: Optional[Tuple['TestModel', 'TestModel']] = element(tag='item2')
+        model1: Optional['TestModel'] = element(tag='model1', default=None)
+        models1: Optional[List['TestModel']] = element(tag='item1', default=None)
+        models2: Optional[Tuple['TestModel', 'TestModel']] = element(tag='item2', default=None)
 
     xml = '''
         <model attr1="1">

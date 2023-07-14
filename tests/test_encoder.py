@@ -1,10 +1,13 @@
 import datetime as dt
 import ipaddress
+import sys
 from decimal import Decimal
 from enum import Enum
 
 import pytest
 from helpers import assert_xml_equal
+from pydantic import field_serializer
+from pydantic.functional_serializers import PlainSerializer
 
 from pydantic_xml import BaseXmlModel, element
 
@@ -31,7 +34,7 @@ def test_primitive_types_encoding():
     <model>
         <field1>1</field1>
         <field2>1.1</field2>
-        <field3>true</field3>
+        <field3>True</field3>
         <field4>3.14</field4>
         <field5>2023-02-04T12:01:02</field5>
         <field6>2023-02-04</field6>
@@ -93,17 +96,41 @@ def test_ipaddress_types_encoding():
     assert_xml_equal(actual_xml, xml)
 
 
-def test_model_level_xml_encoder():
-    class TestSubModel(BaseXmlModel, tag='submodel'):
+def test_field_serializer():
+    class TestModel(BaseXmlModel, tag='model'):
         field1: dt.datetime = element(tag='field1')
+
+        @field_serializer('field1')
+        def serialize_dt(self, value: dt.datetime) -> float:
+            return value.timestamp()
+
+    xml = '''
+    <model>
+        <field1>1675468800.0</field1>
+    </model>
+    '''
+
+    obj = TestModel(
+        field1=dt.datetime(2023, 2, 4, tzinfo=dt.timezone.utc),
+    )
+
+    actual_xml = obj.to_xml()
+    assert_xml_equal(actual_xml, xml.encode())
+
+
+@pytest.mark.skipif(sys.version_info < (3, 9), reason="requires python 3.9 and above")
+def test_plain_serializer():
+    from typing import Annotated
+
+    Timestamp = Annotated[
+        dt.datetime, PlainSerializer(lambda val: val.timestamp(), return_type=float),
+    ]
+
+    class TestSubModel(BaseXmlModel, tag='submodel'):
+        field1: Timestamp = element(tag='field1')
 
     class TestModel(BaseXmlModel, tag='model'):
-        class Config:
-            xml_encoders = {
-                dt.datetime: lambda val: val.timestamp(),
-            }
-
-        field1: dt.datetime = element(tag='field1')
+        field1: Timestamp = element(tag='field1')
         field2: TestSubModel
 
     xml = '''
@@ -124,92 +151,3 @@ def test_model_level_xml_encoder():
 
     actual_xml = obj.to_xml()
     assert_xml_equal(actual_xml, xml.encode())
-
-
-def test_model_xml_encoder_inheritance():
-    class BaseTestModel(BaseXmlModel, tag='submodel'):
-        class Config:
-            xml_encoders = {
-                dt.datetime: lambda val: val.timestamp(),
-            }
-
-    class TestModel(BaseTestModel, tag='model'):
-        class Config:
-            pass
-
-        field1: dt.datetime = element(tag='field1')
-
-    xml = '''
-    <model>
-        <field1>1675468800.0</field1>
-    </model>
-    '''
-
-    obj = TestModel(
-        field1=dt.datetime(2023, 2, 4, tzinfo=dt.timezone.utc),
-    )
-
-    actual_xml = obj.to_xml()
-    assert_xml_equal(actual_xml, xml.encode())
-
-
-def test_model_xml_encoder_inheritance_with_plain_model():
-    class BasePlainModel:
-        pass
-
-    class BaseTestModel(BaseXmlModel, tag='submodel'):
-        class Config:
-            xml_encoders = {
-                dt.datetime: lambda val: val.timestamp(),
-            }
-
-    class TestModel(BaseTestModel, BasePlainModel, tag='model'):
-        class Config:
-            pass
-
-        field1: dt.datetime = element(tag='field1')
-
-    xml = '''
-    <model>
-        <field1>1675468800.0</field1>
-    </model>
-    '''
-
-    obj = TestModel(
-        field1=dt.datetime(2023, 2, 4, tzinfo=dt.timezone.utc),
-    )
-
-    actual_xml = obj.to_xml()
-    assert_xml_equal(actual_xml, xml.encode())
-
-
-def test_xml_encoder_recursion_error():
-    class TestModel(BaseXmlModel, tag='model'):
-        class Config:
-            xml_encoders = {
-                dt.datetime: lambda val: val,
-            }
-
-        field1: dt.datetime = element(tag='field1')
-
-    obj = TestModel(field1=dt.datetime(2023, 2, 4))
-
-    with pytest.raises(ValueError) as e:
-        obj.to_xml()
-
-    assert e.value.args[0] == "Circular reference detected"
-
-
-def test_encoder_type_not_xml_serializable():
-    class TestModel(BaseXmlModel, tag='model'):
-        class Config:
-            arbitrary_types_allowed = True
-
-        field1: complex = element(tag='field1')
-
-    obj = TestModel(field1=complex(1, 2))
-
-    with pytest.raises(TypeError) as e:
-        obj.to_xml()
-
-    assert e.value.args[0] == f"Object of type 'complex' is not XML serializable"

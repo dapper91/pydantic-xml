@@ -88,7 +88,7 @@ Namespace mapping is inherited by all the model field:
 Custom root type
 ****************
 
-``Pydantic`` supports so-called `custom root type <https://docs.pydantic.dev/1.10/usage/models/#custom-root-types>`_.
+``Pydantic`` supports so-called `custom root type <https://docs.pydantic.dev/latest/usage/models/#rootmodel-and-custom-root-types>`_.
 
 It works for primitive types:
 
@@ -192,7 +192,7 @@ and model types:
 Self-referencing models
 ***********************
 
-``pydantic`` library supports `self-referencing models <https://docs.pydantic.dev/1.10/usage/postponed_annotations/#self-referencing-models>`_.
+``pydantic`` library supports `self-referencing models <https://docs.pydantic.dev/latest/usage/postponed_annotations/#self-referencing-or-recursive-models>`_.
 Within the model, you can refer to a not-yet-constructed model using a string.
 
 .. grid:: 2

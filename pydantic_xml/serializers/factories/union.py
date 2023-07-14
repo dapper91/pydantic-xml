@@ -1,169 +1,126 @@
-import dataclasses as dc
-import typing
-from typing import Any, List, Optional, Type
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 import pydantic as pd
+from pydantic_core import core_schema as pcs
 
 import pydantic_xml as pxml
 from pydantic_xml import errors
 from pydantic_xml.element import XmlElementReader, XmlElementWriter
-from pydantic_xml.serializers.encoder import XmlEncoder
-from pydantic_xml.serializers.factories.model import ModelSerializerFactory
-from pydantic_xml.serializers.serializer import Location, PydanticShapeType, Serializer, SubFieldWrapper, is_xml_model
+from pydantic_xml.serializers.factories.model import ModelProxySerializer
+from pydantic_xml.serializers.serializer import TYPE_FAMILY, SchemaTypeFamily, Serializer
 
 
-class UnionSerializerFactory:
-    """
-    Union type serializer factory.
-    """
-
-    class PrimitiveTypeSerializer(Serializer):
-        def __init__(
-                self, model: Type['pxml.BaseXmlModel'], model_field: pd.fields.ModelField, ctx: Serializer.Context,
-        ):
-            assert model_field.sub_fields is not None, "unexpected model field subfields type"
-            assert len(model_field.sub_fields) > 1, "unexpected model field subfields number"
-
-            inner_serializers: List[Serializer] = []
-            for sub_field in model_field.sub_fields:
-                sub_field = typing.cast(
-                    pd.fields.ModelField,
-                    SubFieldWrapper(
-                        model_field.name,
-                        model_field.alias,
-                        model_field.field_info,
-                        sub_field,
-                    ),
-                )
-
-                inner_serializers.append(self._build_field_serializer(model, sub_field, ctx))
-
-            # all union types serializers must be of the same type
-            if len(set(type(s) for s in inner_serializers)) > 1:
-                raise TypeError("unions of different primitive types are not supported")
-
-            self._inner_serializer = inner_serializers[0]
-
-        def serialize(
-                self, element: XmlElementWriter, value: Any, *, encoder: XmlEncoder, skip_empty: bool = False,
-        ) -> Optional[XmlElementWriter]:
-            return self._inner_serializer.serialize(element, value, encoder=encoder, skip_empty=skip_empty)
-
-        def deserialize(self, element: Optional[XmlElementReader]) -> Optional[str]:
-            return self._inner_serializer.deserialize(element)
-
-    class ModelSerializer(Serializer):
-        def __init__(
-                self, model: Type['pxml.BaseXmlModel'], model_field: pd.fields.ModelField, ctx: Serializer.Context,
-        ):
-            assert model_field.sub_fields is not None, "unexpected model field subfields type"
-            assert len(model_field.sub_fields) > 1, "unexpected model field subfields number"
-
-            inner_serializers: List[ModelSerializerFactory.ModelSerializer] = []
-            for sub_field in model_field.sub_fields:
-                sub_field = typing.cast(
-                    pd.fields.ModelField,
-                    SubFieldWrapper(
-                        model_field.name,
-                        model_field.alias,
-                        model_field.field_info,
-                        sub_field,
-                    ),
-                )
-
-                serializer = self._build_field_serializer(
-                    model,
-                    sub_field,
-                    dc.replace(ctx, parent_is_root=False),
-                )
-                assert isinstance(serializer, ModelSerializerFactory.ModelSerializer), "unexpected serializer type"
-
-                inner_serializers.append(serializer)
-
-            self._inner_serializers = inner_serializers
-
-        def serialize(
-                self,
-                element: XmlElementWriter,
-                value: 'pxml.BaseXmlModel',
-                *,
-                encoder: XmlEncoder,
-                skip_empty: bool = False,
-        ) -> Optional[XmlElementWriter]:
-            for serializer in self._inner_serializers:
-                if serializer.model is type(value):
-                    return serializer.serialize(element, value, encoder=encoder, skip_empty=skip_empty)
-
-            raise AssertionError("unexpected serialized type")
-
-        def deserialize(self, element: Optional[XmlElementReader]) -> Optional[List[Any]]:
-            if element is None:
-                return None
-
-            last_error: Optional[Exception] = None
-            result: Any = None
-            for serializer in self._inner_serializers:
-                snapshot = element.create_snapshot()
-                try:
-                    if (result := serializer.deserialize(snapshot)) is None:
-                        continue
-                    else:
-                        element.apply_snapshot(snapshot)
-                        return result
-                except pd.ValidationError as e:
-                    last_error = e
-
-            if last_error is not None:
-                raise last_error
-
-            return result
-
-        def resolve_forward_refs(self) -> 'Serializer':
-            self._inner_serializers = [
-                typing.cast(ModelSerializerFactory.ModelSerializer, serializer.resolve_forward_refs())
-                for serializer in self._inner_serializers
-            ]
-
-            return self
-
+class PrimitiveTypeSerializer(Serializer):
     @classmethod
-    def build(
-            cls,
-            model: Type['pxml.BaseXmlModel'],
-            model_field: pd.fields.ModelField,
-            field_location: Location,
-            ctx: Serializer.Context,
-    ) -> 'Serializer':
-        assert model_field.sub_fields and len(model_field.sub_fields) > 1, "unexpected union subtypes number"
+    def from_core_schema(cls, schema: pcs.UnionSchema, ctx: Serializer.Context) -> 'PrimitiveTypeSerializer':
+        computed = ctx.field_computed
+        inner_serializers: List[Serializer] = []
+        for choice_schema in schema['choices']:
+            inner_serializers.append(Serializer.parse_core_schema(choice_schema, ctx))
 
-        subfields_kind: List[bool] = []
-        for sub_field in model_field.sub_fields:
-            shape_type = PydanticShapeType.from_shape(sub_field.shape)
-            if shape_type is PydanticShapeType.UNKNOWN:
-                raise TypeError(f"fields of type {model_field.type_} are not supported")
+        assert len(inner_serializers) > 0, "union choice is not provided"
 
-            if shape_type in (
-                PydanticShapeType.MAPPING,
-                PydanticShapeType.HOMOGENEOUS,
-                PydanticShapeType.HETEROGENEOUS,
-            ):
-                raise errors.ModelFieldError(
-                    model.__name__, model_field.name, "union type can't be of collection or mapping type",
-                )
+        # all union types serializers must be of the same type
+        if len(set(type(s) for s in inner_serializers)) > 1:
+            raise TypeError("unions of different primitive types are not supported")
 
-            subfield_type = sub_field.type_
-            if is_xml_model(subfield_type):
-                is_model_field = True
-            else:
-                is_model_field = False
+        return cls(computed, inner_serializers[0])
 
-            subfields_kind.append(is_model_field)
+    def __init__(self, computed: bool, inner_serializer: Serializer):
+        self._computed = computed
+        self._inner_serializer = inner_serializer
 
-        if len(set(subfields_kind)) > 1:
-            raise TypeError("unions of combined primitive and model types are not supported")
+    def serialize(
+            self, element: XmlElementWriter, value: Any, encoded: Any, *, skip_empty: bool = False,
+    ) -> Optional[XmlElementWriter]:
+        return self._inner_serializer.serialize(element, value, encoded, skip_empty=skip_empty)
 
-        is_model_field = subfields_kind[0]
-        if is_model_field:
-            return cls.ModelSerializer(model, model_field, ctx)
-        else:
-            return cls.PrimitiveTypeSerializer(model, model_field, ctx)
+    def deserialize(self, element: Optional[XmlElementReader]) -> Optional[str]:
+        if self._computed:
+            return None
+
+        return self._inner_serializer.deserialize(element)
+
+
+class ModelSerializer(Serializer):
+    @classmethod
+    def from_core_schema(cls, schema: pcs.UnionSchema, ctx: Serializer.Context) -> 'ModelSerializer':
+        computed = ctx.field_computed
+        inner_serializers: List[ModelProxySerializer] = []
+        for choice_schema in schema['choices']:
+            serializer = Serializer.parse_core_schema(choice_schema, ctx)
+            assert isinstance(serializer, ModelProxySerializer), "unexpected serializer type"
+
+            inner_serializers.append(serializer)
+
+        assert len(inner_serializers) > 0, "union choice is not provided"
+
+        return cls(computed, tuple(inner_serializers))
+
+    def __init__(self, computed: bool, inner_serializers: Tuple[ModelProxySerializer, ...]):
+        self._computed = computed
+        self._inner_serializers = inner_serializers
+
+    def serialize(
+            self,
+            element: XmlElementWriter,
+            value: 'pxml.BaseXmlModel',
+            encoded: Dict[str, Any],
+            *,
+            skip_empty: bool = False,
+    ) -> Optional[XmlElementWriter]:
+        for serializer in self._inner_serializers:
+            if serializer.model is type(value):
+                return serializer.serialize(element, value, encoded, skip_empty=skip_empty)
+
+        return None
+
+    def deserialize(self, element: Optional[XmlElementReader]) -> Optional['pxml.BaseXmlModel']:
+        if self._computed:
+            return None
+
+        if element is None:
+            return None
+
+        last_error: Optional[Exception] = None
+        result: Any = None
+        for serializer in self._inner_serializers:
+            snapshot = element.create_snapshot()
+            try:
+                if (result := serializer.deserialize(snapshot)) is None:
+                    continue
+                else:
+                    element.apply_snapshot(snapshot)
+                    return result
+            except pd.ValidationError as e:
+                last_error = e
+
+        if last_error is not None:
+            raise last_error
+
+        return result
+
+
+def from_core_schema(schema: pcs.UnionSchema, ctx: Serializer.Context) -> Serializer:
+    choice_families: Set[SchemaTypeFamily] = set()
+    for choice_schema in schema['choices']:
+        choice_schema, ctx = Serializer.preprocess_schema(choice_schema, ctx)
+        choice_type_family = TYPE_FAMILY.get(choice_schema['type'])
+
+        if choice_type_family not in (SchemaTypeFamily.PRIMITIVE, SchemaTypeFamily.MODEL):
+            raise errors.ModelFieldError(ctx.model_name, ctx.field_name, "union must be of primitive or model type")
+
+        choice_families.add(choice_type_family)
+
+    assert len(choice_families) > 0, "union choices are not provided"
+
+    if len(choice_families) > 1:
+        raise TypeError("unions of combined primitive and model types are not supported")
+
+    choice_family = choice_families.pop()
+    if choice_family is SchemaTypeFamily.MODEL:
+        return ModelSerializer.from_core_schema(schema, ctx)
+    elif choice_family is SchemaTypeFamily.PRIMITIVE:
+        return PrimitiveTypeSerializer.from_core_schema(schema, ctx)
+    else:
+        raise AssertionError("unreachable")

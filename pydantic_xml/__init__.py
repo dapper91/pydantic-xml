@@ -2,24 +2,20 @@
 pydantic xml serialization/deserialization extension
 """
 
-from . import config, errors
+from . import config, errors, model
 from .errors import ModelError, ParsingError
-from .model import BaseGenericXmlModel, BaseXmlModel, XmlAttributeInfo, XmlElementInfo, XmlWrapperInfo, attr, element
-from .model import wrapped
-from .serializers import DEFAULT_ENCODER, XmlEncoder
+from .model import BaseXmlModel, RootXmlModel, attr, computed_attr, computed_element, element, wrapped
 
 __all__ = (
     'BaseXmlModel',
-    'BaseGenericXmlModel',
-    'XmlEncoder',
-    'DEFAULT_ENCODER',
+    'RootXmlModel',
     'ModelError',
-    'XmlAttributeInfo',
-    'XmlElementInfo',
-    'XmlWrapperInfo',
     'ParsingError',
     'attr',
     'element',
     'wrapped',
+    'computed_attr',
+    'computed_element',
     'errors',
+    'model',
 )

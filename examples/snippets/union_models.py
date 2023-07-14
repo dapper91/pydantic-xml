@@ -69,4 +69,4 @@ json_doc = '''
 '''  # [json-end]
 
 log = Log.from_xml(xml_doc)
-assert log == Log.parse_raw(json_doc)
+assert log == Log.model_validate_json(json_doc)

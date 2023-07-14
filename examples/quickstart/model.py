@@ -6,7 +6,7 @@ from typing import Dict, List, Literal, Optional, Set, Tuple
 import pydantic as pd
 from pydantic import HttpUrl, conint
 
-from pydantic_xml import BaseXmlModel, attr, element, wrapped
+from pydantic_xml import BaseXmlModel, RootXmlModel, attr, element, wrapped
 
 NSMAP = {
     'co': 'http://www.company.com/contact',
@@ -20,15 +20,15 @@ class Headquarters(BaseXmlModel, ns='hq', nsmap=NSMAP):
     state: str = element()
     city: str = element()
 
-    @pd.validator('country')
+    @pd.field_validator('country')
     def validate_country(cls, value: str) -> str:
         if len(value) > 2:
             raise ValueError('country must be of 2 characters')
         return value
 
 
-class Industries(BaseXmlModel):
-    __root__: Set[str] = element(tag='Industry')
+class Industries(RootXmlModel):
+    root: Set[str] = element(tag='Industry')
 
 
 class Social(BaseXmlModel, ns_attrs=True, ns='co', nsmap=NSMAP):
@@ -38,7 +38,7 @@ class Social(BaseXmlModel, ns_attrs=True, ns='co', nsmap=NSMAP):
 
 class Product(BaseXmlModel, ns_attrs=True, ns='pd', nsmap=NSMAP):
     status: Literal['running', 'development'] = attr()
-    launched: Optional[int] = attr()
+    launched: Optional[int] = attr(default=None)
     title: str
 
 
@@ -88,4 +88,5 @@ xml_doc = pathlib.Path('./doc.xml').read_text()
 
 company = Company.from_xml(xml_doc)
 
-assert company == Company.parse_file('./doc.json')
+json_doc = pathlib.Path('./doc.json').read_text()
+assert company == Company.model_validate_json(json_doc)

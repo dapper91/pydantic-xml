@@ -12,7 +12,7 @@ class Company(
     ns='co',
     nsmap={'co': 'http://www.company.com/co'},
 ):
-    founded: dt.date = element(ns='co')
+    founded: dt.date = element()
     website: HttpUrl = element(tag='web-size', ns='co')
 # [model-end]
 
@@ -34,4 +34,4 @@ json_doc = '''
 '''  # [json-end]
 
 company = Company.from_xml(xml_doc)
-assert company == Company.parse_raw(json_doc)
+assert company == Company.model_validate_json(json_doc)

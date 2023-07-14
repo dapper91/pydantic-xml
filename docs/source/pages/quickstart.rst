@@ -90,7 +90,7 @@ For more information see :ref:`model types<pages/data-binding/elements:model typ
 3. Mapping
 **********
 
-field of a mapping type (``Dict[str, str]``, ``Mapping[str, int]``, ...) is bound to a local element
+field of a mapping type (``Dict[str, str]``, ``Mapping[str, int]``, ``TypedDict`` ...) is bound to a local element
 attributes (by default):
 
 .. literalinclude:: ../../../examples/snippets/mapping.py
@@ -124,7 +124,7 @@ For more information see :ref:`mappings <pages/data-binding/mappings:mappings>`.
 ***********************
 
 field of a primitive collection type (``List[str]``, ``Set[int]``, ``Tuple[float, float]`` ...) is bound to
-sub-elements text if the field is marked as :py:func:`pydantic_xml.element`:
+sub-elements text:
 
 .. literalinclude:: ../../../examples/snippets/homogeneous_primitives.py
   :language: xml
