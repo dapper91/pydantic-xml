@@ -24,9 +24,10 @@ class SchemaTypeFamily(IntEnum):
     MAPPING = 5
     TYPED_MAPPING = 6
     UNION = 7
-    DEFINITIONS = 8
-    DEFINITION_REF = 9
-    JSON_OR_PYTHON = 10
+    TAGGED_UNION = 8
+    DEFINITIONS = 9
+    DEFINITION_REF = 10
+    JSON_OR_PYTHON = 11
 
 
 TYPE_FAMILY = {
@@ -60,6 +61,7 @@ TYPE_FAMILY = {
     'typed-dict':       SchemaTypeFamily.TYPED_MAPPING,
 
     'union':            SchemaTypeFamily.UNION,
+    'tagged-union':     SchemaTypeFamily.TAGGED_UNION,
 
     'function-before':  SchemaTypeFamily.META,
     'function-after':   SchemaTypeFamily.META,
@@ -235,6 +237,10 @@ class Serializer(abc.ABC):
         elif type_family is SchemaTypeFamily.UNION:
             schema = typing.cast(pcs.UnionSchema, schema)
             return factories.union.from_core_schema(schema, ctx)
+
+        elif type_family is SchemaTypeFamily.TAGGED_UNION:
+            schema = typing.cast(pcs.TaggedUnionSchema, schema)
+            return factories.tagged_union.from_core_schema(schema, ctx)
 
         else:
             raise AssertionError("unreachable")

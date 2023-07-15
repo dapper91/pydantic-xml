@@ -1,8 +1,9 @@
 import sys
-from typing import List, Tuple, Union
+from typing import List, Literal, Tuple, Union
 
 import pytest
 from helpers import assert_xml_equal
+from pydantic import Field
 
 from pydantic_xml import BaseXmlModel, RootXmlModel, attr, element
 
@@ -298,6 +299,90 @@ def test_model_union_type():
     expected_obj = TestModel(
         field1=SubModel2(text=float('inf')),
     )
+
+    assert actual_obj == expected_obj
+
+    actual_xml = actual_obj.to_xml()
+    assert_xml_equal(actual_xml, xml)
+
+
+@pytest.mark.parametrize('type', ['type1', 'type2', 'type3'])
+def test_attribute_discriminated_model_tagged_union(type: str):
+    class SubModel1(BaseXmlModel, tag='submodel'):
+        type: Literal['type1'] = attr()
+        text: str
+
+    class SubModel2(BaseXmlModel, tag='submodel'):
+        type: Literal['type2', 'type3'] = attr()
+        text: str
+
+    class TestModel(RootXmlModel, tag='model'):
+        root: Union[SubModel1, SubModel2] = Field(..., discriminator='type')
+
+    xml = '''
+    <model>
+        <submodel type="{type}">text</submodel>
+    </model>
+    '''.format(type=type)
+
+    actual_obj = TestModel.from_xml(xml)
+    expected_obj = TestModel.model_validate(dict(type=type, text='text'))
+
+    assert actual_obj == expected_obj
+
+    actual_xml = actual_obj.to_xml()
+    assert_xml_equal(actual_xml, xml)
+
+
+def test_namespaced_attribute_discriminated_model_tagged_union():
+    NSMAP = {'tst': 'http://test.org'}
+
+    class SubModel1(BaseXmlModel, tag='submodel', ns='tst', nsmap=NSMAP):
+        type: Literal['type1'] = attr(ns='tst')
+        text: str
+
+    class SubModel2(BaseXmlModel, tag='submodel', ns='tst', nsmap=NSMAP):
+        type: Literal['type2'] = attr(ns='tst')
+        text: str
+
+    class TestModel(RootXmlModel, tag='model'):
+        root: Union[SubModel1, SubModel2] = element(discriminator='type')
+
+    xml = '''
+    <model>
+        <tst:submodel tst:type="type2" xmlns:tst="http://test.org">text</tst:submodel>
+    </model>
+    '''
+
+    actual_obj = TestModel.from_xml(xml)
+    expected_obj = TestModel.model_validate(dict(type='type2', text='text'))
+
+    assert actual_obj == expected_obj
+
+    actual_xml = actual_obj.to_xml()
+    assert_xml_equal(actual_xml, xml)
+
+
+def test_path_discriminated_model_tagged_union():
+    class SubModel1(BaseXmlModel, tag='submodel1'):
+        type: Literal['type1'] = attr()
+        text: str
+
+    class SubModel2(BaseXmlModel, tag='submodel2'):
+        type: Literal['type2'] = attr()
+        text: str
+
+    class TestModel(RootXmlModel, tag='model'):
+        root: Union[SubModel1, SubModel2] = Field(..., discriminator='type')
+
+    xml = '''
+    <model>
+        <submodel2 type="type2">text</submodel2>
+    </model>
+    '''
+
+    actual_obj = TestModel.from_xml(xml)
+    expected_obj = TestModel.model_validate(dict(type='type2', text='text'))
 
     assert actual_obj == expected_obj
 

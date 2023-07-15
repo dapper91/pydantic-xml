@@ -79,6 +79,10 @@ class AttributeSerializer(Serializer):
         self._attr_name = QName.from_alias(tag=name, ns=ns, nsmap=nsmap, is_attr=True).uri
         self._computed = computed
 
+    @property
+    def attr_name(self) -> str:
+        return self._attr_name
+
     def serialize(
             self, element: XmlElementWriter, value: Any, encoded: Any, *, skip_empty: bool = False,
     ) -> Optional[XmlElementWriter]:
