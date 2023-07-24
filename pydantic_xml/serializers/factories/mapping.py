@@ -44,7 +44,12 @@ class AttributesSerializer(Serializer):
 
         return element
 
-    def deserialize(self, element: Optional[XmlElementReader]) -> Optional[Dict[str, str]]:
+    def deserialize(
+            self,
+            element: Optional[XmlElementReader],
+            *,
+            context: Optional[Dict[str, Any]],
+    ) -> Optional[Dict[str, str]]:
         if self._computed:
             return None
 
@@ -105,12 +110,17 @@ class ElementSerializer(AttributesSerializer):
             element.append_element(sub_element)
             return sub_element
 
-    def deserialize(self, element: Optional[XmlElementReader]) -> Optional[Dict[str, str]]:
+    def deserialize(
+            self,
+            element: Optional[XmlElementReader],
+            *,
+            context: Optional[Dict[str, Any]],
+    ) -> Optional[Dict[str, str]]:
         if self._computed:
             return None
 
         if element and (sub_element := element.pop_element(self._element_name, self._search_mode)) is not None:
-            return super().deserialize(sub_element)
+            return super().deserialize(sub_element, context=context)
         else:
             return None
 

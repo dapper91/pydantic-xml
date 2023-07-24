@@ -254,10 +254,16 @@ class Serializer(abc.ABC):
         """
 
     @abc.abstractmethod
-    def deserialize(self, element: Optional[XmlElementReader]) -> Optional[Any]:
+    def deserialize(
+            self,
+            element: Optional[XmlElementReader],
+            *,
+            context: Optional[Dict[str, Any]],
+    ) -> Optional[Any]:
         """
         Deserializes a value from the xml element.
 
         :param element: xml element the value is deserialized from
+        :param context: pydantic validation context
         :return: deserialized value
         """

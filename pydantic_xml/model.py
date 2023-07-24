@@ -302,7 +302,7 @@ class BaseXmlModel(BaseModel, __xml_abstract__=True, metaclass=XmlModelMeta):
             cls.__build_serializer__()
 
     @classmethod
-    def from_xml_tree(cls: Type[ModelT], root: etree.Element) -> ModelT:
+    def from_xml_tree(cls: Type[ModelT], root: etree.Element, context: Optional[Dict[str, Any]] = None) -> ModelT:
         """
         Deserializes an xml element tree to an object of `cls` type.
 
@@ -313,7 +313,7 @@ class BaseXmlModel(BaseModel, __xml_abstract__=True, metaclass=XmlModelMeta):
         assert cls.__xml_serializer__ is not None, f"model {cls.__name__} is partially initialized"
 
         if root.tag == cls.__xml_serializer__.element_name:
-            obj = typing.cast(ModelT, cls.__xml_serializer__.deserialize(XmlElement.from_native(root)))
+            obj = typing.cast(ModelT, cls.__xml_serializer__.deserialize(XmlElement.from_native(root), context=context))
             return obj
         else:
             raise errors.ParsingError(
@@ -321,15 +321,16 @@ class BaseXmlModel(BaseModel, __xml_abstract__=True, metaclass=XmlModelMeta):
             )
 
     @classmethod
-    def from_xml(cls: Type[ModelT], source: Union[str, bytes]) -> ModelT:
+    def from_xml(cls: Type[ModelT], source: Union[str, bytes], context: Optional[Dict[str, Any]] = None) -> ModelT:
         """
         Deserializes an xml string to an object of `cls` type.
 
         :param source: xml string
+        :param context: pydantic validation context
         :return: deserialized object
         """
 
-        return cls.from_xml_tree(etree.fromstring(source))
+        return cls.from_xml_tree(etree.fromstring(source), context=context)
 
     def to_xml_tree(self, *, skip_empty: bool = False) -> etree.Element:
         """

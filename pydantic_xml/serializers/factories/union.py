@@ -35,11 +35,16 @@ class PrimitiveTypeSerializer(Serializer):
     ) -> Optional[XmlElementWriter]:
         return self._inner_serializer.serialize(element, value, encoded, skip_empty=skip_empty)
 
-    def deserialize(self, element: Optional[XmlElementReader]) -> Optional[str]:
+    def deserialize(
+            self,
+            element: Optional[XmlElementReader],
+            *,
+            context: Optional[Dict[str, Any]],
+    ) -> Optional[str]:
         if self._computed:
             return None
 
-        return self._inner_serializer.deserialize(element)
+        return self._inner_serializer.deserialize(element, context=context)
 
 
 class ModelSerializer(Serializer):
@@ -75,7 +80,12 @@ class ModelSerializer(Serializer):
 
         return None
 
-    def deserialize(self, element: Optional[XmlElementReader]) -> Optional['pxml.BaseXmlModel']:
+    def deserialize(
+            self,
+            element: Optional[XmlElementReader],
+            *,
+            context: Optional[Dict[str, Any]],
+    ) -> Optional['pxml.BaseXmlModel']:
         if self._computed:
             return None
 
@@ -87,7 +97,7 @@ class ModelSerializer(Serializer):
         for serializer in self._inner_serializers:
             snapshot = element.create_snapshot()
             try:
-                if (result := serializer.deserialize(snapshot)) is None:
+                if (result := serializer.deserialize(snapshot, context=context)) is None:
                     continue
                 else:
                     element.apply_snapshot(snapshot)

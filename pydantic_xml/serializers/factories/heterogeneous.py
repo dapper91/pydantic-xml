@@ -1,4 +1,4 @@
-from typing import Any, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from pydantic_core import core_schema as pcs
 
@@ -39,7 +39,12 @@ class ElementSerializer(Serializer):
 
         return element
 
-    def deserialize(self, element: Optional[XmlElementReader]) -> Optional[List[Any]]:
+    def deserialize(
+            self,
+            element: Optional[XmlElementReader],
+            *,
+            context: Optional[Dict[str, Any]],
+    ) -> Optional[List[Any]]:
         if self._computed:
             return None
 
@@ -47,7 +52,7 @@ class ElementSerializer(Serializer):
             return None
 
         return [
-            serializer.deserialize(element)
+            serializer.deserialize(element, context=context)
             for serializer in self._inner_serializers
         ]
 

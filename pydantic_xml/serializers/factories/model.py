@@ -127,17 +127,22 @@ class ModelSerializer(BaseModelSerializer):
 
         return element
 
-    def deserialize(self, element: Optional[XmlElementReader]) -> Optional['pxml.BaseXmlModel']:
+    def deserialize(
+            self,
+            element: Optional[XmlElementReader],
+            *,
+            context: Optional[Dict[str, Any]],
+    ) -> Optional['pxml.BaseXmlModel']:
         if element is None:
             return None
 
         result = {
             self._fields_validation_aliases.get(field_name, field_name): field_value
             for field_name, field_serializer in self._field_serializers.items()
-            if (field_value := field_serializer.deserialize(element)) is not None
+            if (field_value := field_serializer.deserialize(element, context=context)) is not None
         }
 
-        return self._model.model_validate(result, strict=False)
+        return self._model.model_validate(result, strict=False, context=context)
 
 
 class RootModelSerializer(BaseModelSerializer):
@@ -208,13 +213,18 @@ class RootModelSerializer(BaseModelSerializer):
 
         return element
 
-    def deserialize(self, element: Optional[XmlElementReader]) -> Optional['pxml.BaseXmlModel']:
+    def deserialize(
+            self,
+            element: Optional[XmlElementReader],
+            *,
+            context: Optional[Dict[str, Any]],
+    ) -> Optional['pxml.BaseXmlModel']:
         if element is None:
             return None
 
-        result = self._root_serializer.deserialize(element)
+        result = self._root_serializer.deserialize(element, context=context)
 
-        return self._model.model_validate(result, strict=False)
+        return self._model.model_validate(result, strict=False, context=context)
 
 
 class ModelProxySerializer(BaseModelSerializer):
@@ -279,7 +289,12 @@ class ModelProxySerializer(BaseModelSerializer):
             element.append_element(sub_element)
             return sub_element
 
-    def deserialize(self, element: Optional[XmlElementReader]) -> Optional['pxml.BaseXmlModel']:
+    def deserialize(
+            self,
+            element: Optional[XmlElementReader],
+            *,
+            context: Optional[Dict[str, Any]],
+    ) -> Optional['pxml.BaseXmlModel']:
         assert self._model.__xml_serializer__ is not None, f"model {self._model.__name__} is partially initialized"
 
         if self._computed:
@@ -287,7 +302,7 @@ class ModelProxySerializer(BaseModelSerializer):
 
         if element is not None and \
                 (sub_element := element.pop_element(self._element_name, self._search_mode)) is not None:
-            return self._model.__xml_serializer__.deserialize(sub_element)
+            return self._model.__xml_serializer__.deserialize(sub_element, context=context)
         else:
             return None
 
