@@ -36,6 +36,15 @@ API Documentation
    pages/api
 
 
+Contribute
+----------
+
+.. toctree::
+   :maxdepth: 1
+
+   pages/contribute
+
+
 Links
 -----
 
