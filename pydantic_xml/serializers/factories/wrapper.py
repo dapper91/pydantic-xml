@@ -1,4 +1,4 @@
-from typing import Any, Optional, Sized
+from typing import Any, Dict, Optional, Sized
 
 from pydantic_core import core_schema as pcs
 
@@ -55,13 +55,18 @@ class ElementPathSerializer(Serializer):
 
         return element
 
-    def deserialize(self, element: Optional[XmlElementReader]) -> Optional[Any]:
+    def deserialize(
+            self,
+            element: Optional[XmlElementReader],
+            *,
+            context: Optional[Dict[str, Any]],
+    ) -> Optional[Any]:
         if self._computed:
             return None
 
         if element is not None and \
                 (sub_element := element.find_sub_element(self._path, self._search_mode)) is not None:
-            return self._inner_serializer.deserialize(sub_element)
+            return self._inner_serializer.deserialize(sub_element, context=context)
         else:
             return None
 

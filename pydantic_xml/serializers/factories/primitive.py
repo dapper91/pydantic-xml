@@ -1,4 +1,4 @@
-from typing import Any, Optional, Union
+from typing import Any, Dict, Optional, Union
 
 from pydantic_core import core_schema as pcs
 
@@ -46,7 +46,12 @@ class TextSerializer(Serializer):
         element.set_text(str(encoded))
         return element
 
-    def deserialize(self, element: Optional[XmlElementReader]) -> Optional[str]:
+    def deserialize(
+            self,
+            element: Optional[XmlElementReader],
+            *,
+            context: Optional[Dict[str, Any]],
+    ) -> Optional[str]:
         if self._computed:
             return None
 
@@ -84,7 +89,11 @@ class AttributeSerializer(Serializer):
 
         return element
 
-    def deserialize(self, element: Optional[XmlElementReader]) -> Optional[str]:
+    def deserialize(
+            self,
+            element: Optional[XmlElementReader],
+            *, context: Optional[Dict[str, Any]],
+    ) -> Optional[str]:
         if self._computed:
             return None
 
@@ -129,13 +138,18 @@ class ElementSerializer(TextSerializer):
             element.append_element(sub_element)
             return sub_element
 
-    def deserialize(self, element: Optional[XmlElementReader]) -> Optional[str]:
+    def deserialize(
+            self,
+            element: Optional[XmlElementReader],
+            *,
+            context: Optional[Dict[str, Any]],
+    ) -> Optional[str]:
         if self._computed:
             return None
 
         if element is not None and \
                 (sub_element := element.pop_element(self._element_name, self._search_mode)) is not None:
-            return super().deserialize(sub_element)
+            return super().deserialize(sub_element, context=context)
         else:
             return None
 
