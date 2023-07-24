@@ -2,7 +2,7 @@ Changelog
 =========
 
 2.0.0a1 (2023-07-15)
-------------------
+--------------------
 
 - library upgraded to pydantic version 2. See https://docs.pydantic.dev/2.0/migration/
 
