@@ -1,6 +1,12 @@
 Changelog
 =========
 
+2.0.0a2 (2023-07-24)
+--------------------
+
+- pydantic validation context support added.
+
+
 2.0.0a1 (2023-07-15)
 --------------------
 
