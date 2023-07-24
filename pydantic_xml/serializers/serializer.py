@@ -26,6 +26,7 @@ class SchemaTypeFamily(IntEnum):
     UNION = 7
     DEFINITIONS = 8
     DEFINITION_REF = 9
+    JSON_OR_PYTHON = 10
 
 
 TYPE_FAMILY = {
@@ -69,6 +70,8 @@ TYPE_FAMILY = {
 
     'definitions':      SchemaTypeFamily.DEFINITIONS,
     'definition-ref':   SchemaTypeFamily.DEFINITION_REF,
+
+    'json-or-python':   SchemaTypeFamily.JSON_OR_PYTHON,
 }
 
 
@@ -169,6 +172,10 @@ class Serializer(abc.ABC):
                 ctx = ctx.replace(optional=True)
 
             inner_schema = schema['schema']
+            return cls.preprocess_schema(inner_schema, ctx)
+
+        elif type_family is SchemaTypeFamily.JSON_OR_PYTHON:
+            inner_schema = schema['python_schema']
             return cls.preprocess_schema(inner_schema, ctx)
 
         elif type_family is SchemaTypeFamily.DEFINITIONS:
