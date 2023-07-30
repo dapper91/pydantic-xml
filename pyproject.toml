@@ -17,6 +17,8 @@ classifiers = [
     "Natural Language :: English",
     "License :: Public Domain",
     "Topic :: Software Development :: Libraries",
+    'Framework :: Pydantic',
+    'Framework :: Pydantic :: 2',
     "Programming Language :: Python",
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
