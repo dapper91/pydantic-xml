@@ -1,6 +1,6 @@
 import abc
 import typing
-from typing import Any, Dict, Optional, Type
+from typing import Any, Dict, Mapping, Optional, Type
 
 from pydantic_core import core_schema as pcs
 
@@ -110,6 +110,10 @@ class ModelSerializer(BaseModelSerializer):
     @property
     def nsmap(self) -> Optional[NsMap]:
         return self._nsmap
+
+    @property
+    def fields_serializers(self) -> Mapping[str, Serializer]:
+        return self._field_serializers
 
     def serialize(
             self,
@@ -259,6 +263,10 @@ class ModelProxySerializer(BaseModelSerializer):
     @property
     def model(self) -> Type['pxml.BaseXmlModel']:
         return self._model
+
+    @property
+    def model_serializer(self) -> Optional[BaseModelSerializer]:
+        return self._model.__xml_serializer__
 
     @property
     def element_name(self) -> str:

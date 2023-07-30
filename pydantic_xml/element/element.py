@@ -20,6 +20,32 @@ class XmlElementReader(abc.ABC):
         """
 
     @abc.abstractmethod
+    def get_attrib(self, name: str) -> Optional[str]:
+        """
+        Returns an attribute from the xml element matching `name`.
+
+        :return: element attribute
+        """
+
+    @abc.abstractmethod
+    def find_element(
+            self,
+            tag: str,
+            search_mode: 'SearchMode',
+            look_behind: bool = True,
+            step_forward: bool = True,
+    ) -> Optional['XmlElement[Any]']:
+        """
+        Searches for an element with the provided tag.
+
+        :param tag: element tag to be found or created
+        :param search_mode: element search mode
+        :param look_behind: look in the previous element
+        :param step_forward: increment next element index
+        :return: xml element
+        """
+
+    @abc.abstractmethod
     def pop_text(self) -> Optional[str]:
         """
         Extracts the text from the xml element.
@@ -259,6 +285,9 @@ class XmlElement(XmlElementReader, XmlElementWriter, Generic[NativeElement]):
         self._state.elements.append(element)
         self._state.next_element_idx += 1
 
+    def get_attrib(self, name: str) -> Optional[str]:
+        return self._state.attrib.get(name, None) if self._state.attrib else None
+
     def pop_text(self) -> Optional[str]:
         result, self._state.text = self._state.text, None
 
@@ -275,13 +304,13 @@ class XmlElement(XmlElementReader, XmlElementWriter, Generic[NativeElement]):
     def pop_element(self, tag: str, search_mode: 'SearchMode') -> Optional['XmlElement[NativeElement]']:
         searcher: Searcher[NativeElement] = get_searcher(search_mode)
 
-        return searcher(self._state, tag, False)
+        return searcher(self._state, tag, False, True)
 
     def find_sub_element(self, path: Sequence[str], search_mode: 'SearchMode') -> Optional['XmlElement[NativeElement]']:
         assert len(path) > 0, "path can't be empty"
 
         root, path = path[0], path[1:]
-        element = self._find_element(root, search_mode)
+        element = self.find_element(root, search_mode)
         if element and path:
             return element.find_sub_element(path, search_mode)
 
@@ -293,17 +322,23 @@ class XmlElement(XmlElementReader, XmlElementWriter, Generic[NativeElement]):
             search_mode: 'SearchMode',
             nsmap: Optional[NsMap],
     ) -> 'XmlElement[NativeElement]':
-        if (sub_element := self._find_element(tag, search_mode)) is None:
+        if (sub_element := self.find_element(tag, search_mode)) is None:
             sub_element = self.make_element(tag=tag, nsmap=nsmap)
             self._state.elements.append(sub_element)
             self._state.next_element_idx += 1
 
         return sub_element
 
-    def _find_element(self, tag: str, search_mode: 'SearchMode') -> Optional['XmlElement[NativeElement]']:
+    def find_element(
+            self,
+            tag: str,
+            search_mode: 'SearchMode',
+            look_behind: bool = True,
+            step_forward: bool = True,
+    ) -> Optional['XmlElement[NativeElement]']:
         searcher: Searcher[NativeElement] = get_searcher(search_mode)
 
-        return searcher(self._state, tag, True)
+        return searcher(self._state, tag, look_behind, step_forward)
 
 
 class SearchMode(str, Enum):
@@ -320,7 +355,7 @@ class SearchMode(str, Enum):
     UNORDERED = 'unordered'
 
 
-Searcher = Callable[[XmlElement.State[NativeElement], str, bool], Optional[XmlElement[NativeElement]]]
+Searcher = Callable[[XmlElement.State[NativeElement], str, bool, bool], Optional[XmlElement[NativeElement]]]
 
 
 def get_searcher(search_mode: SearchMode) -> Searcher[NativeElement]:
@@ -338,13 +373,15 @@ def strict_search(
         state: XmlElement.State[NativeElement],
         tag: str,
         look_behind: bool = False,
+        step_forward: bool = True,
 ) -> Optional[XmlElement[NativeElement]]:
     """
     Searches for a sub-element sequentially one by one.
 
     :param state: element state
     :param tag: sub-element tag for be searched for
-    :param look_behind: look for a previous element
+    :param look_behind: look in the previous element
+    :param step_forward: increment next element index
     :return: found element or `None` if the element not found
     """
 
@@ -355,7 +392,8 @@ def strict_search(
 
     if state.next_element_idx < len(state.elements) and state.elements[state.next_element_idx].tag == tag:
         result = state.elements[state.next_element_idx]
-        state.next_element_idx += 1
+        if step_forward:
+            state.next_element_idx += 1
 
     return result
 
@@ -364,13 +402,15 @@ def ordered_search(
         state: XmlElement.State[NativeElement],
         tag: str,
         look_behind: bool = False,
+        step_forward: bool = True,
 ) -> Optional[XmlElement[NativeElement]]:
     """
     Searches for an element sequentially skipping unmatched ones.
 
     :param state: element state
     :param tag: sub-element tag for be searched for
-    :param look_behind: look for a previous element
+    :param look_behind: look in the previous element
+    :param step_forward: increment next element index
     :return: found element or `None` if the element not found
     """
 
@@ -385,7 +425,9 @@ def ordered_search(
         next_element_idx += 1
 
         if element.tag == tag:
-            state.next_element_idx = next_element_idx
+            if step_forward:
+                state.next_element_idx = next_element_idx
+
             result = element
             break
 
@@ -396,13 +438,15 @@ def unordered_search(
         state: XmlElement.State[NativeElement],
         tag: str,
         look_behind: bool = False,
+        step_forward: bool = True,
 ) -> Optional[XmlElement[NativeElement]]:
     """
     Searches search for an element ignoring elements order.
 
     :param state: element state
     :param tag: sub-element tag for be searched for
-    :param look_behind: look for a previous element
+    :param look_behind: look in the previous element
+    :param step_forward: increment next element index
     :return: found element or `None` if the requested element not found
     """
 
@@ -416,7 +460,10 @@ def unordered_search(
         if element.tag == tag:
             state.elements[state.next_element_idx], state.elements[idx] = \
                 state.elements[idx], state.elements[state.next_element_idx]
-            state.next_element_idx += 1
+
+            if step_forward:
+                state.next_element_idx += 1
+
             result = element
             break
 
