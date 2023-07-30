@@ -3,6 +3,7 @@ import ipaddress
 import sys
 from decimal import Decimal
 from enum import Enum
+from uuid import UUID
 
 import pytest
 from helpers import assert_xml_equal
@@ -29,6 +30,7 @@ def test_primitive_types_encoding():
         field7: dt.time = element(tag='field7')
         field8: IntEnum = element(tag='field8')
         field9: StrEnum = element(tag='field9')
+        field10: UUID = element(tag='field10')
 
     xml = '''
     <model>
@@ -41,6 +43,7 @@ def test_primitive_types_encoding():
         <field7>12:01:02</field7>
         <field8>1</field8>
         <field9>1</field9>
+        <field10>acd3b2e3-7a3a-42fe-ba56-f7716bf7cae6</field10>
     </model>
     '''
 
@@ -54,6 +57,7 @@ def test_primitive_types_encoding():
         field7=dt.time(hour=12, minute=1, second=2),
         field8=1,
         field9='1',
+        field10='acd3b2e3-7a3a-42fe-ba56-f7716bf7cae6',
     )
 
     actual_xml = obj.to_xml()
