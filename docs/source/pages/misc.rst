@@ -132,7 +132,8 @@ pass that namespace by an empty key.
        </ns0:company>
 
    That document is still correct but some parsers require namespace declaration kept untouched. To avoid
-   that use ``lxml`` a as serializer backed since it doesn't have that kind of problem.
+   that use ``lxml`` as a serialization backed since it doesn't have that kind of problem.
+   See :ref:`lxml installation <pages/installation:optional dependencies>`.
 
 
 Computed entities
