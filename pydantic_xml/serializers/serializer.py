@@ -41,6 +41,7 @@ TYPE_FAMILY = {
     'time':             SchemaTypeFamily.PRIMITIVE,
     'datetime':         SchemaTypeFamily.PRIMITIVE,
     'timedelta':        SchemaTypeFamily.PRIMITIVE,
+    'uuid':             SchemaTypeFamily.PRIMITIVE,
     'url':              SchemaTypeFamily.PRIMITIVE,
     'multi-host-url':   SchemaTypeFamily.PRIMITIVE,
     'json':             SchemaTypeFamily.PRIMITIVE,
