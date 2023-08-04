@@ -5,6 +5,7 @@ from typing import Any, Callable, ClassVar, Dict, Generic, Optional, Tuple, Type
 import pydantic as pd
 import pydantic_core as pdc
 from pydantic import BaseModel, RootModel
+from pydantic._internal._model_construction import ModelMetaclass  # noqa
 
 from . import config, errors, utils
 from .element import SearchMode
@@ -199,7 +200,7 @@ def wrapped(
     return XmlEntityInfo(EntityLocation.WRAPPED, path=path, ns=ns, nsmap=nsmap, wrapped=entity, **kwargs)
 
 
-class XmlModelMeta(type(BaseModel)):  # type: ignore[misc]
+class XmlModelMeta(ModelMetaclass):
     """
     Xml model metaclass.
     """
@@ -213,7 +214,7 @@ class XmlModelMeta(type(BaseModel)):  # type: ignore[misc]
     ) -> Type['BaseXmlModel']:
         is_abstract: bool = kwargs.pop('__xml_abstract__', False)
 
-        cls = super().__new__(mcls, name, bases, namespace, **kwargs)
+        cls = typing.cast(Type['BaseXmlModel'], super().__new__(mcls, name, bases, namespace, **kwargs))
         if not is_abstract:
             cls.__build_serializer__()
 
@@ -364,7 +365,7 @@ class BaseXmlModel(BaseModel, __xml_abstract__=True, metaclass=XmlModelMeta):
 RootModelRootType = TypeVar('RootModelRootType')
 
 
-class RootXmlModel(  # type: ignore[misc]
+class RootXmlModel(
     RootModel[RootModelRootType],
     BaseXmlModel,
     Generic[RootModelRootType],
