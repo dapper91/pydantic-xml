@@ -1,6 +1,12 @@
 Changelog
 =========
 
+2.0.0b2 (2023-08-06)
+--------------------
+
+- XmlModelMeta accepts ModelMetaclass directly. See https://github.com/dapper91/pydantic-xml/pull/90.
+
+
 2.0.0b1 (2023-07-30)
 --------------------
 
