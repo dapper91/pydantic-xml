@@ -316,6 +316,7 @@ class BaseXmlModel(BaseModel, __xml_abstract__=True, metaclass=XmlModelMeta):
         Deserializes an xml element tree to an object of `cls` type.
 
         :param root: xml element to deserialize the object from
+        :param context: pydantic validation context
         :return: deserialized object
         """
 
