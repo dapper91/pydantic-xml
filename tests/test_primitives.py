@@ -141,6 +141,24 @@ def test_root_model_text_extraction_syntax3():
     assert_xml_equal(actual_xml, xml)
 
 
+def test_root_model_text_extraction_syntax4():
+    class TestRootModel(RootXmlModel, tag='model'):
+        pass
+
+    xml = '''
+    <model>1</model>
+    '''
+
+    TestModel = TestRootModel[int]
+    actual_obj = TestModel.from_xml(xml)
+    expected_obj = TestModel(1)
+
+    assert actual_obj == expected_obj
+
+    actual_xml = actual_obj.to_xml()
+    assert_xml_equal(actual_xml, xml)
+
+
 def test_root_model_attr_extraction():
     class TestModel(RootXmlModel, tag='model'):
         root: int = attr(name="attr1")
