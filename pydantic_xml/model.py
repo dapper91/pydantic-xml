@@ -269,8 +269,16 @@ class BaseXmlModel(BaseModel, __xml_abstract__=True, metaclass=XmlModelMeta):
         if cls is BaseXmlModel:
             return
 
-        if cls.__pydantic_generic_metadata__['parameters']:  # checks that all generic parameters are provided
-            return
+        # checks that all generic parameters are provided
+        if cls.__pydantic_root_model__:
+            if cls.__pydantic_generic_metadata__['parameters']:
+                if cls.model_fields.get('root') is None or isinstance(cls.model_fields['root'].annotation, TypeVar):
+                    cls.__xml_serializer__ = None
+                    return
+        else:
+            if cls.__pydantic_generic_metadata__['parameters']:
+                cls.__xml_serializer__ = None
+                return
 
         if config.REGISTER_NS_PREFIXES and cls.__xml_nsmap__:
             utils.register_nsmap(cls.__xml_nsmap__)
