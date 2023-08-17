@@ -1,6 +1,13 @@
 Changelog
 =========
 
+2.0.0b3 (2023-08-18)
+--------------------
+
+- decimal type support added.
+- unparameterized root models serializer generation bug fixed. Affected by https://github.com/pydantic/pydantic/pull/7119.
+
+
 2.0.0b2 (2023-08-06)
 --------------------
 
