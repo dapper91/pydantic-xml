@@ -7,7 +7,7 @@ license = "Unlicense"
 readme = "README.rst"
 homepage = "https://github.com/dapper91/pydantic-xml"
 repository = "https://github.com/dapper91/pydantic-xml"
-documentation = "https://github.com/dapper91/pydantic-xml"
+documentation = "https://pydantic-xml.readthedocs.io"
 keywords = [
     'pydantic', 'xml', 'serialization', 'deserialization', 'lxml',
 ]

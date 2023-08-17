@@ -19,7 +19,7 @@ pydantic-xml extension
     :alt: Code coverage
 .. image:: https://readthedocs.org/projects/pydantic-xml/badge/?version=stable&style=flat
    :alt: ReadTheDocs status
-   :target: https://pydantic-xml.readthedocs.io/en/stable/
+   :target: https://pydantic-xml.readthedocs.io
 
 
 ``pydantic-xml`` is a `pydantic <https://docs.pydantic.dev>`_ extension providing model fields xml binding
@@ -76,4 +76,4 @@ defines the XML document:
    </Company>
 
 
-See `documentation <https://pydantic-xml.readthedocs.io/en/latest/>`_ for more details.
+See `documentation <https://pydantic-xml.readthedocs.io>`_ for more details.
