@@ -3,12 +3,14 @@ import ipaddress
 import sys
 from decimal import Decimal
 from enum import Enum
+from typing import Any
 from uuid import UUID
 
 import pytest
 from helpers import assert_xml_equal
 from pydantic import field_serializer
-from pydantic.functional_serializers import PlainSerializer
+from pydantic.functional_serializers import PlainSerializer, WrapSerializer
+from pydantic.functional_validators import AfterValidator, BeforeValidator, WrapValidator
 
 from pydantic_xml import BaseXmlModel, element
 
@@ -123,12 +125,16 @@ def test_field_serializer():
 
 
 @pytest.mark.skipif(sys.version_info < (3, 9), reason="requires python 3.9 and above")
-def test_plain_serializer():
+@pytest.mark.parametrize(
+    'Serializer', [
+        PlainSerializer(lambda val: val.timestamp(), return_type=float),
+        WrapSerializer(lambda val, nxt: val.timestamp(), return_type=float),
+    ],
+)
+def test_serializer(Serializer: Any):
     from typing import Annotated
 
-    Timestamp = Annotated[
-        dt.datetime, PlainSerializer(lambda val: val.timestamp(), return_type=float),
-    ]
+    Timestamp = Annotated[dt.datetime, Serializer]
 
     class TestSubModel(BaseXmlModel, tag='submodel'):
         field1: Timestamp = element(tag='field1')
@@ -155,3 +161,44 @@ def test_plain_serializer():
 
     actual_xml = obj.to_xml()
     assert_xml_equal(actual_xml, xml.encode())
+
+
+@pytest.mark.skipif(sys.version_info < (3, 9), reason="requires python 3.9 and above")
+@pytest.mark.parametrize(
+    'Validator', [
+        AfterValidator(lambda val: val),
+        BeforeValidator(lambda val: dt.datetime.fromtimestamp(float(val), tz=dt.timezone.utc)),
+        WrapValidator(lambda val, nxt: dt.datetime.fromtimestamp(float(val), tz=dt.timezone.utc)),
+    ],
+)
+def test_validator(Validator: Any):
+    from typing import Annotated
+
+    Timestamp = Annotated[dt.datetime, Validator]
+
+    class TestSubModel(BaseXmlModel, tag='submodel'):
+        field1: Timestamp = element(tag='field1')
+
+    class TestModel(BaseXmlModel, tag='model'):
+        field1: Timestamp = element(tag='field1')
+        field2: TestSubModel
+
+    xml = '''
+    <model>
+        <field1>1675468800.0</field1>
+        <submodel>
+            <field1>1675468800.0</field1>
+        </submodel>
+    </model>
+    '''
+
+    actual_obj = TestModel.from_xml(xml)
+
+    expected_obj = TestModel.model_construct(
+        field1=dt.datetime(2023, 2, 4, tzinfo=dt.timezone.utc),
+        field2=TestSubModel.model_construct(
+            field1=dt.datetime(2023, 2, 4, tzinfo=dt.timezone.utc),
+        ),
+    )
+
+    assert actual_obj == expected_obj
