@@ -49,22 +49,10 @@ Since xml format doesn't support ``null`` type natively it is not obvious how to
 (ignore it, encode it as an empty string or mark it as ``xsi:nil``) the library doesn't implement
 ``None`` type encoding by default.
 
-You can define your own encoding format for the model:
+You can define your own encoding format:
 
-.. code-block:: python
-
-    from typing import Annotated
-    from pydantic import PlainSerializer
-
-    InnerType = TypeVar('InnerType')
-    XmlOptional = Annotated[Optional[InnerType], PlainSerializer(lambda val: val if val is not None else '')]
-
-    class Company(BaseXmlModel):
-        title: XmlOptional[str] = element(default=None)
-
-
-    company = Company()
-    assert company.to_xml() == b'<Company><title></title></Company>'
+.. literalinclude:: ../../../examples/snippets/py3.9/serialization.py
+  :language: python
 
 
 or drop ``None`` fields at all:
