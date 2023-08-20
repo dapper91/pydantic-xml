@@ -1,6 +1,18 @@
 Changelog
 =========
 
+2.0.0 (2023-08-19)
+------------------
+
+- library upgraded to pydantic version 2. See https://docs.pydantic.dev/2.0/migration/
+- generic models are no longer inherited from BaseGenericXmlModel but from BaseXmlModel.
+- custom root type declaration has been changed. It must inherit RootXmlModel from now on.
+- encoding customization api has been changed. See https://pydantic-xml.readthedocs.io/en/v2.0.0/pages/misc.html#encoding
+- element attributes can be bound to TypedDict. See https://pydantic-xml.readthedocs.io/en/v2.0.0/pages/data-binding/mappings.html#typed-dict
+- tagged unions support added. See https://pydantic-xml.readthedocs.io/en/v2.0.0/pages/data-binding/unions.html#discriminated-unions
+- computed entities support added. See https://pydantic-xml.readthedocs.io/en/v2.0.0/pages/misc.html#computed-entities
+
+
 2.0.0b3 (2023-08-18)
 --------------------
 
