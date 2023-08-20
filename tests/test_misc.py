@@ -1,5 +1,6 @@
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Union
 
+import pydantic as pd
 import pytest
 from helpers import assert_xml_equal
 
@@ -40,16 +41,16 @@ def test_root_not_found_error():
 
 def test_skip_empty():
     class TestSubModel(BaseXmlModel, tag='model'):
-        text: Optional[str]
-        element1: Optional[str] = element()
-        attr1: Optional[str] = attr()
+        text: Optional[str] = None
+        element1: Optional[str] = element(default=None)
+        attr1: Optional[str] = attr(default=None)
 
     class TestModel(BaseXmlModel, tag='model'):
         model: TestSubModel
         list: List[TestSubModel] = []
         tuple: Optional[Tuple[TestSubModel, TestSubModel]] = None
         attrs: Dict[str, str] = {}
-        wrapped: Optional[str] = wrapped('envelope')
+        wrapped: Optional[str] = wrapped('envelope', default=None)
 
     xml = '''
     <model/>
@@ -66,9 +67,9 @@ def test_self_ref_models():
         attr1: int = attr()
         element1: float = element()
 
-        model1: Optional['TestModel'] = element(tag='model1')
-        models1: Optional[List['TestModel']] = element(tag='item1')
-        models2: Optional[Tuple['TestModel', 'TestModel']] = element(tag='item2')
+        model1: Optional['TestModel'] = element(tag='model1', default=None)
+        models1: Optional[List['TestModel']] = element(tag='item1', default=None)
+        models2: Optional[Tuple['TestModel', 'TestModel']] = element(tag='item2', default=None)
 
     xml = '''
         <model attr1="1">
@@ -184,3 +185,46 @@ def test_model_params_inheritance():
     assert TestModel.__xml_nsmap__ == BaseModel.__xml_nsmap__
     assert TestModel.__xml_ns_attrs__ == BaseModel.__xml_ns_attrs__
     assert TestModel.__xml_search_mode__ == BaseModel.__xml_search_mode__
+
+
+def test_pydantic_validation_context():
+    validation_context = {'var1': 1, 'var2': True}
+
+    class TestSubModel(BaseXmlModel, tag='submodel'):
+        attr1: int = attr()
+
+        @pd.field_validator('attr1')
+        @classmethod
+        def validate_field(cls, v: str, info: pd.FieldValidationInfo):
+            assert info.context == validation_context
+            return v
+
+    class TestModel(BaseXmlModel, tag='model'):
+        submodel: TestSubModel
+        submodel_union: Union[TestSubModel, TestSubModel]
+        submodel_wrapped: TestSubModel = wrapped('wrapper')
+        submodel_tuple: Tuple[TestSubModel, TestSubModel]
+        submodel_list: List[TestSubModel]
+
+        @pd.field_validator('submodel')
+        @classmethod
+        def validate_field(cls, v: str, info: pd.FieldValidationInfo):
+            assert info.context == validation_context
+            return v
+
+    xml = '''
+        <model>
+            <submodel attr1="0"/>
+            <submodel attr1="1"/>
+            <wrapper>
+                <submodel attr1="2"/>
+            </wrapper>
+            <submodel attr1="3"/>
+            <submodel attr1="4"/>
+            <submodel attr1="5"/>
+            <submodel attr1="6"/>
+            <submodel attr1="7"/>
+        </model>
+    '''
+
+    TestModel.from_xml(xml, validation_context)

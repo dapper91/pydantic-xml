@@ -1,8 +1,9 @@
 import datetime as dt
+from typing import Generic, TypeVar
 
 from helpers import assert_xml_equal
 
-from pydantic_xml import BaseXmlModel, attr, element
+from pydantic_xml import BaseXmlModel, RootXmlModel, attr, element
 
 
 def test_text_extraction():
@@ -86,16 +87,71 @@ def test_model_inheritance():
     assert_xml_equal(actual_xml, xml)
 
 
-def test_root_model_text_extraction():
-    class TestModel(BaseXmlModel, tag='model'):
-        __root__: int
+def test_root_model_text_extraction_syntax1():
+    class TestModel(RootXmlModel, tag='model'):
+        root: int
 
     xml = '''
     <model>1</model>
     '''
 
     actual_obj = TestModel.from_xml(xml)
-    expected_obj = TestModel(__root__=1)
+    expected_obj = TestModel(1)
+
+    assert actual_obj == expected_obj
+
+    actual_xml = actual_obj.to_xml()
+    assert_xml_equal(actual_xml, xml)
+
+
+def test_root_model_text_extraction_syntax2():
+    T = TypeVar('T')
+
+    class TestRootModel(RootXmlModel[T], Generic[T], tag='model'):
+        pass
+
+    xml = '''
+    <model>1</model>
+    '''
+
+    TestModel = TestRootModel[int]
+    actual_obj = TestModel.from_xml(xml)
+    expected_obj = TestModel(1)
+
+    assert actual_obj == expected_obj
+
+    actual_xml = actual_obj.to_xml()
+    assert_xml_equal(actual_xml, xml)
+
+
+def test_root_model_text_extraction_syntax3():
+    class TestModel(RootXmlModel[int], tag='model'):
+        pass
+
+    xml = '''
+    <model>1</model>
+    '''
+
+    actual_obj = TestModel.from_xml(xml)
+    expected_obj = TestModel(1)
+
+    assert actual_obj == expected_obj
+
+    actual_xml = actual_obj.to_xml()
+    assert_xml_equal(actual_xml, xml)
+
+
+def test_root_model_text_extraction_syntax4():
+    class TestRootModel(RootXmlModel, tag='model'):
+        pass
+
+    xml = '''
+    <model>1</model>
+    '''
+
+    TestModel = TestRootModel[int]
+    actual_obj = TestModel.from_xml(xml)
+    expected_obj = TestModel(1)
 
     assert actual_obj == expected_obj
 
@@ -104,15 +160,15 @@ def test_root_model_text_extraction():
 
 
 def test_root_model_attr_extraction():
-    class TestModel(BaseXmlModel, tag='model'):
-        __root__: int = attr(name="attr1")
+    class TestModel(RootXmlModel, tag='model'):
+        root: int = attr(name="attr1")
 
     xml = '''
     <model attr1="1"/>
     '''
 
     actual_obj = TestModel.from_xml(xml)
-    expected_obj = TestModel(__root__=1)
+    expected_obj = TestModel(1)
 
     assert actual_obj == expected_obj
 
@@ -121,8 +177,8 @@ def test_root_model_attr_extraction():
 
 
 def test_root_model_element_extraction():
-    class TestModel(BaseXmlModel, tag='model'):
-        __root__: int = element(tag="element1")
+    class TestModel(RootXmlModel, tag='model'):
+        root: int = element(tag="element1")
 
     xml = '''
     <model>
@@ -131,7 +187,7 @@ def test_root_model_element_extraction():
     '''
 
     actual_obj = TestModel.from_xml(xml)
-    expected_obj = TestModel(__root__=1)
+    expected_obj = TestModel(1)
 
     assert actual_obj == expected_obj
 

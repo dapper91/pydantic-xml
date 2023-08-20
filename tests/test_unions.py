@@ -1,17 +1,18 @@
 import sys
-from typing import List, Tuple, Union
+from typing import List, Literal, Tuple, Union
 
 import pytest
 from helpers import assert_xml_equal
+from pydantic import Field
 
-from pydantic_xml import BaseXmlModel, attr, element
+from pydantic_xml import BaseXmlModel, RootXmlModel, attr, element
 
 
 def test_primitive_union():
     class TestModel(BaseXmlModel, tag='model'):
         text: Union[int, float, str]
-        field1: Union[int, float, str] = element(tag='field')
-        attr1: Union[int, float, str] = attr()
+        field1: Union[int, float] = element(tag='field')
+        attr1: Union[int, float] = attr()
 
     xml = '''
     <model attr1="1">text<field>inf</field></model>
@@ -69,21 +70,59 @@ def test_model_union():
     assert_xml_equal(actual_xml, xml)
 
 
+def test_similar_model_union():
+    class SubModel1(BaseXmlModel, tag='model1'):
+        text: float
+
+    class SubModel2(BaseXmlModel, tag='model2'):
+        text: float
+
+    class TestModel(BaseXmlModel, tag='model'):
+        field1: Union[SubModel1, SubModel2] = element()
+
+    xml = '''
+    <model><model1>0.0</model1></model>
+    '''
+
+    actual_obj = TestModel.from_xml(xml)
+    expected_obj = TestModel(
+        field1=SubModel1(text=0.0),
+    )
+
+    assert actual_obj == expected_obj
+
+    actual_xml = actual_obj.to_xml()
+    assert_xml_equal(actual_xml, xml)
+
+    xml = '''
+    <model><model2>1.1</model2></model>
+    '''
+
+    actual_obj = TestModel.from_xml(xml)
+    expected_obj = TestModel(
+        field1=SubModel2(text=1.1),
+    )
+
+    assert actual_obj == expected_obj
+
+    actual_xml = actual_obj.to_xml()
+    assert_xml_equal(actual_xml, xml)
+
+
 def test_primitive_union_list():
     class TestModel(BaseXmlModel, tag='model'):
-        sublements: List[Union[int, float, str]] = element(tag='model1')
+        sublements: List[Union[int, float]] = element(tag='model1')
 
     xml = '''
     <model>
         <model1>1</model1>
         <model1>inf</model1>
-        <model1>text</model1>
     </model>
     '''
 
     actual_obj = TestModel.from_xml(xml)
     expected_obj = TestModel(
-        sublements=[1, float('inf'), 'text'],
+        sublements=[1, float('inf')],
     )
 
     assert actual_obj == expected_obj
@@ -157,8 +196,8 @@ def test_root_union():
     class SubModel2(BaseXmlModel, tag='model2'):
         element1: float
 
-    class TestModel(BaseXmlModel, tag='model'):
-        __root__: Union[SubModel1, SubModel2]
+    class TestModel(RootXmlModel, tag='model'):
+        root: Union[SubModel1, SubModel2]
 
     xml = '''
     <model>
@@ -167,7 +206,32 @@ def test_root_union():
     '''
 
     actual_obj = TestModel.from_xml(xml)
-    expected_obj = TestModel(__root__=SubModel2(element1=float('inf')))
+    expected_obj = TestModel(SubModel2(element1=float('inf')))
+
+    assert actual_obj == expected_obj
+
+    actual_xml = actual_obj.to_xml()
+    assert_xml_equal(actual_xml, xml)
+
+
+def test_root_union_list():
+    class SubModel1(BaseXmlModel, tag='model1'):
+        attr1: int = attr()
+
+    class SubModel2(BaseXmlModel, tag='model2'):
+        element1: float
+
+    class TestModel(RootXmlModel, tag='model'):
+        root: Union[SubModel1, SubModel2]
+
+    xml = '''
+    <model>
+        <model2>inf</model2>
+    </model>
+    '''
+
+    actual_obj = TestModel.from_xml(xml)
+    expected_obj = TestModel(SubModel2(element1=float('inf')))
 
     assert actual_obj == expected_obj
 
@@ -235,6 +299,90 @@ def test_model_union_type():
     expected_obj = TestModel(
         field1=SubModel2(text=float('inf')),
     )
+
+    assert actual_obj == expected_obj
+
+    actual_xml = actual_obj.to_xml()
+    assert_xml_equal(actual_xml, xml)
+
+
+@pytest.mark.parametrize('type', ['type1', 'type2', 'type3'])
+def test_attribute_discriminated_model_tagged_union(type: str):
+    class SubModel1(BaseXmlModel, tag='submodel'):
+        type: Literal['type1'] = attr()
+        text: str
+
+    class SubModel2(BaseXmlModel, tag='submodel'):
+        type: Literal['type2', 'type3'] = attr()
+        text: str
+
+    class TestModel(RootXmlModel, tag='model'):
+        root: Union[SubModel1, SubModel2] = Field(..., discriminator='type')
+
+    xml = '''
+    <model>
+        <submodel type="{type}">text</submodel>
+    </model>
+    '''.format(type=type)
+
+    actual_obj = TestModel.from_xml(xml)
+    expected_obj = TestModel.model_validate(dict(type=type, text='text'))
+
+    assert actual_obj == expected_obj
+
+    actual_xml = actual_obj.to_xml()
+    assert_xml_equal(actual_xml, xml)
+
+
+def test_namespaced_attribute_discriminated_model_tagged_union():
+    NSMAP = {'tst': 'http://test.org'}
+
+    class SubModel1(BaseXmlModel, tag='submodel', ns='tst', nsmap=NSMAP):
+        type: Literal['type1'] = attr(ns='tst')
+        text: str
+
+    class SubModel2(BaseXmlModel, tag='submodel', ns='tst', nsmap=NSMAP):
+        type: Literal['type2'] = attr(ns='tst')
+        text: str
+
+    class TestModel(RootXmlModel, tag='model'):
+        root: Union[SubModel1, SubModel2] = element(discriminator='type')
+
+    xml = '''
+    <model>
+        <tst:submodel tst:type="type2" xmlns:tst="http://test.org">text</tst:submodel>
+    </model>
+    '''
+
+    actual_obj = TestModel.from_xml(xml)
+    expected_obj = TestModel.model_validate(dict(type='type2', text='text'))
+
+    assert actual_obj == expected_obj
+
+    actual_xml = actual_obj.to_xml()
+    assert_xml_equal(actual_xml, xml)
+
+
+def test_path_discriminated_model_tagged_union():
+    class SubModel1(BaseXmlModel, tag='submodel1'):
+        type: Literal['type1'] = attr()
+        text: str
+
+    class SubModel2(BaseXmlModel, tag='submodel2'):
+        type: Literal['type2'] = attr()
+        text: str
+
+    class TestModel(RootXmlModel, tag='model'):
+        root: Union[SubModel1, SubModel2] = Field(..., discriminator='type')
+
+    xml = '''
+    <model>
+        <submodel2 type="type2">text</submodel2>
+    </model>
+    '''
+
+    actual_obj = TestModel.from_xml(xml)
+    expected_obj = TestModel.model_validate(dict(type='type2', text='text'))
 
     assert actual_obj == expected_obj
 

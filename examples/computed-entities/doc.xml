@@ -1,0 +1,6 @@
+<Company Client="203.0.113.195">
+  <Proxy>150.172.238.178</Proxy>
+  <Proxy>150.172.230.21</Proxy>
+  <Cookies PHPSESSID="298zf09hf012fh2" csrftoken="u32t4o3tb3gg43"/>
+  <Authorization Type="Basic">**********</Authorization>
+</Company>

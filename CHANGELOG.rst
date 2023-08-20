@@ -1,6 +1,49 @@
 Changelog
 =========
 
+2.0.0 (2023-08-19)
+------------------
+
+- library upgraded to pydantic version 2. See https://docs.pydantic.dev/2.0/migration/
+- generic models are no longer inherited from BaseGenericXmlModel but from BaseXmlModel.
+- custom root type declaration has been changed. It must inherit RootXmlModel from now on.
+- encoding customization api has been changed. See https://pydantic-xml.readthedocs.io/en/v2.0.0/pages/misc.html#encoding
+- element attributes can be bound to TypedDict. See https://pydantic-xml.readthedocs.io/en/v2.0.0/pages/data-binding/mappings.html#typed-dict
+- tagged unions support added. See https://pydantic-xml.readthedocs.io/en/v2.0.0/pages/data-binding/unions.html#discriminated-unions
+- computed entities support added. See https://pydantic-xml.readthedocs.io/en/v2.0.0/pages/misc.html#computed-entities
+
+
+2.0.0b3 (2023-08-18)
+--------------------
+
+- decimal type support added.
+- unparameterized root models serializer generation bug fixed. Affected by https://github.com/pydantic/pydantic/pull/7119.
+
+
+2.0.0b2 (2023-08-06)
+--------------------
+
+- XmlModelMeta accepts ModelMetaclass directly. See https://github.com/dapper91/pydantic-xml/pull/90.
+
+
+2.0.0b1 (2023-07-30)
+--------------------
+
+- tagged unions support added.
+
+
+2.0.0a2 (2023-07-24)
+--------------------
+
+- pydantic validation context support added.
+
+
+2.0.0a1 (2023-07-15)
+--------------------
+
+- library upgraded to pydantic version 2. See https://docs.pydantic.dev/2.0/migration/
+
+
 1.0.0 (2023-07-14)
 ------------------
 

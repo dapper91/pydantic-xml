@@ -1,127 +1,86 @@
-import dataclasses as dc
-import typing
-from typing import Any, List, Optional, Type
+from typing import Any, Dict, List, Optional, Tuple
 
-import pydantic as pd
+from pydantic_core import core_schema as pcs
 
-import pydantic_xml as pxml
 from pydantic_xml import errors
 from pydantic_xml.element import XmlElementReader, XmlElementWriter
-from pydantic_xml.serializers.encoder import XmlEncoder
-from pydantic_xml.serializers.serializer import Location, PydanticShapeType, Serializer, SubFieldWrapper
-from pydantic_xml.utils import QName, merge_nsmaps
+from pydantic_xml.serializers.serializer import TYPE_FAMILY, SchemaTypeFamily, Serializer
+from pydantic_xml.typedefs import EntityLocation
 
 
-class HeterogeneousSerializerFactory:
-    """
-    Heterogeneous collection type serializer factory.
-    """
+class ElementSerializer(Serializer):
+    @classmethod
+    def from_core_schema(cls, schema: pcs.TuplePositionalSchema, ctx: Serializer.Context) -> 'ElementSerializer':
+        computed = ctx.field_computed
+        inner_serializers: List[Serializer] = []
+        for item_schema in schema['items_schema']:
+            inner_serializers.append(Serializer.parse_core_schema(item_schema, ctx))
 
-    class ElementSerializer(Serializer):
-        def __init__(
-                self, model: Type['pxml.BaseXmlModel'], model_field: pd.fields.ModelField, ctx: Serializer.Context,
-        ):
-            assert model_field.sub_fields is not None, "unexpected model field"
+        return cls(computed, tuple(inner_serializers))
 
-            name, ns, nsmap = self._get_entity_info(model_field)
-            name = name or model_field.alias
-            ns = ns or ctx.parent_ns
-            nsmap = merge_nsmaps(nsmap, ctx.parent_nsmap)
+    def __init__(self, computed: bool, inner_serializers: Tuple[Serializer, ...]):
+        self._computed = computed
+        self._inner_serializers = inner_serializers
 
-            self._element_name = QName.from_alias(tag=name, ns=ns, nsmap=nsmap).uri
-
-            self._inner_serializers = []
-            for sub_field in model_field.sub_fields:
-                sub_field = typing.cast(
-                    pd.fields.ModelField,
-                    SubFieldWrapper(
-                        model_field.name,
-                        model_field.alias,
-                        model_field.field_info,
-                        sub_field,
-                    ),
-                )
-
-                self._inner_serializers.append(
-                    self._build_field_serializer(
-                        model,
-                        sub_field,
-                        dc.replace(
-                            ctx,
-                            parent_is_root=False,
-                            parent_ns=ns,
-                            parent_nsmap=nsmap,
-                        ),
-                    ),
-                )
-
-        def resolve_forward_refs(self) -> 'Serializer':
-            self._inner_serializers = [
-                serializer.resolve_forward_refs()
-                for serializer in self._inner_serializers
-            ]
-
-            return self
-
-        def serialize(
-                self, element: XmlElementWriter, value: List[Any], *, encoder: XmlEncoder, skip_empty: bool = False,
-        ) -> Optional[XmlElementWriter]:
-            if value is None:
-                return element
-
-            if skip_empty and len(value) == 0:
-                return element
-
-            for serializer, val in zip(self._inner_serializers, value):
-                if skip_empty and val is None:
-                    continue
-
-                serializer.serialize(element, val, encoder=encoder, skip_empty=skip_empty)
-
+    def serialize(
+            self, element: XmlElementWriter, value: List[Any], encoded: List[Any], *, skip_empty: bool = False,
+    ) -> Optional[XmlElementWriter]:
+        if value is None:
             return element
 
-        def deserialize(self, element: Optional[XmlElementReader]) -> Optional[List[Any]]:
-            if element is None:
-                return None
+        if skip_empty and len(value) == 0:
+            return element
 
-            return [
-                serializer.deserialize(element)
-                for serializer in self._inner_serializers
-            ]
+        if len(value) != len(self._inner_serializers):
+            raise errors.SerializationError("value length is incorrect")
 
-    @classmethod
-    def build(
-            cls,
-            model: Type['pxml.BaseXmlModel'],
-            model_field: pd.fields.ModelField,
-            field_location: Location,
-            ctx: Serializer.Context,
-    ) -> 'Serializer':
-        assert model_field.sub_fields is not None, "unexpected model field"
+        for serializer, val, enc in zip(self._inner_serializers, value, encoded):
+            serializer.serialize(element, val, enc, skip_empty=skip_empty)
 
-        is_root = model.__custom_root_type__
+        return element
 
-        for item_field in model_field.sub_fields:
-            if PydanticShapeType.from_shape(item_field.shape) in (
-                PydanticShapeType.HOMOGENEOUS,
-                PydanticShapeType.HETEROGENEOUS,
-            ):
-                raise errors.ModelFieldError(
-                    model.__name__, model_field.name, "collection elements can't be of collection type",
-                )
+    def deserialize(
+            self,
+            element: Optional[XmlElementReader],
+            *,
+            context: Optional[Dict[str, Any]],
+    ) -> Optional[List[Any]]:
+        if self._computed:
+            return None
 
-            if is_root and field_location is Location.MISSING:
-                raise errors.ModelFieldError(
-                    model.__name__, model_field.name, "root model collections should be marked as elements",
-                )
+        if element is None:
+            return None
 
-        if field_location is Location.ELEMENT:
-            return cls.ElementSerializer(model, model_field, ctx)
-        elif field_location is Location.MISSING:
-            return cls.ElementSerializer(model, model_field, ctx)
-        elif field_location is Location.ATTRIBUTE:
+        return [
+            serializer.deserialize(element, context=context)
+            for serializer in self._inner_serializers
+        ]
+
+
+def from_core_schema(schema: pcs.TuplePositionalSchema, ctx: Serializer.Context) -> Serializer:
+    for item_schema in schema['items_schema']:
+        item_schema, ctx = Serializer.preprocess_schema(item_schema, ctx)
+
+        items_type_family = TYPE_FAMILY.get(item_schema['type'])
+        if items_type_family not in (
+                SchemaTypeFamily.PRIMITIVE,
+                SchemaTypeFamily.MODEL,
+                SchemaTypeFamily.MAPPING,
+                SchemaTypeFamily.TYPED_MAPPING,
+                SchemaTypeFamily.UNION,
+        ):
             raise errors.ModelFieldError(
-                model.__name__, model_field.name, "attributes of collection type are not supported",
+                ctx.model_name, ctx.field_name, "collection item must be of primitive, model, mapping or union type",
             )
-        else:
-            raise AssertionError("unreachable")
+
+        if items_type_family not in (SchemaTypeFamily.MODEL, SchemaTypeFamily.UNION) and ctx.entity_location is None:
+            raise errors.ModelFieldError(ctx.model_name, ctx.field_name, "entity name is not provided")
+
+    if ctx.entity_location is EntityLocation.ELEMENT:
+        return ElementSerializer.from_core_schema(schema, ctx)
+    elif ctx.entity_location is None:
+        return ElementSerializer.from_core_schema(schema, ctx)
+    elif ctx.entity_location is EntityLocation.ATTRIBUTE:
+        raise errors.ModelFieldError(ctx.model_name, ctx.field_name, "attributes of collection types are not supported")
+    else:
+        raise AssertionError("unreachable")

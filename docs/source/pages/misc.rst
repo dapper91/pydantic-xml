@@ -8,19 +8,17 @@ Encoding
 Custom type encoding
 ____________________
 
-``pydantic-xml`` uses ``pydantic`` default encoder to encode fields data during xml serialization. To alter the default
-behaviour ``pydantic`` provides a mechanism to `customize <https://docs.pydantic.dev/1.10/usage/exporting_models/#json_encoders>`_
-the default json encoding format for a particular type. ``pydantic-xml`` allows to do the same for xml serialization.
-The api is similar to the json one:
+``pydantic`` provides mechanisms to `customize <https://docs.pydantic.dev/latest/usage/serialization/#custom-serializers>`_
+the default json encoding format. ``pydantic-xml`` uses custom encoders during xml serialization too:
 
 .. code-block:: python
 
-    class Model(BaseXmlModel):
-        class Config:
-            xml_encoders = {
-                bytes: base64.b64encode,
-            }
-        ...
+    class File(BaseXmlModel):
+        created: datetime = element()
+
+        @field_serializer('created')
+        def encode_created(self, value: datetime) -> float:
+            return value.timestamp()
 
 
 The following example illustrate how to encode :py:class:`bytes` typed fields as Base64 string during xml serialization:
@@ -51,25 +49,10 @@ Since xml format doesn't support ``null`` type natively it is not obvious how to
 (ignore it, encode it as an empty string or mark it as ``xsi:nil``) the library doesn't implement
 ``None`` type encoding by default.
 
-You can define your own encoding format for the model:
+You can define your own encoding format:
 
-.. code-block:: python
-
-    from typing import Optional
-    from pydantic_xml import BaseXmlModel, element
-
-
-    class Company(BaseXmlModel):
-        class Config:
-            xml_encoders = {
-                type(None): lambda o: '',  # encodes None field as an empty string
-            }
-
-        title: Optional[str] = element()
-
-
-    company = Company()
-    assert company.to_xml() == b'<Company><title /></Company>'
+.. literalinclude:: ../../../examples/snippets/py3.9/serialization.py
+  :language: python
 
 
 or drop ``None`` fields at all:
@@ -79,13 +62,12 @@ or drop ``None`` fields at all:
     from typing import Optional
     from pydantic_xml import BaseXmlModel, element
 
-
     class Company(BaseXmlModel):
-        title: Optional[str] = element()
+        title: Optional[str] = element(default=None)
 
 
     company = Company()
-    assert company.to_xml(skip_empty=True) == b'<Company />'
+    assert company.to_xml(skip_empty=True) == b'<Company/>'
 
 
 
@@ -138,7 +120,39 @@ pass that namespace by an empty key.
        </ns0:company>
 
    That document is still correct but some parsers require namespace declaration kept untouched. To avoid
-   that use ``lxml`` a as serializer backed since it doesn't have that kind of problem.
+   that use ``lxml`` as a serialization backed since it doesn't have that kind of problem.
+   See :ref:`lxml installation <pages/installation:optional dependencies>`.
+
+
+Computed entities
+~~~~~~~~~~~~~~~~~
+
+``pydantic`` supports `computed fields <https://docs.pydantic.dev/latest/usage/computed_fields/>`_.
+Computed fields allow property and cached_property to be included when serializing models or dataclasses.
+This is useful for fields that are computed from other fields,
+or for fields that are expensive to compute and should be cached.
+
+``pydantic-xml`` provides similar api for xml entities: text, attribute or element properties can be
+included into the xml document during serialization. To make a property computable decorate it with
+``pydantic.computed_field`` to bind it to the current element,
+:py:func:`pydantic_xml.computed_attr` to bind it to an attribute or
+:py:func:`pydantic_xml.computed_element` to bind it to a sub-element.
+
+The document:
+
+*doc.xml:*
+
+.. literalinclude:: ../../../examples/computed-entities/doc.xml
+    :language: xml
+
+
+produced by the following model:
+
+*model.py:*
+
+.. literalinclude:: ../../../examples/computed-entities/model.py
+    :language: python
+
 
 
 XML parser

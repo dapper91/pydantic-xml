@@ -19,10 +19,10 @@ pydantic-xml extension
     :alt: Code coverage
 .. image:: https://readthedocs.org/projects/pydantic-xml/badge/?version=stable&style=flat
    :alt: ReadTheDocs status
-   :target: https://pydantic-xml.readthedocs.io/en/stable/
+   :target: https://pydantic-xml.readthedocs.io
 
 
-``pydantic-xml`` is a `pydantic <https://docs.pydantic.dev/1.10/>`_ extension providing model fields xml binding
+``pydantic-xml`` is a `pydantic <https://docs.pydantic.dev>`_ extension providing model fields xml binding
 and xml serialization / deserialization.
 It is closely integrated with ``pydantic`` which means it supports most of its features.
 
@@ -30,19 +30,21 @@ It is closely integrated with ``pydantic`` which means it supports most of its f
 Features
 --------
 
+- pydantic v1 / v2 support
 - flexable attributes, elements and text binding
-- python collection types support (``Dict``, ``List``, ``Set``, ``Tuple``, ...)
+- python collection types support (``Dict``, ``TypedDict``, ``List``, ``Set``, ``Tuple``, ...)
 - ``Union`` type support
-- pydantic `generic <https://docs.pydantic.dev/1.10/usage/models/#generic-models>`_ models support
+- pydantic `generic models <https://docs.pydantic.dev/latest/usage/models/#generic-models>`_ support
+- pydantic `computed fields <https://docs.pydantic.dev/latest/usage/computed_fields/>`_ support
 - `lxml <https://lxml.de/>`_ xml parser support
 - ``xml.etree.ElementTree`` standard library xml parser support
 
 What is not supported?
 ______________________
 
-- `dynamic model creation <https://docs.pydantic.dev/1.10/usage/models/#dynamic-model-creation>`_
-- `dataclasses <https://docs.pydantic.dev/1.10/usage/dataclasses/>`_
-- `discriminated unions <https://docs.pydantic.dev/1.10/usage/types/#discriminated-unions-aka-tagged-unions>`_
+- `dynamic model creation <https://docs.pydantic.dev/usage/models/#dynamic-model-creation>`_
+- `dataclasses <https://docs.pydantic.dev/usage/dataclasses/>`_
+- `discriminated unions <https://docs.pydantic.dev/usage/types/#discriminated-unions-aka-tagged-unions>`_
 
 Getting started
 ---------------
@@ -53,14 +55,14 @@ The following model fields binding:
 
    class Product(BaseXmlModel):
        status: Literal['running', 'development'] = attr()  # extracted from the 'status' attribute
-       launched: Optional[int] = attr()  # extracted from the 'launched' attribute
+       launched: Optional[int] = attr(default=None)  # extracted from the 'launched' attribute
        title: str  # extracted from the element text
 
 
    class Company(BaseXmlModel):
        trade_name: str = attr(name='trade-name')  # extracted from the 'trade-name' attribute
        website: HttpUrl = element()  # extracted from the 'website' element text
-       products: List[Product] = element(tag='product')  # extracted from the 'website' element
+       products: List[Product] = element(tag='product', default=[])  # extracted from the 'website' element
 
 defines the XML document:
 
@@ -74,4 +76,4 @@ defines the XML document:
    </Company>
 
 
-See `documentation <https://pydantic-xml.readthedocs.io/en/latest/>`_ for more details.
+See `documentation <https://pydantic-xml.readthedocs.io>`_ for more details.

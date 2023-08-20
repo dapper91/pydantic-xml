@@ -7,7 +7,7 @@ from pydantic_xml import BaseXmlModel, attr
 # [model-start]
 class Message(BaseXmlModel, tag='Message'):
     timestamp: Union[float, dt.datetime] = attr()
-    text: Optional[str]
+    text: Optional[str] = None
 
 
 class Messages(BaseXmlModel):
@@ -39,4 +39,4 @@ json_doc_1 = '''
 '''  # [json-end]
 
 messages = Messages.from_xml(xml_doc_1)
-assert messages == Messages.parse_raw(json_doc_1)
+assert messages == Messages.model_validate_json(json_doc_1)

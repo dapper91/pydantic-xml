@@ -1,12 +1,11 @@
+from pydantic import constr
+
 from pydantic_xml import BaseXmlModel
 
 
 # [model-start]
 class Company(BaseXmlModel):
-    class Config:
-        anystr_strip_whitespace = True  # to strip text whitespaces
-
-    description: str
+    description: constr(strip_whitespace=True)
 # [model-end]
 
 
@@ -25,4 +24,4 @@ json_doc = '''
 '''  # [json-end]
 
 company = Company.from_xml(xml_doc)
-assert company == Company.parse_raw(json_doc)
+assert company == Company.model_validate_json(json_doc)

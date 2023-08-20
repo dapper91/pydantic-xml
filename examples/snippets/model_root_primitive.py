@@ -1,9 +1,9 @@
-from pydantic_xml import BaseXmlModel
+from pydantic_xml import BaseXmlModel, RootXmlModel
 
 
 # [model-start]
-class WebSite(BaseXmlModel):
-    __root__: str
+class WebSite(RootXmlModel):
+    root: str
 
 
 class Company(BaseXmlModel, tag='company'):
@@ -26,4 +26,4 @@ json_doc = '''
 '''  # [json-end]
 
 env = Company.from_xml(xml_doc)
-assert env == Company.parse_raw(json_doc)
+assert env == Company.model_validate_json(json_doc)

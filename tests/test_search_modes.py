@@ -1,4 +1,5 @@
 from typing import Dict, List, Optional, Tuple
+from unittest.mock import ANY
 
 import pydantic
 import pytest
@@ -9,7 +10,7 @@ from pydantic_xml import BaseXmlModel, attr, element, wrapped
 
 def test_optional_field():
     class TestModel(BaseXmlModel, tag='model'):
-        element1: Optional[int] = element(tag='element1')
+        element1: Optional[int] = element(tag='element1', default=None)
         element2: int = element(tag='element2')
 
     xml = '''
@@ -51,7 +52,7 @@ def test_strict_mode_error():
 
     error = ex.errors()[0]
     assert error['loc'] == ('element2',)
-    assert error['type'] == 'value_error.missing'
+    assert error['type'] == 'missing'
 
 
 def test_ordered_mode():
@@ -124,7 +125,13 @@ def test_ordered_mode_error():
 
     errors = e.value.errors()
     assert len(errors) == 1
-    assert errors[0] == {'loc': ('element3',), 'msg': 'field required', 'type': 'value_error.missing'}
+    assert errors[0] == {
+        'loc': ('element3',),
+        'msg': 'Field required',
+        'type': 'missing',
+        'input': ANY,
+        'url': ANY,
+    }
 
 
 def test_unordered_mode():
@@ -188,7 +195,13 @@ def test_unordered_mode_error():
 
     errors = e.value.errors()
     assert len(errors) == 1
-    assert errors[0] == {'loc': ('element3',), 'msg': 'field required', 'type': 'value_error.missing'}
+    assert errors[0] == {
+        'loc': ('element3',),
+        'msg': 'Field required',
+        'type': 'missing',
+        'input': ANY,
+        'url': ANY,
+    }
 
 
 def test_submodel_mode():
@@ -237,7 +250,7 @@ def test_submodel_mode():
 
 def test_optional_lookahead():
     class TestModel(BaseXmlModel, tag='model', search_mode='ordered'):
-        element1: Optional[int] = element(tag='element1')
+        element1: Optional[int] = element(tag='element1', default=None)
         element2: int = element(tag='element2')
 
     xml = '''
@@ -260,7 +273,7 @@ def test_optional_lookahead():
 def test_optional_elements_sequential_extraction():
     class TestModel(BaseXmlModel, tag='model'):
         element1: int = element(tag='element1')
-        element2: Optional[int] = element(tag='element2')
+        element2: Optional[int] = element(tag='element2', default=None)
         element3: int = element(tag='element3')
         element4: int = element(tag='element2')
 
@@ -300,7 +313,7 @@ def test_multiple_text_error():
     error: pydantic.ValidationError = err.value
     assert len(error.errors()) == 1
     assert error.errors()[0]['loc'] == ('text2',)
-    assert error.errors()[0]['type'] == 'value_error.missing'
+    assert error.errors()[0]['type'] == 'missing'
 
 
 def test_multiple_attr_error():
@@ -318,7 +331,7 @@ def test_multiple_attr_error():
     error: pydantic.ValidationError = err.value
     assert len(error.errors()) == 1
     assert error.errors()[0]['loc'] == ('attr2',)
-    assert error.errors()[0]['type'] == 'value_error.missing'
+    assert error.errors()[0]['type'] == 'missing'
 
 
 def test_mapping_and_attr_error():
@@ -336,7 +349,7 @@ def test_mapping_and_attr_error():
     error: pydantic.ValidationError = err.value
     assert len(error.errors()) == 1
     assert error.errors()[0]['loc'] == ('attr1',)
-    assert error.errors()[0]['type'] == 'value_error.missing'
+    assert error.errors()[0]['type'] == 'missing'
 
 
 def test_doc_with_comments():
@@ -422,7 +435,13 @@ def test_wrapper_strict_mode_error():
 
     errors = e.value.errors()
     assert len(errors) == 1
-    assert errors[0] == {'loc': ('element3',), 'msg': 'field required', 'type': 'value_error.missing'}
+    assert errors[0] == {
+        'loc': ('element3',),
+        'msg': 'Field required',
+        'type': 'missing',
+        'input': ANY,
+        'url': ANY,
+    }
 
 
 def test_wrapper_ordered_mode():
@@ -496,7 +515,13 @@ def test_wrapper_ordered_mode_error():
 
     errors = e.value.errors()
     assert len(errors) == 1
-    assert errors[0] == {'loc': ('element3',), 'msg': 'field required', 'type': 'value_error.missing'}
+    assert errors[0] == {
+        'loc': ('element3',),
+        'msg': 'Field required',
+        'type': 'missing',
+        'input': ANY,
+        'url': ANY,
+    }
 
 
 def test_wrapper_unordered_mode():
@@ -573,4 +598,10 @@ def test_wrapper_unordered_mode_error():
 
     errors = e.value.errors()
     assert len(errors) == 1
-    assert errors[0] == {'loc': ('element3',), 'msg': 'field required', 'type': 'value_error.missing'}
+    assert errors[0] == {
+        'loc': ('element3',),
+        'msg': 'Field required',
+        'type': 'missing',
+        'input': ANY,
+        'url': ANY,
+    }

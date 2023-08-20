@@ -3,14 +3,14 @@ from typing import Generic, List, TypeVar
 import pytest
 from helpers import assert_xml_equal
 
-from pydantic_xml import BaseGenericXmlModel, BaseXmlModel, attr, element, errors
+from pydantic_xml import BaseXmlModel, attr, element
 
 
 def test_root_generic_model():
     GenericType1 = TypeVar('GenericType1')
     GenericType2 = TypeVar('GenericType2')
 
-    class GenericModel(BaseGenericXmlModel, Generic[GenericType1, GenericType2], tag='model1'):
+    class GenericModel(BaseXmlModel, Generic[GenericType1, GenericType2], tag='model1'):
         attr1: GenericType1 = attr()
         attr2: GenericType2 = attr()
 
@@ -28,7 +28,7 @@ def test_root_generic_model():
     assert_xml_equal(actual_xml, xml1)
 
     xml2 = '''
-    <model1 attr1="true" attr2="string"/>
+    <model1 attr1="True" attr2="string"/>
     '''
 
     TestModel = GenericModel[bool, str]
@@ -44,7 +44,7 @@ def test_root_generic_model():
 def test_generic_submodel():
     GenericType = TypeVar('GenericType')
 
-    class GenericSubModel(BaseGenericXmlModel, Generic[GenericType]):
+    class GenericSubModel(BaseXmlModel, Generic[GenericType]):
         attr1: GenericType = attr()
 
     class TestModel(BaseXmlModel, tag='model1'):
@@ -73,7 +73,7 @@ def test_generic_submodel():
 def test_generic_list():
     GenericType = TypeVar('GenericType')
 
-    class GenericModel(BaseGenericXmlModel, Generic[GenericType], tag="model1"):
+    class GenericModel(BaseXmlModel, Generic[GenericType], tag="model1"):
         elems: List[GenericType] = element(tag="elem")
 
     xml = '''
@@ -85,7 +85,7 @@ def test_generic_list():
 
     actual_obj = GenericModel[str].from_xml(xml)
     expected_obj = GenericModel(
-        elems=["foo", "bar"],
+        elems = ["foo", "bar"],
     )
 
     assert actual_obj == expected_obj
@@ -100,7 +100,7 @@ def test_generic_list_of_submodels():
     class SubModel(BaseXmlModel, tag="model2"):
         attr1: str = attr()
 
-    class GenericModel(BaseGenericXmlModel, Generic[GenericType], tag="model1"):
+    class GenericModel(BaseXmlModel, Generic[GenericType], tag="model1"):
         elems: List[GenericType] = element()
 
     xml = '''
@@ -127,8 +127,8 @@ def test_generic_list_of_submodels():
 def test_generic_model_errors():
     GenericType = TypeVar('GenericType')
 
-    with pytest.raises(errors.ModelError):
-        class GenericModel(BaseGenericXmlModel, Generic[GenericType], tag='model1'):
+    with pytest.raises(AssertionError):
+        class GenericModel(BaseXmlModel, Generic[GenericType], tag='model1'):
             attr1: GenericType = attr()
 
         GenericModel.from_xml('<model1/>')

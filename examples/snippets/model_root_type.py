@@ -2,16 +2,16 @@ from typing import List
 
 from pydantic import HttpUrl
 
-from pydantic_xml import BaseXmlModel, element
+from pydantic_xml import RootXmlModel, element
 
 
 # [model-start]
-class Socials(BaseXmlModel, tag='socials'):
-    __root__: List[HttpUrl] = element(tag='social')
+class Socials(RootXmlModel, tag='socials'):
+    root: List[HttpUrl] = element(tag='social')
 
 
-class Contacts(BaseXmlModel, tag='contacts'):
-    __root__: Socials
+class Contacts(RootXmlModel[Socials], tag='contacts'):
+    pass
 # [model-end]
 
 
@@ -37,4 +37,4 @@ json_doc = '''
 
 contacts = Contacts.from_xml(xml_doc)
 
-assert contacts == Contacts.parse_raw(json_doc)
+assert contacts == Contacts.model_validate_json(json_doc)

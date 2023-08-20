@@ -81,3 +81,44 @@ since the first model matched wins.
                     :lines: 2-
                     :start-after: json-start
                     :end-before: json-end
+
+
+Discriminated unions
+********************
+
+Pydantic supports so called
+`discriminated unions <https://docs.pydantic.dev/latest/usage/types/unions/#discriminated-unions-aka-tagged-unions>`_ -
+the unions where the sub-model type is selected based on its field value.
+
+``pydantic-xml`` supports the similar mechanism to distinguish one sub-model from another by its xml attribute value:
+
+
+.. grid:: 2
+    :gutter: 2
+
+    .. grid-item-card:: Model
+
+        .. literalinclude:: ../../../../examples/snippets/union_discriminated.py
+            :language: python
+            :start-after: model-start
+            :end-before: model-end
+
+    .. grid-item-card:: Document
+
+        .. tab-set::
+
+            .. tab-item:: XML
+
+                .. literalinclude:: ../../../../examples/snippets/union_discriminated.py
+                    :language: xml
+                    :lines: 2-
+                    :start-after: xml-start
+                    :end-before: xml-end
+
+            .. tab-item:: JSON
+
+                .. literalinclude:: ../../../../examples/snippets/union_discriminated.py
+                    :language: json
+                    :lines: 2-
+                    :start-after: json-start
+                    :end-before: json-end

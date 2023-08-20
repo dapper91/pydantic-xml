@@ -1,91 +1,75 @@
-import dataclasses as dc
-import typing
-from typing import Any, Optional, Sized, Type
+from typing import Any, Dict, Optional, Sized
 
-import pydantic as pd
+from pydantic_core import core_schema as pcs
 
-import pydantic_xml as pxml
 from pydantic_xml.element import XmlElementReader, XmlElementWriter
-from pydantic_xml.serializers.encoder import XmlEncoder
-from pydantic_xml.serializers.serializer import Serializer, SubFieldWrapper
+from pydantic_xml.serializers.serializer import SearchMode, Serializer
+from pydantic_xml.typedefs import NsMap
 from pydantic_xml.utils import QName, merge_nsmaps
 
 
-class WrappedSerializerFactory:
-    """
-    Wrapped serializer factory.
-    """
+class ElementPathSerializer(Serializer):
+    @classmethod
+    def from_core_schema(cls, schema: pcs.CoreSchema, ctx: Serializer.Context) -> 'ElementPathSerializer':
+        path = ctx.entity_path
+        ns = ctx.entity_ns or ctx.parent_ns
+        nsmap = merge_nsmaps(ctx.entity_nsmap, ctx.parent_nsmap)
+        search_mode = ctx.search_mode
+        computed = ctx.field_computed
 
-    class ElementPathSerializer(Serializer):
-        def __init__(
-                self, model: Type['pxml.BaseXmlModel'], model_field: pd.fields.ModelField, ctx: Serializer.Context,
-        ):
-            path, ns, nsmap = self._get_entity_info(model_field)
-            ns = ns or ctx.parent_ns
-            self._nsmap = nsmap = merge_nsmaps(nsmap, ctx.parent_nsmap)
-            self._search_mode = ctx.search_mode
+        assert path is not None, "path is not provided"
 
-            field_info = model_field.field_info
+        ctx = ctx.child(entity_info=ctx.entity_wrapped)
+        inner_serializer = Serializer.parse_core_schema(schema, ctx)
 
-            assert path is not None, "path is not provided"
-            assert isinstance(field_info, pxml.XmlWrapperInfo), "unexpected field info type"
+        return cls(path, ns, nsmap, search_mode, computed, inner_serializer)
 
-            # copy field_info from wrapped entity
-            model_field = typing.cast(
-                pd.fields.ModelField,
-                SubFieldWrapper(
-                    model_field.name,
-                    model_field.alias,
-                    field_info.entity or pd.fields.FieldInfo(),
-                    model_field,
-                ),
-            )
+    def __init__(
+            self,
+            path: str,
+            ns: Optional[str],
+            nsmap: Optional[NsMap],
+            search_mode: SearchMode,
+            computed: bool,
+            inner_serializer: Serializer,
+    ):
+        self._path = tuple(QName.from_alias(tag=part, ns=ns, nsmap=nsmap).uri for part in path.split('/'))
+        self._nsmap = nsmap
+        self._search_mode = search_mode
+        self._computed = computed
+        self._inner_serializer = inner_serializer
 
-            self._path = tuple(QName.from_alias(tag=part, ns=ns, nsmap=nsmap).uri for part in path.split('/'))
-            self._inner_serializer = self._build_field_serializer(
-                model,
-                model_field,
-                ctx=dc.replace(
-                    ctx,
-                    parent_is_root=False,
-                    parent_ns=ns,
-                    parent_nsmap=nsmap,
-                ),
-            )
-
-        def serialize(
-                self, element: XmlElementWriter, value: Any, *, encoder: XmlEncoder, skip_empty: bool = False,
-        ) -> Optional[XmlElementWriter]:
-            if value is None:
-                return element
-
-            if skip_empty and isinstance(value, Sized) and len(value) == 0:
-                return element
-
-            for part in self._path:
-                element = element.find_element_or_create(part, self._search_mode, nsmap=self._nsmap)
-
-            self._inner_serializer.serialize(element, value, encoder=encoder, skip_empty=skip_empty)
-
+    def serialize(
+            self, element: XmlElementWriter, value: Any, encoded: Any, *, skip_empty: bool = False,
+    ) -> Optional[XmlElementWriter]:
+        if value is None:
             return element
 
-        def deserialize(self, element: Optional[XmlElementReader]) -> Optional[Any]:
-            if element is not None and \
-                    (sub_element := element.find_sub_element(self._path, self._search_mode)) is not None:
-                return self._inner_serializer.deserialize(sub_element)
-            else:
-                return None
+        if skip_empty and isinstance(value, Sized) and len(value) == 0:
+            return element
 
-        def resolve_forward_refs(self) -> 'Serializer':
-            self._inner_serializer = self._inner_serializer.resolve_forward_refs()
+        for part in self._path:
+            element = element.find_element_or_create(part, self._search_mode, nsmap=self._nsmap)
 
-            return self
+        self._inner_serializer.serialize(element, value, encoded, skip_empty=skip_empty)
 
-    @classmethod
-    def build(
-            cls,
-            model: Type['pxml.BaseXmlModel'],
-            model_field: pd.fields.ModelField,
-            ctx: Serializer.Context,
-    ) -> 'Serializer':
-        return cls.ElementPathSerializer(model, model_field, ctx)
+        return element
+
+    def deserialize(
+            self,
+            element: Optional[XmlElementReader],
+            *,
+            context: Optional[Dict[str, Any]],
+    ) -> Optional[Any]:
+        if self._computed:
+            return None
+
+        if element is not None and \
+                (sub_element := element.find_sub_element(self._path, self._search_mode)) is not None:
+            return self._inner_serializer.deserialize(sub_element, context=context)
+        else:
+            return None
+
+
+def from_core_schema(schema: pcs.CoreSchema, ctx: Serializer.Context) -> Serializer:
+    return ElementPathSerializer.from_core_schema(schema, ctx)

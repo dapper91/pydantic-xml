@@ -1,11 +1,11 @@
 from typing import Dict
 
-from pydantic_xml import BaseXmlModel
+from pydantic_xml import RootXmlModel
 
 
 # [model-start]
-class Company(BaseXmlModel, tag='company'):
-    __root__: Dict[str, str]
+class Company(RootXmlModel, tag='company'):
+    root: Dict[str, str]
 # [model-end]
 
 
@@ -23,4 +23,4 @@ json_doc = '''
 '''  # [json-end]
 
 env = Company.from_xml(xml_doc)
-assert env == Company.parse_raw(json_doc)
+assert env == Company.model_validate_json(json_doc)
