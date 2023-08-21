@@ -1,6 +1,6 @@
 import pathlib
 from ipaddress import IPv4Address
-from typing import Dict, List
+from typing import Dict, List, Tuple
 from xml.etree.ElementTree import canonicalize
 
 from pydantic import Field, IPvAnyAddress, SecretStr, computed_field, field_validator
@@ -13,7 +13,7 @@ class Auth(BaseXmlModel, tag='Authorization'):
     value: SecretStr
 
 
-class Request(BaseXmlModel, tag='Company'):
+class Request(BaseXmlModel, tag='Request'):
     forwarded_for: List[IPv4Address] = Field(exclude=True)
     raw_cookies: str = Field(exclude=True)
     raw_auth: str = Field(exclude=True)
@@ -25,12 +25,12 @@ class Request(BaseXmlModel, tag='Company'):
     @computed_attr(name='Client')
     def client(self) -> IPv4Address:
         client, *proxies = self.forwarded_for
-        return IPvAnyAddress(client)
+        return client
 
     @computed_element(tag='Proxy')
-    def proxy(self) -> List[IPv4Address]:
+    def proxy(self) -> Tuple[IPv4Address]:
         client, *proxies = self.forwarded_for
-        return [IPvAnyAddress(addr) for addr in proxies]
+        return proxies
 
     @computed_element(tag='Cookies')
     def cookies(self) -> Dict[str, str]:
