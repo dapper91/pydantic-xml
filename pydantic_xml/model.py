@@ -9,7 +9,7 @@ from pydantic._internal._model_construction import ModelMetaclass  # noqa
 
 from . import config, errors, utils
 from .element import SearchMode
-from .element.native import XmlElement, etree
+from .element.native import ElementT, XmlElement, etree
 from .serializers.factories.model import BaseModelSerializer
 from .serializers.serializer import Serializer, XmlEntityInfoP
 from .typedefs import EntityLocation
@@ -354,7 +354,11 @@ class BaseXmlModel(BaseModel, __xml_abstract__=True, metaclass=XmlModelMeta):
 
         root = XmlElement(tag=self.__xml_serializer__.element_name, nsmap=self.__xml_serializer__.nsmap)
         self.__xml_serializer__.serialize(
-            root, self, pdc.to_jsonable_python(self, by_alias=False), skip_empty=skip_empty,
+            root, self, pdc.to_jsonable_python(
+                self,
+                by_alias=False,
+                fallback=lambda obj: obj if not isinstance(obj, ElementT) else None,  # for raw fields support
+            ), skip_empty=skip_empty,
         )
 
         return root.to_native()

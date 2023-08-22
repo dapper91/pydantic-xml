@@ -24,6 +24,7 @@ PrimitiveTypeSchema = Union[
     pcs.JsonSchema,
     pcs.LiteralSchema,
     pcs.LaxOrStrictSchema,
+    pcs.IsInstanceSchema,
 ]
 
 

@@ -74,6 +74,7 @@ def from_core_schema(schema: HomogeneousCollectionTypeSchema, ctx: Serializer.Co
         SchemaTypeFamily.MAPPING,
         SchemaTypeFamily.TYPED_MAPPING,
         SchemaTypeFamily.UNION,
+        SchemaTypeFamily.IS_INSTANCE,
     ):
         raise errors.ModelFieldError(
             ctx.model_name, ctx.field_name, "collection item must be of primitive, model, mapping or union type",
