@@ -16,6 +16,9 @@ class PrimitiveTypeSerializer(Serializer):
         computed = ctx.field_computed
         inner_serializers: List[Serializer] = []
         for choice_schema in schema['choices']:
+            if isinstance(choice_schema, tuple):
+                choice_schema, label = choice_schema
+
             inner_serializers.append(Serializer.parse_core_schema(choice_schema, ctx))
 
         assert len(inner_serializers) > 0, "union choice is not provided"
@@ -53,6 +56,9 @@ class ModelSerializer(Serializer):
         computed = ctx.field_computed
         inner_serializers: List[ModelProxySerializer] = []
         for choice_schema in schema['choices']:
+            if isinstance(choice_schema, tuple):
+                choice_schema, label = choice_schema
+
             serializer = Serializer.parse_core_schema(choice_schema, ctx)
             assert isinstance(serializer, ModelProxySerializer), "unexpected serializer type"
 
@@ -114,6 +120,9 @@ class ModelSerializer(Serializer):
 def from_core_schema(schema: pcs.UnionSchema, ctx: Serializer.Context) -> Serializer:
     choice_families: Set[SchemaTypeFamily] = set()
     for choice_schema in schema['choices']:
+        if isinstance(choice_schema, tuple):
+            choice_schema, label = choice_schema
+
         choice_schema, ctx = Serializer.preprocess_schema(choice_schema, ctx)
         choice_type_family = TYPE_FAMILY.get(choice_schema['type'])
 
