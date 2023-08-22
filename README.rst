@@ -44,7 +44,6 @@ ______________________
 
 - `dynamic model creation <https://docs.pydantic.dev/usage/models/#dynamic-model-creation>`_
 - `dataclasses <https://docs.pydantic.dev/usage/dataclasses/>`_
-- `discriminated unions <https://docs.pydantic.dev/usage/types/#discriminated-unions-aka-tagged-unions>`_
 
 Getting started
 ---------------
