@@ -1,6 +1,6 @@
 import abc
 import typing
-from typing import Any, Dict, Mapping, Optional, Type
+from typing import Any, Dict, Mapping, Optional, Set, Type
 
 from pydantic_core import core_schema as pcs
 
@@ -37,27 +37,30 @@ class ModelSerializer(BaseModelSerializer):
         fields_schema = typing.cast(pcs.ModelFieldsSchema, fields_schema)
 
         entity_info: Optional[XmlEntityInfoP]
+        fields_serialization_exclude: Set[str] = set()
         fields_validation_aliases: Dict[str, str] = {}
         fields_serializers: Dict[str, Serializer] = {}
         for field_name, model_field in fields_schema['fields'].items():
-            if not model_field.get('serialization_exclude', False):
-                field_alias = model_field.get('serialization_alias')
-                if validation_alias := model_field.get('validation_alias'):
-                    if isinstance(validation_alias, str):
-                        fields_validation_aliases[field_name] = validation_alias
+            if model_field.get('serialization_exclude', False):
+                fields_serialization_exclude.add(field_name)
 
-                field_info = model_cls.model_fields[field_name]
-                if isinstance(field_info, pxml.model.XmlEntityInfo):
-                    entity_info = field_info
-                else:
-                    entity_info = None
+            field_alias = model_field.get('serialization_alias')
+            if validation_alias := model_field.get('validation_alias'):
+                if isinstance(validation_alias, str):
+                    fields_validation_aliases[field_name] = validation_alias
 
-                field_ctx = ctx.child(
-                    field_name=field_name,
-                    field_alias=field_alias,
-                    entity_info=entity_info,
-                )
-                fields_serializers[field_name] = Serializer.parse_core_schema(model_field['schema'], field_ctx)
+            field_info = model_cls.model_fields[field_name]
+            if isinstance(field_info, pxml.model.XmlEntityInfo):
+                entity_info = field_info
+            else:
+                entity_info = None
+
+            field_ctx = ctx.child(
+                field_name=field_name,
+                field_alias=field_alias,
+                entity_info=entity_info,
+            )
+            fields_serializers[field_name] = Serializer.parse_core_schema(model_field['schema'], field_ctx)
 
         for model_field in fields_schema['computed_fields']:
             field_name = model_field['property_name']
@@ -81,7 +84,10 @@ class ModelSerializer(BaseModelSerializer):
         ns = model_cls.__xml_ns__
         nsmap = model_cls.__xml_nsmap__
 
-        return cls(model_cls, name, ns, nsmap, fields_serializers, fields_validation_aliases)
+        return cls(
+            model_cls, name, ns, nsmap,
+            fields_serializers, fields_validation_aliases, fields_serialization_exclude,
+        )
 
     def __init__(
             self,
@@ -91,6 +97,7 @@ class ModelSerializer(BaseModelSerializer):
             nsmap: Optional[NsMap],
             field_serializers: Dict[str, Serializer],
             fields_validation_aliases: Dict[str, str],
+            fields_serialization_exclude: Set[str],
     ):
 
         self._model = model
@@ -98,6 +105,7 @@ class ModelSerializer(BaseModelSerializer):
         self._element_name = QName.from_alias(tag=name, ns=ns, nsmap=nsmap).uri
         self._nsmap = nsmap
         self._fields_validation_aliases = fields_validation_aliases
+        self._fields_serialization_exclude = fields_serialization_exclude
 
     @property
     def model(self) -> Type['pxml.BaseXmlModel']:
@@ -127,7 +135,10 @@ class ModelSerializer(BaseModelSerializer):
             return None
 
         for field_name, field_serializer in self._field_serializers.items():
-            field_serializer.serialize(element, getattr(value, field_name), encoded[field_name], skip_empty=skip_empty)
+            if field_name not in self._fields_serialization_exclude:
+                field_serializer.serialize(
+                    element, getattr(value, field_name), encoded[field_name], skip_empty=skip_empty,
+                )
 
         return element
 
