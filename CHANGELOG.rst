@@ -1,6 +1,13 @@
 Changelog
 =========
 
+2.1.0 (2023-08-24)
+------------------
+
+- raw element typed fields support added. See https://github.com/dapper91/pydantic-xml/issues/14.
+- pydantic field exclude flag bug fixed (works only for serialization now).
+
+
 2.0.0 (2023-08-19)
 ------------------
 

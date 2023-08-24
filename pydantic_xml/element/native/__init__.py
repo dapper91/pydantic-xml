@@ -4,6 +4,7 @@ from pydantic_xml import config
 from pydantic_xml.element import XmlElement as BaseXmlElement
 
 XmlElement: Type[BaseXmlElement[Any]]
+ElementT: Type[Any]
 
 if config.FORCE_STD_XML:
     from .std import *  # noqa: F403

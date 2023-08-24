@@ -166,6 +166,31 @@ def test_default_factory():
     assert_xml_equal(actual_xml, expected_xml.encode())
 
 
+def test_field_serialization_exclude():
+    class TestModel(BaseXmlModel, tag='model'):
+        element1: int = element(exclude=True)
+        element2: int = element(exclude=False)
+
+    xml = '''
+        <model>
+            <element1>1</element1>
+            <element2>2</element2>
+        </model>
+    '''
+
+    actual_obj: TestModel = TestModel.from_xml(xml)
+    expected_obj = TestModel(element1=1, element2=2)
+    assert actual_obj == expected_obj
+
+    expected_xml = '''
+        <model>
+            <element2>2</element2>
+        </model>
+    '''
+    actual_xml = actual_obj.to_xml()
+    assert_xml_equal(actual_xml, expected_xml.encode())
+
+
 def test_model_params_inheritance():
     class BaseModel(
         BaseXmlModel,

@@ -16,6 +16,9 @@ class PrimitiveTypeSerializer(Serializer):
         computed = ctx.field_computed
         inner_serializers: List[Serializer] = []
         for choice_schema in schema['choices']:
+            if isinstance(choice_schema, tuple):
+                choice_schema, label = choice_schema
+
             inner_serializers.append(Serializer.parse_core_schema(choice_schema, ctx))
 
         assert len(inner_serializers) > 0, "union choice is not provided"
@@ -53,6 +56,9 @@ class ModelSerializer(Serializer):
         computed = ctx.field_computed
         inner_serializers: List[ModelProxySerializer] = []
         for choice_schema in schema['choices']:
+            if isinstance(choice_schema, tuple):
+                choice_schema, label = choice_schema
+
             serializer = Serializer.parse_core_schema(choice_schema, ctx)
             assert isinstance(serializer, ModelProxySerializer), "unexpected serializer type"
 
@@ -114,17 +120,21 @@ class ModelSerializer(Serializer):
 def from_core_schema(schema: pcs.UnionSchema, ctx: Serializer.Context) -> Serializer:
     choice_families: Set[SchemaTypeFamily] = set()
     for choice_schema in schema['choices']:
+        if isinstance(choice_schema, tuple):
+            choice_schema, label = choice_schema
+
         choice_schema, ctx = Serializer.preprocess_schema(choice_schema, ctx)
         choice_type_family = TYPE_FAMILY.get(choice_schema['type'])
 
-        if choice_type_family not in (SchemaTypeFamily.PRIMITIVE, SchemaTypeFamily.MODEL):
+        if choice_type_family not in (SchemaTypeFamily.PRIMITIVE, SchemaTypeFamily.IS_INSTANCE, SchemaTypeFamily.MODEL):
             raise errors.ModelFieldError(ctx.model_name, ctx.field_name, "union must be of primitive or model type")
 
         choice_families.add(choice_type_family)
 
     assert len(choice_families) > 0, "union choices are not provided"
 
-    if len(choice_families) > 1:
+    if (SchemaTypeFamily.PRIMITIVE in choice_families or SchemaTypeFamily.IS_INSTANCE in choice_families) and \
+            SchemaTypeFamily.MODEL in choice_families:
         raise TypeError("unions of combined primitive and model types are not supported")
 
     choice_family = choice_families.pop()

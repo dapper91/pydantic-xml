@@ -34,7 +34,7 @@ class XmlElementReader(abc.ABC):
             search_mode: 'SearchMode',
             look_behind: bool = True,
             step_forward: bool = True,
-    ) -> Optional['XmlElement[Any]']:
+    ) -> Optional['XmlElementReader']:
         """
         Searches for an element with the provided tag.
 
@@ -73,7 +73,7 @@ class XmlElementReader(abc.ABC):
         """
 
     @abc.abstractmethod
-    def pop_element(self, tag: str, search_mode: 'SearchMode') -> Optional['XmlElement[Any]']:
+    def pop_element(self, tag: str, search_mode: 'SearchMode') -> Optional['XmlElementReader']:
         """
         Extracts a sub-element from the xml element matching `tag`.
 
@@ -83,7 +83,7 @@ class XmlElementReader(abc.ABC):
         """
 
     @abc.abstractmethod
-    def find_sub_element(self, path: Sequence[str], search_mode: 'SearchMode') -> Optional['XmlElement[Any]']:
+    def find_sub_element(self, path: Sequence[str], search_mode: 'SearchMode') -> Optional['XmlElementReader']:
         """
         Searches for an element at the provided path. If the element is not found returns `None`.
 
@@ -104,6 +104,14 @@ class XmlElementReader(abc.ABC):
     def apply_snapshot(self, snapshot: 'XmlElement[Any]') -> None:
         """
         Applies a snapshot to the current element.
+        """
+
+    @abc.abstractmethod
+    def to_native(self) -> Any:
+        """
+        Transforms current element to a native one.
+
+        :return: native element
         """
 
 
@@ -165,7 +173,7 @@ class XmlElementWriter(abc.ABC):
         """
 
     @abc.abstractmethod
-    def find_element_or_create(self, tag: str, search_mode: 'SearchMode', nsmap: Optional[NsMap]) -> 'XmlElement[Any]':
+    def find_element_or_create(self, tag: str, search_mode: 'SearchMode', nsmap: Optional[NsMap]) -> 'XmlElementWriter':
         """
         Searches for an element with the provided tag.
         If the element is found returns it otherwise creates a new one.
@@ -174,6 +182,16 @@ class XmlElementWriter(abc.ABC):
         :param search_mode: element search mode
         :param nsmap: element namespace mapping
         :return: xml element
+        """
+
+    @classmethod
+    @abc.abstractmethod
+    def from_native(cls, element: Any) -> 'XmlElement[Any]':
+        """
+        Creates a instance of `XmlElement` from native element.
+
+        :param element: native element
+        :return: `XmlElement`
         """
 
 
