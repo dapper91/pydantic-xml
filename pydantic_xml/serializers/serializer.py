@@ -28,6 +28,7 @@ class SchemaTypeFamily(IntEnum):
     DEFINITIONS = 9
     DEFINITION_REF = 10
     JSON_OR_PYTHON = 11
+    IS_INSTANCE = 12
 
 
 TYPE_FAMILY = {
@@ -48,7 +49,8 @@ TYPE_FAMILY = {
     'json':             SchemaTypeFamily.PRIMITIVE,
     'literal':          SchemaTypeFamily.PRIMITIVE,
     'lax-or-strict':    SchemaTypeFamily.PRIMITIVE,
-    'is-instance':      SchemaTypeFamily.PRIMITIVE,
+
+    'is-instance':      SchemaTypeFamily.IS_INSTANCE,
 
     'model':            SchemaTypeFamily.MODEL,
 
@@ -243,6 +245,10 @@ class Serializer(abc.ABC):
         elif type_family is SchemaTypeFamily.TAGGED_UNION:
             schema = typing.cast(pcs.TaggedUnionSchema, schema)
             return factories.tagged_union.from_core_schema(schema, ctx)
+
+        elif type_family is SchemaTypeFamily.IS_INSTANCE:
+            schema = typing.cast(pcs.IsInstanceSchema, schema)
+            return factories.is_instance.from_core_schema(schema, ctx)
 
         else:
             raise AssertionError("unreachable")

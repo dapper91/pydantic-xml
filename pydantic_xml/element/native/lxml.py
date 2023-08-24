@@ -6,14 +6,17 @@ from pydantic_xml.element import XmlElement as BaseXmlElement
 from pydantic_xml.typedefs import NsMap
 
 __all__ = (
+    'ElementT',
     'XmlElement',
     'etree',
 )
 
+ElementT = etree._Element
 
-class XmlElement(BaseXmlElement[etree._Element]):
+
+class XmlElement(BaseXmlElement[ElementT]):
     @classmethod
-    def from_native(cls, element: etree._Element) -> 'XmlElement':
+    def from_native(cls, element: ElementT) -> 'XmlElement':
         return cls(
             tag=element.tag,
             text=element.text,
@@ -28,7 +31,7 @@ class XmlElement(BaseXmlElement[etree._Element]):
             ],
         )
 
-    def to_native(self) -> etree._Element:
+    def to_native(self) -> ElementT:
         element = etree.Element(
             self._tag,
             attrib=self._state.attrib,
@@ -51,5 +54,5 @@ def force_str(val: Union[str, bytes]) -> str:
         return val
 
 
-def is_xml_comment(element: etree._Element) -> bool:
+def is_xml_comment(element: ElementT) -> bool:
     return isinstance(element, etree._Comment)

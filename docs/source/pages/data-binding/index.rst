@@ -17,3 +17,4 @@ Data binding
    generics
    wrapper
    aliases
+   raw

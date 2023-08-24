@@ -126,14 +126,15 @@ def from_core_schema(schema: pcs.UnionSchema, ctx: Serializer.Context) -> Serial
         choice_schema, ctx = Serializer.preprocess_schema(choice_schema, ctx)
         choice_type_family = TYPE_FAMILY.get(choice_schema['type'])
 
-        if choice_type_family not in (SchemaTypeFamily.PRIMITIVE, SchemaTypeFamily.MODEL):
+        if choice_type_family not in (SchemaTypeFamily.PRIMITIVE, SchemaTypeFamily.IS_INSTANCE, SchemaTypeFamily.MODEL):
             raise errors.ModelFieldError(ctx.model_name, ctx.field_name, "union must be of primitive or model type")
 
         choice_families.add(choice_type_family)
 
     assert len(choice_families) > 0, "union choices are not provided"
 
-    if len(choice_families) > 1:
+    if (SchemaTypeFamily.PRIMITIVE in choice_families or SchemaTypeFamily.IS_INSTANCE in choice_families) and \
+            SchemaTypeFamily.MODEL in choice_families:
         raise TypeError("unions of combined primitive and model types are not supported")
 
     choice_family = choice_families.pop()

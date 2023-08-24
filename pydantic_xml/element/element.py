@@ -106,6 +106,14 @@ class XmlElementReader(abc.ABC):
         Applies a snapshot to the current element.
         """
 
+    @abc.abstractmethod
+    def to_native(self) -> Any:
+        """
+        Transforms current element to a native one.
+
+        :return: native element
+        """
+
 
 class XmlElementWriter(abc.ABC):
     """
@@ -174,6 +182,16 @@ class XmlElementWriter(abc.ABC):
         :param search_mode: element search mode
         :param nsmap: element namespace mapping
         :return: xml element
+        """
+
+    @classmethod
+    @abc.abstractmethod
+    def from_native(cls, element: Any) -> 'XmlElement[Any]':
+        """
+        Creates a instance of `XmlElement` from native element.
+
+        :param element: native element
+        :return: `XmlElement`
         """
 
 

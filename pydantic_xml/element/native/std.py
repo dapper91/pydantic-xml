@@ -5,14 +5,17 @@ from pydantic_xml.element import XmlElement as BaseXmlElement
 from pydantic_xml.typedefs import NsMap
 
 __all__ = (
+    'ElementT',
     'XmlElement',
     'etree',
 )
 
+ElementT = etree.Element
 
-class XmlElement(BaseXmlElement[etree.Element]):
+
+class XmlElement(BaseXmlElement[ElementT]):
     @classmethod
-    def from_native(cls, element: etree.Element) -> 'XmlElement':
+    def from_native(cls, element: ElementT) -> 'XmlElement':
         return cls(
             tag=element.tag,
             text=element.text,
@@ -24,7 +27,7 @@ class XmlElement(BaseXmlElement[etree.Element]):
             ],
         )
 
-    def to_native(self) -> etree.Element:
+    def to_native(self) -> ElementT:
         element = etree.Element(self._tag, attrib=self._state.attrib or {})
         element.text = self._state.text
         element.extend([element.to_native() for element in self._state.elements])
@@ -35,5 +38,5 @@ class XmlElement(BaseXmlElement[etree.Element]):
         return XmlElement(tag)
 
 
-def is_xml_comment(element: etree.Element) -> bool:
+def is_xml_comment(element: ElementT) -> bool:
     return element.tag is etree.Comment  # type: ignore[comparison-overlap]
