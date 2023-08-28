@@ -1,7 +1,9 @@
 import abc
 import typing
-from typing import Any, Dict, Mapping, Optional, Set, Type
+from typing import Any, Dict, List, Mapping, Optional, Set, Type
 
+import pydantic as pd
+import pydantic_core as pdc
 from pydantic_core import core_schema as pcs
 
 import pydantic_xml as pxml
@@ -24,6 +26,41 @@ class BaseModelSerializer(Serializer, abc.ABC):
     @property
     @abc.abstractmethod
     def nsmap(self) -> Optional[NsMap]: ...
+
+    @classmethod
+    def _check_extra(cls, error_title: str, element: XmlElementReader) -> None:
+        line_errors: List[pdc.InitErrorDetails] = []
+
+        if (text := element.get_text()) is not None:
+            if text := text.strip():
+                line_errors.append(
+                    pdc.InitErrorDetails(
+                        type='extra_forbidden',
+                        loc=('<text>',),
+                        input=text,
+                    ),
+                )
+        if extra_attrs := element.get_attributes():
+            for name, value in extra_attrs.items():
+                line_errors.append(
+                    pdc.InitErrorDetails(
+                        type='extra_forbidden',
+                        loc=(f'<attr> {name}',),
+                        input=value,
+                    ),
+                )
+        if extra_elements := element.get_elements():
+            for extra_element in extra_elements:
+                line_errors.append(
+                    pdc.InitErrorDetails(
+                        type='extra_forbidden',
+                        loc=(f'<element> {extra_element.tag}',),
+                        input=extra_element.get_text(),
+                    ),
+                )
+
+        if line_errors:
+            raise pd.ValidationError.from_exception_data(title=error_title, line_errors=line_errors)
 
 
 class ModelSerializer(BaseModelSerializer):
@@ -157,6 +194,9 @@ class ModelSerializer(BaseModelSerializer):
             if (field_value := field_serializer.deserialize(element, context=context)) is not None
         }
 
+        if self._model.model_config.get('extra', 'ignore') == 'forbid':
+            self._check_extra(self._model.__name__, element)
+
         return self._model.model_validate(result, strict=False, context=context)
 
 
@@ -238,6 +278,9 @@ class RootModelSerializer(BaseModelSerializer):
             return None
 
         result = self._root_serializer.deserialize(element, context=context)
+
+        if self._model.model_config.get('extra', 'ignore') == 'forbid':
+            self._check_extra(self._model.__name__, element)
 
         return self._model.model_validate(result, strict=False, context=context)
 
