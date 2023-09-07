@@ -11,6 +11,13 @@ class XmlElementReader(abc.ABC):
     Provides an interface for extracting element text, attributes and sub-elements.
     """
 
+    @property
+    @abc.abstractmethod
+    def tag(self) -> str:
+        """
+        Xml element tag.
+        """
+
     @abc.abstractmethod
     def is_empty(self) -> bool:
         """
@@ -46,6 +53,14 @@ class XmlElementReader(abc.ABC):
         """
 
     @abc.abstractmethod
+    def get_text(self) -> Optional[str]:
+        """
+        Returns the element text.
+
+        :return: element text
+        """
+
+    @abc.abstractmethod
     def pop_text(self) -> Optional[str]:
         """
         Extracts the text from the xml element.
@@ -61,6 +76,14 @@ class XmlElementReader(abc.ABC):
         All subsequent calls with the same name return `None`.
 
         :return: element attribute
+        """
+
+    @abc.abstractmethod
+    def get_attributes(self) -> Optional[Dict[str, str]]:
+        """
+        Returns the element attributes.
+
+        :return: element attributes
         """
 
     @abc.abstractmethod
@@ -90,6 +113,14 @@ class XmlElementReader(abc.ABC):
         :param path: path the element is searched at
         :param search_mode: element search mode
         :return: found element or `None`
+        """
+
+    @abc.abstractmethod
+    def get_elements(self) -> Optional[List['XmlElement[Any]']]:
+        """
+        Returns the element sub-elements.
+
+        :return: sub-element
         """
 
     @abc.abstractmethod
@@ -306,6 +337,9 @@ class XmlElement(XmlElementReader, XmlElementWriter, Generic[NativeElement]):
     def get_attrib(self, name: str) -> Optional[str]:
         return self._state.attrib.get(name, None) if self._state.attrib else None
 
+    def get_text(self) -> Optional[str]:
+        return self._state.text
+
     def pop_text(self) -> Optional[str]:
         result, self._state.text = self._state.text, None
 
@@ -313,6 +347,9 @@ class XmlElement(XmlElementReader, XmlElementWriter, Generic[NativeElement]):
 
     def pop_attrib(self, name: str) -> Optional[str]:
         return self._state.attrib.pop(name, None) if self._state.attrib else None
+
+    def get_attributes(self) -> Optional[Dict[str, str]]:
+        return self._state.attrib
 
     def pop_attributes(self) -> Optional[Dict[str, str]]:
         result, self._state.attrib = self._state.attrib, None
@@ -357,6 +394,9 @@ class XmlElement(XmlElementReader, XmlElementWriter, Generic[NativeElement]):
         searcher: Searcher[NativeElement] = get_searcher(search_mode)
 
         return searcher(self._state, tag, look_behind, step_forward)
+
+    def get_elements(self) -> Optional[List['XmlElement[NativeElement]']]:
+        return self._state.elements[self._state.next_element_idx:]
 
 
 class SearchMode(str, Enum):

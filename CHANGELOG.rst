@@ -1,6 +1,13 @@
 Changelog
 =========
 
+2.2.0 (2023-09-07)
+------------------
+
+- pydantic extra='forbid' parameter is being applied to xml elements too. See https://github.com/dapper91/pydantic-xml/pull/106.
+
+
+
 2.1.0 (2023-08-24)
 ------------------
 
