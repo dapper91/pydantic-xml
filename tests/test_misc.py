@@ -63,6 +63,65 @@ def test_skip_empty():
     assert_xml_equal(actual_xml, xml.encode())
 
 
+def test_model_level_skip_empty_enable():
+    class TestSubModel(BaseXmlModel, tag='submodel', skip_empty=True):
+        text: Optional[str]
+        attr1: Optional[str] = attr()
+        element1: Optional[str] = element()
+
+    class TestModel(BaseXmlModel, tag='model'):
+        submodel: TestSubModel
+        element1: Optional[str] = element()
+
+    xml = '''
+    <model>
+        <submodel></submodel>
+        <element1>None</element1>
+    </model>
+    '''
+
+    obj = TestModel(
+        submodel=TestSubModel(
+            text=None,
+            attr1=None,
+            element1=None,
+        ),
+        element1=None,
+    )
+
+    actual_xml = obj.to_xml(skip_empty=False)
+    assert_xml_equal(actual_xml, xml.encode())
+
+
+def test_model_level_skip_empty_disable():
+    class TestSubModel(BaseXmlModel, tag='submodel', skip_empty=False):
+        text: Optional[str]
+        attr1: Optional[str] = attr()
+        element1: Optional[str] = element()
+
+    class TestModel(BaseXmlModel, tag='model'):
+        submodel: TestSubModel
+        element1: Optional[str] = element()
+
+    xml = '''
+    <model>
+        <submodel attr1="None">None<element1>None</element1></submodel>
+    </model>
+    '''
+
+    obj = TestModel(
+        submodel=TestSubModel(
+            text=None,
+            attr1=None,
+            element1=None,
+        ),
+        element1=None,
+    )
+
+    actual_xml = obj.to_xml(skip_empty=True)
+    assert_xml_equal(actual_xml, xml.encode())
+
+
 def test_self_ref_models():
     class TestModel(BaseXmlModel, tag='model'):
         attr1: int = attr()
