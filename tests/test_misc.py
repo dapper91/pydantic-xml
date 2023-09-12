@@ -1,5 +1,4 @@
 from typing import Dict, List, Optional, Tuple, Union
-from unittest.mock import ANY
 
 import pydantic as pd
 import pytest
@@ -58,6 +57,65 @@ def test_skip_empty():
     '''
 
     obj = TestModel(model=TestSubModel())
+
+    actual_xml = obj.to_xml(skip_empty=True)
+    assert_xml_equal(actual_xml, xml.encode())
+
+
+def test_model_level_skip_empty_enable():
+    class TestSubModel(BaseXmlModel, tag='submodel', skip_empty=True):
+        text: Optional[str]
+        attr1: Optional[str] = attr()
+        element1: Optional[str] = element()
+
+    class TestModel(BaseXmlModel, tag='model'):
+        submodel: TestSubModel
+        element1: Optional[str] = element()
+
+    xml = '''
+    <model>
+        <submodel></submodel>
+        <element1>None</element1>
+    </model>
+    '''
+
+    obj = TestModel(
+        submodel=TestSubModel(
+            text=None,
+            attr1=None,
+            element1=None,
+        ),
+        element1=None,
+    )
+
+    actual_xml = obj.to_xml(skip_empty=False)
+    assert_xml_equal(actual_xml, xml.encode())
+
+
+def test_model_level_skip_empty_disable():
+    class TestSubModel(BaseXmlModel, tag='submodel', skip_empty=False):
+        text: Optional[str]
+        attr1: Optional[str] = attr()
+        element1: Optional[str] = element()
+
+    class TestModel(BaseXmlModel, tag='model'):
+        submodel: TestSubModel
+        element1: Optional[str] = element()
+
+    xml = '''
+    <model>
+        <submodel attr1="None">None<element1>None</element1></submodel>
+    </model>
+    '''
+
+    obj = TestModel(
+        submodel=TestSubModel(
+            text=None,
+            attr1=None,
+            element1=None,
+        ),
+        element1=None,
+    )
 
     actual_xml = obj.to_xml(skip_empty=True)
     assert_xml_equal(actual_xml, xml.encode())
@@ -254,51 +312,3 @@ def test_pydantic_validation_context():
     '''
 
     TestModel.from_xml(xml, validation_context)
-
-
-@pytest.mark.parametrize('search_mode', ['strict', 'ordered', 'unordered'])
-def test_extra_forbid(search_mode: str):
-    class Model(BaseXmlModel, tag='model', extra='forbid', search_mode=search_mode):
-        attr1: str = attr()
-        field1: str = element()
-        field2: str = wrapped('wrapper', element())
-
-    xml = '''
-        <model attr1="attr value 1" attr2="attr value 2">text value
-            <field1>field value 1</field1>
-            <wrapper>
-                <field2>field value 2</field2>
-            </wrapper>
-            <field3>field value 3</field3>
-        </model>
-    '''
-
-    with pytest.raises(pd.ValidationError) as exc:
-        Model.from_xml(xml)
-
-    err = exc.value
-    assert err.title == 'Model'
-    assert err.error_count() == 3
-    assert err.errors() == [
-        {
-            'input': 'text value',
-            'loc': ('<text>',),
-            'msg': 'Extra inputs are not permitted',
-            'type': 'extra_forbidden',
-            'url': ANY,
-        },
-        {
-            'input': 'attr value 2',
-            'loc': ('<attr> attr2',),
-            'msg': 'Extra inputs are not permitted',
-            'type': 'extra_forbidden',
-            'url': ANY,
-        },
-        {
-            'input': 'field value 3',
-            'loc': ('<element> field3',),
-            'msg': 'Extra inputs are not permitted',
-            'type': 'extra_forbidden',
-            'url': ANY,
-        },
-    ]

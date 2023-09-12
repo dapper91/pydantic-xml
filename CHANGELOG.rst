@@ -1,6 +1,13 @@
 Changelog
 =========
 
+2.2.1 (2023-09-12)
+------------------
+
+- model level `skip_empty` parameter added.
+- wrapped element extra entities checking bugs fixed.
+
+
 2.2.0 (2023-09-07)
 ------------------
 
