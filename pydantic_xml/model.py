@@ -233,6 +233,7 @@ class BaseXmlModel(BaseModel, __xml_abstract__=True, metaclass=XmlModelMeta):
     __xml_ns__: ClassVar[Optional[str]]
     __xml_nsmap__: ClassVar[Optional[NsMap]]
     __xml_ns_attrs__: ClassVar[bool]
+    __xml_skip_empty__: ClassVar[Optional[bool]]
     __xml_search_mode__: ClassVar[SearchMode]
     __xml_serializer__: ClassVar[Optional[BaseModelSerializer]] = None
 
@@ -242,6 +243,7 @@ class BaseXmlModel(BaseModel, __xml_abstract__=True, metaclass=XmlModelMeta):
             ns: Optional[str] = None,
             nsmap: Optional[NsMap] = None,
             ns_attrs: Optional[bool] = None,
+            skip_empty: Optional[bool] = None,
             search_mode: Optional[SearchMode] = None,
             **kwargs: Any,
     ):
@@ -261,6 +263,7 @@ class BaseXmlModel(BaseModel, __xml_abstract__=True, metaclass=XmlModelMeta):
         cls.__xml_ns__ = ns if ns is not None else getattr(cls, '__xml_ns__', None)
         cls.__xml_nsmap__ = nsmap if nsmap is not None else getattr(cls, '__xml_nsmap__', None)
         cls.__xml_ns_attrs__ = ns_attrs if ns_attrs is not None else getattr(cls, '__xml_ns_attrs__', False)
+        cls.__xml_skip_empty__ = skip_empty if skip_empty is not None else getattr(cls, '__xml_skip_empty__', None)
         cls.__xml_search_mode__ = search_mode if search_mode is not None \
             else getattr(cls, '__xml_search_mode__', SearchMode.STRICT)
 

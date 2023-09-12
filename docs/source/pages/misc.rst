@@ -70,6 +70,25 @@ or drop ``None`` fields at all:
     assert company.to_xml(skip_empty=True) == b'<Company/>'
 
 
+Empty entities exclusion
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+It is possible to exclude all empty entities from the resulting xml document at once. To do that
+just pass ``skip_empty=True`` parameter to :py:meth:`pydantic_xml.BaseXmlModel.to_xml` during serialization.
+That parameter is applied to the root model and all its sub-models by default. But it can be adjusted
+for a particular model during its declaration as illustrated in the following example:
+
+.. literalinclude:: ../../../examples/snippets/skip_empty.py
+    :language: python
+    :start-after: model-start
+    :end-before: model-end
+
+.. literalinclude:: ../../../examples/snippets/skip_empty.py
+    :language: xml
+    :lines: 2-
+    :start-after: xml-start
+    :end-before: xml-end
+
 
 Default namespace
 ~~~~~~~~~~~~~~~~~

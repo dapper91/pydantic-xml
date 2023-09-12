@@ -171,6 +171,9 @@ class ModelSerializer(BaseModelSerializer):
         if value is None:
             return None
 
+        if self._model.__xml_skip_empty__ is not None:
+            skip_empty = self._model.__xml_skip_empty__
+
         for field_name, field_serializer in self._field_serializers.items():
             if field_name not in self._fields_serialization_exclude:
                 field_serializer.serialize(
@@ -263,6 +266,9 @@ class RootModelSerializer(BaseModelSerializer):
     ) -> Optional[XmlElementWriter]:
         if value is None:
             return None
+
+        if self._model.__xml_skip_empty__ is not None:
+            skip_empty = self._model.__xml_skip_empty__
 
         self._root_serializer.serialize(element, getattr(value, 'root'), encoded, skip_empty=skip_empty)
 
