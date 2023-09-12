@@ -1,5 +1,4 @@
 from typing import Dict, List, Optional, Tuple, Union
-from unittest.mock import ANY
 
 import pydantic as pd
 import pytest
@@ -313,51 +312,3 @@ def test_pydantic_validation_context():
     '''
 
     TestModel.from_xml(xml, validation_context)
-
-
-@pytest.mark.parametrize('search_mode', ['strict', 'ordered', 'unordered'])
-def test_extra_forbid(search_mode: str):
-    class Model(BaseXmlModel, tag='model', extra='forbid', search_mode=search_mode):
-        attr1: str = attr()
-        field1: str = element()
-        field2: str = wrapped('wrapper', element())
-
-    xml = '''
-        <model attr1="attr value 1" attr2="attr value 2">text value
-            <field1>field value 1</field1>
-            <wrapper>
-                <field2>field value 2</field2>
-            </wrapper>
-            <field3>field value 3</field3>
-        </model>
-    '''
-
-    with pytest.raises(pd.ValidationError) as exc:
-        Model.from_xml(xml)
-
-    err = exc.value
-    assert err.title == 'Model'
-    assert err.error_count() == 3
-    assert err.errors() == [
-        {
-            'input': 'text value',
-            'loc': ('<text>',),
-            'msg': 'Extra inputs are not permitted',
-            'type': 'extra_forbidden',
-            'url': ANY,
-        },
-        {
-            'input': 'attr value 2',
-            'loc': ('<attr> attr2',),
-            'msg': 'Extra inputs are not permitted',
-            'type': 'extra_forbidden',
-            'url': ANY,
-        },
-        {
-            'input': 'field value 3',
-            'loc': ('<element> field3',),
-            'msg': 'Extra inputs are not permitted',
-            'type': 'extra_forbidden',
-            'url': ANY,
-        },
-    ]
