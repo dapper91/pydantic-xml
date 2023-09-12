@@ -31,33 +31,14 @@ class BaseModelSerializer(Serializer, abc.ABC):
     def _check_extra(cls, error_title: str, element: XmlElementReader) -> None:
         line_errors: List[pdc.InitErrorDetails] = []
 
-        if (text := element.get_text()) is not None:
-            if text := text.strip():
-                line_errors.append(
-                    pdc.InitErrorDetails(
-                        type='extra_forbidden',
-                        loc=('<text>',),
-                        input=text,
-                    ),
-                )
-        if extra_attrs := element.get_attributes():
-            for name, value in extra_attrs.items():
-                line_errors.append(
-                    pdc.InitErrorDetails(
-                        type='extra_forbidden',
-                        loc=(f'<attr> {name}',),
-                        input=value,
-                    ),
-                )
-        if extra_elements := element.get_elements():
-            for extra_element in extra_elements:
-                line_errors.append(
-                    pdc.InitErrorDetails(
-                        type='extra_forbidden',
-                        loc=(f'<element> {extra_element.tag}',),
-                        input=extra_element.get_text(),
-                    ),
-                )
+        for path, value in element.get_unbound():
+            line_errors.append(
+                pdc.InitErrorDetails(
+                    type='extra_forbidden',
+                    loc=path,
+                    input=value,
+                ),
+            )
 
         if line_errors:
             raise pd.ValidationError.from_exception_data(title=error_title, line_errors=line_errors)

@@ -1,6 +1,6 @@
 import abc
 from enum import Enum
-from typing import Any, Callable, Dict, Generic, List, Optional, Sequence, TypeVar
+from typing import Any, Callable, Dict, Generic, List, Optional, Sequence, Tuple, TypeVar
 
 from pydantic_xml.typedefs import NsMap
 
@@ -53,14 +53,6 @@ class XmlElementReader(abc.ABC):
         """
 
     @abc.abstractmethod
-    def get_text(self) -> Optional[str]:
-        """
-        Returns the element text.
-
-        :return: element text
-        """
-
-    @abc.abstractmethod
     def pop_text(self) -> Optional[str]:
         """
         Extracts the text from the xml element.
@@ -76,14 +68,6 @@ class XmlElementReader(abc.ABC):
         All subsequent calls with the same name return `None`.
 
         :return: element attribute
-        """
-
-    @abc.abstractmethod
-    def get_attributes(self) -> Optional[Dict[str, str]]:
-        """
-        Returns the element attributes.
-
-        :return: element attributes
         """
 
     @abc.abstractmethod
@@ -116,14 +100,6 @@ class XmlElementReader(abc.ABC):
         """
 
     @abc.abstractmethod
-    def get_elements(self) -> Optional[List['XmlElement[Any]']]:
-        """
-        Returns the element sub-elements.
-
-        :return: sub-element
-        """
-
-    @abc.abstractmethod
     def create_snapshot(self) -> 'XmlElement[Any]':
         """
         Creates a snapshot of the element. The snapshot can be modified not affecting the original one.
@@ -143,6 +119,14 @@ class XmlElementReader(abc.ABC):
         Transforms current element to a native one.
 
         :return: native element
+        """
+
+    @abc.abstractmethod
+    def get_unbound(self) -> List[Tuple[Tuple[str, ...], str]]:
+        """
+        Returns unbound entities.
+
+        :return: list of unbound entities
         """
 
 
@@ -251,7 +235,7 @@ class XmlElement(XmlElementReader, XmlElementWriter, Generic[NativeElement]):
             self.elements = elements
             self.next_element_idx = next_element_idx
 
-    __slots__ = ('_tag', '_nsmap')
+    __slots__ = ('_tag', '_nsmap', '_state')
 
     @classmethod
     @abc.abstractmethod
@@ -337,9 +321,6 @@ class XmlElement(XmlElementReader, XmlElementWriter, Generic[NativeElement]):
     def get_attrib(self, name: str) -> Optional[str]:
         return self._state.attrib.get(name, None) if self._state.attrib else None
 
-    def get_text(self) -> Optional[str]:
-        return self._state.text
-
     def pop_text(self) -> Optional[str]:
         result, self._state.text = self._state.text, None
 
@@ -347,9 +328,6 @@ class XmlElement(XmlElementReader, XmlElementWriter, Generic[NativeElement]):
 
     def pop_attrib(self, name: str) -> Optional[str]:
         return self._state.attrib.pop(name, None) if self._state.attrib else None
-
-    def get_attributes(self) -> Optional[Dict[str, str]]:
-        return self._state.attrib
 
     def pop_attributes(self) -> Optional[Dict[str, str]]:
         result, self._state.attrib = self._state.attrib, None
@@ -395,8 +373,20 @@ class XmlElement(XmlElementReader, XmlElementWriter, Generic[NativeElement]):
 
         return searcher(self._state, tag, look_behind, step_forward)
 
-    def get_elements(self) -> Optional[List['XmlElement[NativeElement]']]:
-        return self._state.elements[self._state.next_element_idx:]
+    def get_unbound(self, path: Tuple[str, ...] = ()) -> List[Tuple[Tuple[str, ...], str]]:
+        result: List[Tuple[Tuple[str, ...], str]] = []
+
+        if self._state.text and (text := self._state.text.strip()):
+            result.append((path, text))
+
+        if attrs := self._state.attrib:
+            for name, value in attrs.items():
+                result.append((path + (f'@{name}',), value))
+
+        for sub_element in self._state.elements:
+            result.extend(sub_element.get_unbound(path + (sub_element.tag,)))
+
+        return result
 
 
 class SearchMode(str, Enum):
