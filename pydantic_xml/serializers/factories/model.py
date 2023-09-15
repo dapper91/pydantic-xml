@@ -50,6 +50,9 @@ class ModelSerializer(BaseModelSerializer):
         model_cls = schema['cls']
         fields_schema = schema['schema']
 
+        if fields_schema['type'] == 'function-before':
+            fields_schema = fields_schema['schema']
+
         assert issubclass(model_cls, pxml.BaseXmlModel), "model class must be a BaseXmlModel subclass"
         assert fields_schema['type'] == 'model-fields', f"unexpected schema type: {fields_schema['type']}"
         fields_schema = typing.cast(pcs.ModelFieldsSchema, fields_schema)
