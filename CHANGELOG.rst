@@ -1,6 +1,12 @@
 Changelog
 =========
 
+2.2.2 (2023-09-15)
+------------------
+
+- model validator 'before' mode support added.
+
+
 2.2.1 (2023-09-12)
 ------------------
 
