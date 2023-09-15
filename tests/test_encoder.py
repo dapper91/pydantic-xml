@@ -3,12 +3,13 @@ import ipaddress
 import sys
 from decimal import Decimal
 from enum import Enum
-from typing import Any
+from typing import Any, Callable, Dict
 from uuid import UUID
 
 import pytest
 from helpers import assert_xml_equal
-from pydantic import field_serializer
+from pydantic import SerializerFunctionWrapHandler, ValidatorFunctionWrapHandler, field_serializer, field_validator
+from pydantic import model_validator
 from pydantic.functional_serializers import PlainSerializer, WrapSerializer
 from pydantic.functional_validators import AfterValidator, BeforeValidator, WrapValidator
 
@@ -131,7 +132,7 @@ def test_field_serializer():
         WrapSerializer(lambda val, nxt: val.timestamp(), return_type=float),
     ],
 )
-def test_serializer(Serializer: Any):
+def test_serializer_annotations(Serializer: Any):
     from typing import Annotated
 
     Timestamp = Annotated[dt.datetime, Serializer]
@@ -163,31 +164,60 @@ def test_serializer(Serializer: Any):
     assert_xml_equal(actual_xml, xml.encode())
 
 
-@pytest.mark.skipif(sys.version_info < (3, 9), reason="requires python 3.9 and above")
-@pytest.mark.parametrize(
-    'Validator', [
-        AfterValidator(lambda val: val),
-        BeforeValidator(lambda val: dt.datetime.fromtimestamp(float(val), tz=dt.timezone.utc)),
-        WrapValidator(lambda val, nxt: dt.datetime.fromtimestamp(float(val), tz=dt.timezone.utc)),
-    ],
-)
-def test_validator(Validator: Any):
-    from typing import Annotated
-
-    Timestamp = Annotated[dt.datetime, Validator]
-
-    class TestSubModel(BaseXmlModel, tag='submodel'):
-        field1: Timestamp = element(tag='field1')
-
+def test_serializer_methods():
     class TestModel(BaseXmlModel, tag='model'):
-        field1: Timestamp = element(tag='field1')
-        field2: TestSubModel
+        field1: dt.datetime = element()
+        field2: dt.datetime = element()
+
+        @field_serializer('field1', mode='plain')
+        def serialize_field1(self, value: dt.datetime) -> float:
+            return value.timestamp()
+
+        @field_serializer('field2', mode='wrap')
+        def serialize_field2(self, value: dt.datetime, nxt: SerializerFunctionWrapHandler) -> float:
+            return nxt(value.timestamp())
 
     xml = '''
     <model>
         <field1>1675468800.0</field1>
+        <field2>1675468800.0</field2>
+    </model>
+    '''
+
+    obj = TestModel(
+        field1=dt.datetime(2023, 2, 4, tzinfo=dt.timezone.utc),
+        field2=dt.datetime(2023, 2, 4, tzinfo=dt.timezone.utc),
+    )
+
+    actual_xml = obj.to_xml()
+    assert_xml_equal(actual_xml, xml.encode())
+
+
+@pytest.mark.skipif(sys.version_info < (3, 9), reason="requires python 3.9 and above")
+@pytest.mark.parametrize(
+    'Validator', [
+        AfterValidator(lambda val: val.replace(tzinfo=dt.timezone.utc)),
+        BeforeValidator(lambda val: dt.datetime.fromisoformat(val).replace(tzinfo=dt.timezone.utc)),
+        WrapValidator(lambda val, hdr: hdr(dt.datetime.fromisoformat(val).replace(tzinfo=dt.timezone.utc))),
+    ],
+)
+def test_validator_annotations(Validator: Any):
+    from typing import Annotated
+
+    DatetimeUTC = Annotated[dt.datetime, Validator]
+
+    class TestSubModel(BaseXmlModel, tag='submodel'):
+        field1: DatetimeUTC = element(tag='field1')
+
+    class TestModel(BaseXmlModel, tag='model'):
+        field1: DatetimeUTC = element(tag='field1')
+        field2: TestSubModel
+
+    xml = '''
+    <model>
+        <field1>2023-02-04T00:00:00</field1>
         <submodel>
-            <field1>1675468800.0</field1>
+            <field1>2023-02-04T00:00:00</field1>
         </submodel>
     </model>
     '''
@@ -199,6 +229,77 @@ def test_validator(Validator: Any):
         field2=TestSubModel.model_construct(
             field1=dt.datetime(2023, 2, 4, tzinfo=dt.timezone.utc),
         ),
+    )
+
+    assert actual_obj == expected_obj
+
+
+def test_validator_methods():
+    class TestModel(BaseXmlModel, tag='model'):
+        field1: dt.datetime = element()
+        field2: dt.datetime = element()
+        field3: dt.datetime = element()
+
+        @field_validator('field1', mode='wrap')
+        def validate_field1(cls, value: str, handler: ValidatorFunctionWrapHandler) -> dt.datetime:
+            return handler(dt.datetime.fromisoformat(value).replace(tzinfo=dt.timezone.utc))
+
+        @field_validator('field2', mode='before')
+        def validate_field2(cls, value: str) -> dt.datetime:
+            return dt.datetime.fromisoformat(value).replace(tzinfo=dt.timezone.utc)
+
+        @field_validator('field3', mode='after')
+        def validate_field3(cls, value: dt.datetime) -> dt.datetime:
+            return value.replace(tzinfo=dt.timezone.utc)
+
+    xml = '''
+    <model>
+        <field1>2023-02-04T00:00:00</field1>
+        <field2>2023-02-04T00:00:00</field2>
+        <field3>2023-02-04T00:00:00</field3>
+    </model>
+    '''
+
+    actual_obj = TestModel.from_xml(xml)
+
+    expected_obj = TestModel.model_construct(
+        field1=dt.datetime(2023, 2, 4, tzinfo=dt.timezone.utc),
+        field2=dt.datetime(2023, 2, 4, tzinfo=dt.timezone.utc),
+        field3=dt.datetime(2023, 2, 4, tzinfo=dt.timezone.utc),
+    )
+
+    assert actual_obj == expected_obj
+
+
+def test_model_validator():
+    class TestModel(BaseXmlModel, tag='model'):
+        field1: dt.datetime = element()
+
+        @model_validator(mode='before')
+        def validate_model_before(cls, data: Dict[str, Any]) -> 'TestModel':
+            return {
+                'field1': dt.datetime.strptime(data['field1'], '%Y-%m-%d'),
+            }
+
+        @model_validator(mode='after')
+        def validate_model_after(cls, obj: 'TestModel') -> 'TestModel':
+            obj.field1 = obj.field1.replace(tzinfo=dt.timezone.utc)
+            return obj
+
+        @model_validator(mode='wrap')
+        def validate_model_wrap(cls, obj: 'TestModel', handler: Callable) -> 'TestModel':
+            return handler(obj)
+
+    xml = '''
+    <model>
+        <field1>2023-02-04</field1>
+    </model>
+    '''
+
+    actual_obj = TestModel.from_xml(xml)
+
+    expected_obj = TestModel.model_construct(
+        field1=dt.datetime(2023, 2, 4, tzinfo=dt.timezone.utc),
     )
 
     assert actual_obj == expected_obj

@@ -97,7 +97,8 @@ class AttributeSerializer(Serializer):
     def deserialize(
             self,
             element: Optional[XmlElementReader],
-            *, context: Optional[Dict[str, Any]],
+            *,
+            context: Optional[Dict[str, Any]],
     ) -> Optional[str]:
         if self._computed:
             return None
