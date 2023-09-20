@@ -221,16 +221,18 @@ class XmlElement(XmlElementReader, XmlElementWriter, Generic[NativeElement]):
     NativeElementInner = TypeVar('NativeElementInner')
 
     class State(Generic[NativeElementInner]):
-        __slots__ = ('text', 'attrib', 'elements', 'next_element_idx')
+        __slots__ = ('text', 'tail', 'attrib', 'elements', 'next_element_idx')
 
         def __init__(
                 self,
                 text: Optional[str],
+                tail: Optional[str],
                 attrib: Optional[Dict[str, str]],
                 elements: List['XmlElement[XmlElement.NativeElementInner]'],
                 next_element_idx: int,
         ):
             self.text = text
+            self.tail = tail
             self.attrib = attrib
             self.elements = elements
             self.next_element_idx = next_element_idx
@@ -259,6 +261,7 @@ class XmlElement(XmlElementReader, XmlElementWriter, Generic[NativeElement]):
             self,
             tag: str,
             text: Optional[str] = None,
+            tail: Optional[str] = None,
             attributes: Optional[Dict[str, str]] = None,
             elements: Optional[List['XmlElement[NativeElement]']] = None,
             nsmap: Optional[NsMap] = None,
@@ -267,6 +270,7 @@ class XmlElement(XmlElementReader, XmlElementWriter, Generic[NativeElement]):
         self._nsmap = nsmap
         self._state = XmlElement.State(
             text=text,
+            tail=tail,
             attrib=dict(attributes) if attributes is not None else None,
             elements=elements or [],
             next_element_idx=0,
