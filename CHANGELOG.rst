@@ -1,6 +1,12 @@
 Changelog
 =========
 
+2.2.3 (2023-09-20)
+------------------
+
+- raw element missing tail bug fixed. See https://github.com/dapper91/pydantic-xml/issues/118.
+
+
 2.2.2 (2023-09-15)
 ------------------
 
