@@ -221,16 +221,18 @@ class XmlElement(XmlElementReader, XmlElementWriter, Generic[NativeElement]):
     NativeElementInner = TypeVar('NativeElementInner')
 
     class State(Generic[NativeElementInner]):
-        __slots__ = ('text', 'attrib', 'elements', 'next_element_idx')
+        __slots__ = ('text', 'tail', 'attrib', 'elements', 'next_element_idx')
 
         def __init__(
                 self,
                 text: Optional[str],
+                tail: Optional[str],
                 attrib: Optional[Dict[str, str]],
                 elements: List['XmlElement[XmlElement.NativeElementInner]'],
                 next_element_idx: int,
         ):
             self.text = text
+            self.tail = tail
             self.attrib = attrib
             self.elements = elements
             self.next_element_idx = next_element_idx
@@ -259,6 +261,7 @@ class XmlElement(XmlElementReader, XmlElementWriter, Generic[NativeElement]):
             self,
             tag: str,
             text: Optional[str] = None,
+            tail: Optional[str] = None,
             attributes: Optional[Dict[str, str]] = None,
             elements: Optional[List['XmlElement[NativeElement]']] = None,
             nsmap: Optional[NsMap] = None,
@@ -267,6 +270,7 @@ class XmlElement(XmlElementReader, XmlElementWriter, Generic[NativeElement]):
         self._nsmap = nsmap
         self._state = XmlElement.State(
             text=text,
+            tail=tail,
             attrib=dict(attributes) if attributes is not None else None,
             elements=elements or [],
             next_element_idx=0,
@@ -280,6 +284,7 @@ class XmlElement(XmlElementReader, XmlElementWriter, Generic[NativeElement]):
         element = self.__class__(
             tag=self._tag,
             text=self._state.text,
+            tail=self._state.tail,
             attributes=dict(self._state.attrib) if self._state.attrib is not None else None,
             elements=[element.create_snapshot() for element in self._state.elements],
             nsmap=dict(self._nsmap) if self._nsmap is not None else None,
@@ -292,12 +297,13 @@ class XmlElement(XmlElementReader, XmlElementWriter, Generic[NativeElement]):
         self._tag = snapshot._tag
         self._nsmap = snapshot._nsmap
         self._state.text = snapshot._state.text
+        self._state.tail = snapshot._state.tail
         self._state.attrib = snapshot._state.attrib
         self._state.elements = snapshot._state.elements
         self._state.next_element_idx = snapshot._state.next_element_idx
 
     def is_empty(self) -> bool:
-        if not self._state.text and not self._state.attrib and len(self._state.elements) == 0:
+        if not self._state.text and not self._state.tail and not self._state.attrib and len(self._state.elements) == 0:
             return True
         else:
             return False
@@ -378,6 +384,9 @@ class XmlElement(XmlElementReader, XmlElementWriter, Generic[NativeElement]):
 
         if self._state.text and (text := self._state.text.strip()):
             result.append((path, text))
+
+        if self._state.tail and (tail := self._state.tail.strip()):
+            result.append((path, tail))
 
         if attrs := self._state.attrib:
             for name, value in attrs.items():
