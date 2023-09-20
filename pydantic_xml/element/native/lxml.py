@@ -20,6 +20,7 @@ class XmlElement(BaseXmlElement[ElementT]):
         return cls(
             tag=element.tag,
             text=element.text,
+            tail=element.tail,
             attributes={
                 force_str(name): force_str(value)  # transformation is safe since lxml bytes values are ASCII compatible
                 for name, value in element.attrib.items()
@@ -39,6 +40,7 @@ class XmlElement(BaseXmlElement[ElementT]):
             nsmap={ns or None: uri for ns, uri in self._nsmap.items()} if self._nsmap else None,  # type: ignore[misc]
         )
         element.text = self._state.text
+        element.tail = self._state.tail
         element.extend([element.to_native() for element in self._state.elements])
 
         return element
