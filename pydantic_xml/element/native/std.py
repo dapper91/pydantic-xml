@@ -19,6 +19,7 @@ class XmlElement(BaseXmlElement[ElementT]):
         return cls(
             tag=element.tag,
             text=element.text,
+            tail=element.tail,
             attributes=dict(element.attrib),
             elements=[
                 XmlElement.from_native(sub_element)
@@ -30,6 +31,7 @@ class XmlElement(BaseXmlElement[ElementT]):
     def to_native(self) -> ElementT:
         element = etree.Element(self._tag, attrib=self._state.attrib or {})
         element.text = self._state.text
+        element.tail = self._state.tail
         element.extend([element.to_native() for element in self._state.elements])
 
         return element

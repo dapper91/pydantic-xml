@@ -14,9 +14,7 @@ def test_raw_primitive_element_serialization():
     xml = '''
     <model>
         <element1 attr1="1">text</element1>
-        <element2>
-            <sub-element1 />
-        </element2>
+        <element2><sub-element1 />tail</element2>
     </model>
     '''
 
@@ -29,12 +27,15 @@ def test_raw_primitive_element_serialization():
     sub_elements = list(actual_obj.element2)
     assert len(sub_elements) == 1
     assert sub_elements[0].tag == 'sub-element1'
+    assert sub_elements[0].tail == 'tail'
 
     element1 = etree.Element('element1', attr1='1')
     element1.text = 'text'
 
     element2 = etree.Element('element2')
-    element2.append(etree.Element('sub-element1'))
+    sub_element = etree.Element('sub-element1')
+    sub_element.tail = 'tail'
+    element2.append(sub_element)
 
     actual_obj = TestModel(element1=element1, element2=element2)
     actual_xml = actual_obj.to_xml()
