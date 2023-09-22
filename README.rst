@@ -61,7 +61,7 @@ The following model fields binding:
    class Company(BaseXmlModel):
        trade_name: str = attr(name='trade-name')  # extracted from the 'trade-name' attribute
        website: HttpUrl = element()  # extracted from the 'website' element text
-       products: List[Product] = element(tag='product', default=[])  # extracted from the 'website' element
+       products: List[Product] = element(tag='product', default=[])  # extracted from the 'Company' element's children
 
 defines the XML document:
 
