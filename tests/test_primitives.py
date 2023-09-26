@@ -193,3 +193,27 @@ def test_root_model_element_extraction():
 
     actual_xml = actual_obj.to_xml()
     assert_xml_equal(actual_xml, xml)
+
+
+def test_root_model_default():
+    class TestRootModel(RootXmlModel, tag='sub'):
+        root: int = 1
+
+    class TestModel(BaseXmlModel, tag='model'):
+        sub: TestRootModel
+
+    xml = '''
+    <model><sub></sub></model>
+    '''
+
+    actual_obj = TestModel.from_xml(xml)
+    expected_obj = TestModel(sub=TestRootModel(1))
+
+    assert actual_obj == expected_obj
+
+    actual_xml = actual_obj.to_xml()
+
+    expected_xml = '''
+    <model><sub>1</sub></model>
+    '''
+    assert_xml_equal(actual_xml, expected_xml)

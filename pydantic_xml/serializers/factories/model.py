@@ -267,7 +267,8 @@ class RootModelSerializer(BaseModelSerializer):
         if element is None:
             return None
 
-        result = self._root_serializer.deserialize(element, context=context)
+        if (result := self._root_serializer.deserialize(element, context=context)) is None:
+            result = pdc.PydanticUndefined
 
         if self._model.model_config.get('extra', 'ignore') == 'forbid':
             self._check_extra(self._model.__name__, element)
