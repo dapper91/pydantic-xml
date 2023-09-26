@@ -7,12 +7,19 @@ ___________
 To declare a field that can be of one type or anther :py:obj:`typing.Union` is used.
 It works for primitive types and models as well but not combined together.
 
+The type declaration order matters.
+Currently, `pydantic` has two validation modes:
+
+- 'left_to_right', where the first successful validation is accepted,
+- 'smart' (default), the first type that matches (without coercion) wins.
+
+You can read more about it in the
+`pydantic docs <https://docs.pydantic.dev/latest/api/standard_library_types/#union>`_.
 
 Primitive types
 ***************
 
-Union can be applied to text, attributes or elements. The type declaration order matters
-since the first type matched wins.
+Union can be applied to text, attributes or elements.
 
 .. grid:: 2
     :gutter: 2
@@ -48,9 +55,7 @@ since the first type matched wins.
 Model types
 ***********
 
-Union can be applied to model types either. The type declaration order matters
-since the first model matched wins.
-
+Union can be applied to model types either.
 
 .. grid:: 2
     :gutter: 2
