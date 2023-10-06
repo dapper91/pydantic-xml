@@ -1,6 +1,13 @@
 Changelog
 =========
 
+2.2.4 (2023-10-06)
+------------------
+
+- root model default value bug fixed.
+- python 3.12 support added.
+
+
 2.2.3 (2023-09-20)
 ------------------
 
