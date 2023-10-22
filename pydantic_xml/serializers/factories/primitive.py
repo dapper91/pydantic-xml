@@ -4,7 +4,7 @@ from pydantic_core import core_schema as pcs
 
 from pydantic_xml import errors
 from pydantic_xml.element import XmlElementReader, XmlElementWriter
-from pydantic_xml.serializers.serializer import SearchMode, Serializer
+from pydantic_xml.serializers.serializer import SearchMode, Serializer, encode_primitive
 from pydantic_xml.typedefs import EntityLocation, NsMap
 from pydantic_xml.utils import QName, merge_nsmaps
 
@@ -44,7 +44,7 @@ class TextSerializer(Serializer):
         if value is None and skip_empty:
             return element
 
-        element.set_text(str(encoded))
+        element.set_text(encode_primitive(encoded))
         return element
 
     def deserialize(
@@ -90,7 +90,7 @@ class AttributeSerializer(Serializer):
         if value is None and skip_empty:
             return element
 
-        element.set_attribute(self._attr_name, str(encoded))
+        element.set_attribute(self._attr_name, encode_primitive(encoded))
 
         return element
 

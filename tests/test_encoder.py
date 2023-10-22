@@ -39,7 +39,7 @@ def test_primitive_types_encoding():
     <model>
         <field1>1</field1>
         <field2>1.1</field2>
-        <field3>True</field3>
+        <field3>true</field3>
         <field4>3.14</field4>
         <field5>2023-02-04T12:01:02</field5>
         <field6>2023-02-04</field6>

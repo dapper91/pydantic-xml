@@ -15,6 +15,13 @@ from pydantic_xml.typedefs import EntityLocation, NsMap
 from . import factories
 
 
+def encode_primitive(value: Any) -> str:
+    if isinstance(value, bool):
+        return str(value).lower()
+    else:
+        return str(value)
+
+
 class SchemaTypeFamily(IntEnum):
     META = 0
     PRIMITIVE = 1
