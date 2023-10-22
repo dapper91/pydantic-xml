@@ -1,6 +1,13 @@
 Changelog
 =========
 
+2.3.0 (2023-10-22)
+------------------
+
+- bool type encoding format changed from 'True' to 'true'. See https://github.com/dapper91/pydantic-xml/issues/126.
+- None type encoding format changed from 'None' to ''.
+
+
 2.2.4 (2023-10-06)
 ------------------
 
