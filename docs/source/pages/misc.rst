@@ -46,10 +46,8 @@ None type encoding
 __________________
 
 Since xml format doesn't support ``null`` type natively it is not obvious how to encode ``None`` fields
-(ignore it, encode it as an empty string or mark it as ``xsi:nil``) the library doesn't implement
-``None`` type encoding by default.
-
-You can define your own encoding format:
+(ignore it, encode it as an empty string or mark it as ``xsi:nil``). The library encodes ``None`` typed fields
+as empty strings by default but you can define your own encoding format:
 
 .. literalinclude:: ../../../examples/snippets/py3.9/serialization.py
   :language: python
