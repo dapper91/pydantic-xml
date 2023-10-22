@@ -75,7 +75,7 @@ def test_model_level_skip_empty_enable():
     xml = '''
     <model>
         <submodel></submodel>
-        <element1>None</element1>
+        <element1></element1>
     </model>
     '''
 
@@ -104,7 +104,7 @@ def test_model_level_skip_empty_disable():
 
     xml = '''
     <model>
-        <submodel attr1="None">None<element1>None</element1></submodel>
+        <submodel attr1=""><element1></element1></submodel>
     </model>
     '''
 
