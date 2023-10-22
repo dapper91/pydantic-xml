@@ -16,7 +16,9 @@ from . import factories
 
 
 def encode_primitive(value: Any) -> str:
-    if isinstance(value, bool):
+    if value is None:
+        return ''
+    elif isinstance(value, bool):
         return str(value).lower()
     else:
         return str(value)
