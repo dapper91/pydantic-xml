@@ -11,6 +11,7 @@ from pydantic_core import core_schema as pcs
 from pydantic_xml.element import SearchMode, XmlElementReader, XmlElementWriter
 from pydantic_xml.errors import ModelError
 from pydantic_xml.typedefs import EntityLocation, NsMap
+from pydantic_xml.utils import select_ns
 
 from . import factories
 
@@ -143,7 +144,8 @@ class Serializer(abc.ABC):
         @cached_property
         def parent_ns(self) -> Optional[str]:
             if parent_ctx := self.parent_ctx:
-                return parent_ctx.entity_ns or parent_ctx.parent_ns
+                ns = select_ns(parent_ctx.entity_ns, parent_ctx.parent_ns)
+                return ns
 
             return None
 

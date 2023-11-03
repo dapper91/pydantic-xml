@@ -6,14 +6,14 @@ from pydantic_xml import errors
 from pydantic_xml.element import XmlElementReader, XmlElementWriter
 from pydantic_xml.serializers.serializer import SearchMode, Serializer
 from pydantic_xml.typedefs import EntityLocation, NsMap
-from pydantic_xml.utils import QName, merge_nsmaps
+from pydantic_xml.utils import QName, merge_nsmaps, select_ns
 
 
 class ElementSerializer(Serializer):
     @classmethod
     def from_core_schema(cls, schema: pcs.IsInstanceSchema, ctx: Serializer.Context) -> 'ElementSerializer':
         name = ctx.entity_path or ctx.field_alias or ctx.field_name
-        ns = ctx.entity_ns or ctx.parent_ns
+        ns = select_ns(ctx.entity_ns, ctx.parent_ns)
         nsmap = merge_nsmaps(ctx.entity_nsmap, ctx.parent_nsmap)
         search_mode = ctx.search_mode
         computed = ctx.field_computed
