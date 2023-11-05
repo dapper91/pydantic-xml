@@ -42,7 +42,7 @@ def test_default_namespaces():
 @pytest.mark.skipif(not is_lxml_native(), reason='not lxml used')
 def test_lxml_default_namespace_serialisation():
     class TestSubModel(BaseXmlModel, tag='submodel', ns='', nsmap={'': 'http://test3.org', 'tst': 'http://test4.org'}):
-        attr1: int = attr(ns='')
+        attr1: int = attr()
         attr2: int = attr(ns='tst')
         element1: str = element(ns='')
 

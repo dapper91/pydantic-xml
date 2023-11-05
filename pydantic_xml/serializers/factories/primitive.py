@@ -68,9 +68,11 @@ class AttributeSerializer(Serializer):
         namespaced_attrs = ctx.namespaced_attrs
         name = ctx.entity_path or ctx.field_alias or ctx.field_name
         ns = select_ns(ctx.entity_ns, ctx.parent_ns if namespaced_attrs else None)
-        nsmap = cls._merge_attr_nsmaps(ctx.entity_nsmap, ctx.parent_nsmap)
+        nsmap = merge_nsmaps(ctx.entity_nsmap, ctx.parent_nsmap)
         computed = ctx.field_computed
 
+        if ns == '':
+            raise errors.ModelFieldError(ctx.model_name, ctx.field_name, "attributes with default namespace are forbidden")
         if name is None:
             raise errors.ModelFieldError(ctx.model_name, ctx.field_name, "entity name is not provided")
 
@@ -107,12 +109,6 @@ class AttributeSerializer(Serializer):
             return None
 
         return element.pop_attrib(self._attr_name)
-
-    @staticmethod
-    def _merge_attr_nsmaps(*maps: Optional[NsMap]) -> NsMap:
-        nsmap = merge_nsmaps(*maps)
-        nsmap.pop('', None)
-        return nsmap
 
 
 class ElementSerializer(TextSerializer):
