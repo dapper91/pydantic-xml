@@ -6,7 +6,7 @@ from pydantic_xml import errors
 from pydantic_xml.element import XmlElementReader, XmlElementWriter
 from pydantic_xml.serializers.serializer import SearchMode, Serializer, encode_primitive
 from pydantic_xml.typedefs import EntityLocation, NsMap
-from pydantic_xml.utils import QName, merge_nsmaps
+from pydantic_xml.utils import QName, merge_nsmaps, select_ns
 
 PrimitiveTypeSchema = Union[
     pcs.NoneSchema,
@@ -67,10 +67,16 @@ class AttributeSerializer(Serializer):
     def from_core_schema(cls, schema: PrimitiveTypeSchema, ctx: Serializer.Context) -> 'AttributeSerializer':
         namespaced_attrs = ctx.namespaced_attrs
         name = ctx.entity_path or ctx.field_alias or ctx.field_name
-        ns = ctx.entity_ns or (ctx.parent_ns if namespaced_attrs else None)
+        ns = select_ns(ctx.entity_ns, ctx.parent_ns if namespaced_attrs else None)
         nsmap = merge_nsmaps(ctx.entity_nsmap, ctx.parent_nsmap)
         computed = ctx.field_computed
 
+        if ns == '':
+            raise errors.ModelFieldError(
+                ctx.model_name,
+                ctx.field_name,
+                "attributes with default namespace are forbidden",
+            )
         if name is None:
             raise errors.ModelFieldError(ctx.model_name, ctx.field_name, "entity name is not provided")
 
@@ -113,7 +119,7 @@ class ElementSerializer(TextSerializer):
     @classmethod
     def from_core_schema(cls, schema: PrimitiveTypeSchema, ctx: Serializer.Context) -> 'ElementSerializer':
         name = ctx.entity_path or ctx.field_alias or ctx.field_name
-        ns = ctx.entity_ns or ctx.parent_ns
+        ns = select_ns(ctx.entity_ns, ctx.parent_ns)
         nsmap = merge_nsmaps(ctx.entity_nsmap, ctx.parent_nsmap)
         search_mode = ctx.search_mode
         computed = ctx.field_computed
