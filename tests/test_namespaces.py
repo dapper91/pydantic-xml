@@ -42,7 +42,7 @@ def test_default_namespaces():
 @pytest.mark.skipif(not is_lxml_native(), reason='not lxml used')
 def test_lxml_default_namespace_serialisation():
     class TestSubModel(BaseXmlModel, tag='submodel', ns='', nsmap={'': 'http://test3.org', 'tst': 'http://test4.org'}):
-        attr1: int = attr(ns='')
+        attr1: int = attr()
         attr2: int = attr(ns='tst')
         element1: str = element(ns='')
 
@@ -357,3 +357,31 @@ def test_model_inheritance_params_redefinition():
 
     actual_xml = actual_obj.to_xml()
     assert_xml_equal(actual_xml, xml1)
+
+
+def test_submodel_namespaces_default_namespace_inheritance():
+    class TestSubModel(BaseXmlModel, tag='submodel', ns='', nsmap={'': 'http://test2.org'}):
+        attr1: int = attr()
+        attr2: int = attr()
+        element1: str = element()
+
+    class TestModel(BaseXmlModel, tag='model', ns='tst', nsmap={'tst': 'http://test1.org'}):
+        submodel: TestSubModel
+
+    xml = '''
+    <tst:model xmlns:tst="http://test1.org">
+        <submodel xmlns="http://test2.org" attr1="1" attr2="2">
+            <element1>value</element1>
+        </submodel>
+    </tst:model>
+    '''
+
+    actual_obj = TestModel.from_xml(xml)
+    expected_obj = TestModel(
+        submodel=TestSubModel(element1='value', attr1=1, attr2=2),
+    )
+
+    assert actual_obj == expected_obj
+
+    actual_xml = actual_obj.to_xml()
+    assert_xml_equal(actual_xml, xml)

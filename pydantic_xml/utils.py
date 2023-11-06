@@ -84,3 +84,11 @@ def register_nsmap(nsmap: NsMap) -> None:
 
 def get_slots(o: object) -> Iterable[str]:
     return it.chain.from_iterable(getattr(cls, '__slots__', []) for cls in o.__class__.__mro__)
+
+
+def select_ns(*nss: Optional[str]) -> Optional[str]:
+    for ns in nss:
+        if ns is not None:
+            return ns
+
+    return None

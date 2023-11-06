@@ -11,7 +11,7 @@ from pydantic_xml import errors
 from pydantic_xml.element import XmlElementReader, XmlElementWriter
 from pydantic_xml.serializers.serializer import SearchMode, Serializer, XmlEntityInfoP
 from pydantic_xml.typedefs import EntityLocation, NsMap
-from pydantic_xml.utils import QName, merge_nsmaps
+from pydantic_xml.utils import QName, merge_nsmaps, select_ns
 
 
 class BaseModelSerializer(Serializer, abc.ABC):
@@ -283,7 +283,7 @@ class ModelProxySerializer(BaseModelSerializer):
         assert issubclass(model_cls, pxml.BaseXmlModel), "unexpected model type"
 
         name = ctx.entity_path or model_cls.__xml_tag__ or ctx.field_alias or ctx.field_name or model_cls.__name__
-        ns = ctx.entity_ns or model_cls.__xml_ns__ or ctx.parent_ns
+        ns = select_ns(ctx.entity_ns, model_cls.__xml_ns__, ctx.parent_ns)
         nsmap = merge_nsmaps(ctx.entity_nsmap, model_cls.__xml_nsmap__, ctx.parent_nsmap)
         search_mode = ctx.search_mode
         computed = ctx.field_computed

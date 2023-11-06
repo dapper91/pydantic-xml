@@ -1,6 +1,13 @@
 Changelog
 =========
 
+
+2.4.0 (2023-11-06)
+------------------
+
+- attributes with default namespace bug fixed. See https://github.com/dapper91/pydantic-xml/issues/137.
+
+
 2.3.0 (2023-10-22)
 ------------------
 

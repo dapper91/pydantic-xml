@@ -5,14 +5,14 @@ from pydantic_core import core_schema as pcs
 from pydantic_xml.element import XmlElementReader, XmlElementWriter
 from pydantic_xml.serializers.serializer import SearchMode, Serializer
 from pydantic_xml.typedefs import NsMap
-from pydantic_xml.utils import QName, merge_nsmaps
+from pydantic_xml.utils import QName, merge_nsmaps, select_ns
 
 
 class ElementPathSerializer(Serializer):
     @classmethod
     def from_core_schema(cls, schema: pcs.CoreSchema, ctx: Serializer.Context) -> 'ElementPathSerializer':
         path = ctx.entity_path
-        ns = ctx.entity_ns or ctx.parent_ns
+        ns = select_ns(ctx.entity_ns, ctx.parent_ns)
         nsmap = merge_nsmaps(ctx.entity_nsmap, ctx.parent_nsmap)
         search_mode = ctx.search_mode
         computed = ctx.field_computed
