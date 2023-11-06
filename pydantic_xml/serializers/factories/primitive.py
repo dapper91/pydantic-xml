@@ -72,7 +72,11 @@ class AttributeSerializer(Serializer):
         computed = ctx.field_computed
 
         if ns == '':
-            raise errors.ModelFieldError(ctx.model_name, ctx.field_name, "attributes with default namespace are forbidden")
+            raise errors.ModelFieldError(
+                ctx.model_name,
+                ctx.field_name,
+                "attributes with default namespace are forbidden",
+            )
         if name is None:
             raise errors.ModelFieldError(ctx.model_name, ctx.field_name, "entity name is not provided")
 
