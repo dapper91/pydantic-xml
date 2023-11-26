@@ -75,12 +75,17 @@ def from_core_schema(schema: HomogeneousCollectionTypeSchema, ctx: Serializer.Co
         SchemaTypeFamily.TYPED_MAPPING,
         SchemaTypeFamily.UNION,
         SchemaTypeFamily.IS_INSTANCE,
+        SchemaTypeFamily.HETEROGENEOUS_COLLECTION,
     ):
         raise errors.ModelFieldError(
             ctx.model_name, ctx.field_name, "collection item must be of primitive, model, mapping or union type",
         )
 
-    if items_type_family not in (SchemaTypeFamily.MODEL, SchemaTypeFamily.UNION) and ctx.entity_location is None:
+    if items_type_family not in (
+            SchemaTypeFamily.MODEL,
+            SchemaTypeFamily.UNION,
+            SchemaTypeFamily.HETEROGENEOUS_COLLECTION,
+    ) and ctx.entity_location is None:
         raise errors.ModelFieldError(ctx.model_name, ctx.field_name, "entity name is not provided")
 
     if ctx.entity_location is EntityLocation.ELEMENT:
