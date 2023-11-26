@@ -120,3 +120,73 @@ Field of a mapping homogeneous collection type is bound to sub-elements attribut
                     :lines: 2-
                     :start-after: json-start
                     :end-before: json-end
+
+
+Adjacent sub-elements
+*********************
+
+Some xml documents contain a list of adjacent elements related to each other.
+To group such elements a homogeneous collection of heterogeneous ones may be used:
+
+.. grid:: 2
+    :gutter: 2
+
+    .. grid-item-card:: Model
+
+        .. literalinclude:: ../../../../examples/snippets/homogeneous_tuples.py
+            :language: python
+            :start-after: model-start
+            :end-before: model-end
+
+    .. grid-item-card:: Document
+
+        .. tab-set::
+
+            .. tab-item:: XML
+
+                .. literalinclude:: ../../../../examples/snippets/homogeneous_tuples.py
+                    :language: xml
+                    :lines: 2-
+                    :start-after: xml-start
+                    :end-before: xml-end
+
+            .. tab-item:: JSON
+
+                .. literalinclude:: ../../../../examples/snippets/homogeneous_tuples.py
+                    :language: json
+                    :lines: 2-
+                    :start-after: json-start
+                    :end-before: json-end
+
+
+To group sub-elements with different tags it is necessary to declare a sub-model for each one:
+
+.. grid:: 2
+    :gutter: 2
+
+    .. grid-item-card:: Model
+
+        .. literalinclude:: ../../../../examples/snippets/homogeneous_models_tuples.py
+            :language: python
+            :start-after: model-start
+            :end-before: model-end
+
+    .. grid-item-card:: Document
+
+        .. tab-set::
+
+            .. tab-item:: XML
+
+                .. literalinclude:: ../../../../examples/snippets/homogeneous_models_tuples.py
+                    :language: xml
+                    :lines: 2-
+                    :start-after: xml-start
+                    :end-before: xml-end
+
+            .. tab-item:: JSON
+
+                .. literalinclude:: ../../../../examples/snippets/homogeneous_models_tuples.py
+                    :language: json
+                    :lines: 2-
+                    :start-after: json-start
+                    :end-before: json-end

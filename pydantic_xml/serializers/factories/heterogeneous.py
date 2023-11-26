@@ -51,10 +51,14 @@ class ElementSerializer(Serializer):
         if element is None:
             return None
 
-        return [
+        result = [
             serializer.deserialize(element, context=context)
             for serializer in self._inner_serializers
         ]
+        if all((value is None for value in result)):
+            return None
+        else:
+            return result
 
 
 def from_core_schema(schema: pcs.TuplePositionalSchema, ctx: Serializer.Context) -> Serializer:
