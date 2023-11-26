@@ -1,4 +1,4 @@
-from typing import Dict, List, Set, Tuple
+from typing import Dict, List, Optional, Set, Tuple
 
 import pytest
 from helpers import assert_xml_equal
@@ -112,6 +112,71 @@ def test_list_of_dicts_extraction():
             {'attr1': 1, 'attr2': 2},
             {'attr3': 3},
             {},
+        ],
+    )
+
+    assert actual_obj == expected_obj
+
+    actual_xml = actual_obj.to_xml()
+    assert_xml_equal(actual_xml, xml)
+
+
+def test_list_of_tuples_extraction():
+    class RootModel(BaseXmlModel, tag='model'):
+        elements: List[Tuple[str, Optional[int]]] = element(tag='element')
+
+    xml = '''
+    <model>
+        <element>text1</element>
+        <element>1</element>
+        <element>text2</element>
+        <element></element>
+        <element>text3</element>
+        <element>3</element>
+    </model>
+    '''
+
+    actual_obj = RootModel.from_xml(xml)
+    expected_obj = RootModel(
+        elements=[
+            ('text1', 1),
+            ('text2', None),
+            ('text3', 3),
+        ],
+    )
+
+    assert actual_obj == expected_obj
+
+    actual_xml = actual_obj.to_xml()
+    assert_xml_equal(actual_xml, xml)
+
+
+def test_list_of_tuples_of_models_extraction():
+    class SubModel1(RootXmlModel[str], tag='text'):
+        pass
+
+    class SubModel2(RootXmlModel[int], tag='number'):
+        pass
+
+    class RootModel(BaseXmlModel, tag='model'):
+        elements: List[Tuple[SubModel1, Optional[SubModel2]]]
+
+    xml = '''
+    <model>
+        <text>text1</text>
+        <number>1</number>
+        <text>text2</text>
+        <text>text3</text>
+        <number>3</number>
+    </model>
+    '''
+
+    actual_obj = RootModel.from_xml(xml)
+    expected_obj = RootModel(
+        elements=[
+            (SubModel1('text1'), SubModel2(1)),
+            (SubModel1('text2'), None),
+            (SubModel1('text3'), SubModel2(3)),
         ],
     )
 

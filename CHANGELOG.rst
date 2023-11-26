@@ -2,6 +2,12 @@ Changelog
 =========
 
 
+2.5.0 (2023-11-26)
+------------------
+
+- adjacent sub-elements support added. See https://github.com/dapper91/pydantic-xml/pull/143.
+
+
 2.4.0 (2023-11-06)
 ------------------
 
