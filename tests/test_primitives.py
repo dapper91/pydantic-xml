@@ -1,5 +1,5 @@
 import datetime as dt
-from typing import Generic, TypeVar
+from typing import Generic, Optional, TypeVar
 
 from helpers import assert_xml_equal
 
@@ -52,6 +52,37 @@ def test_attrs_and_elements_extraction():
 
     actual_xml = actual_obj.to_xml()
     assert_xml_equal(actual_xml, xml)
+
+
+def test_nillable_element_extraction():
+    class TestModel(BaseXmlModel, tag='model'):
+        element1: Optional[int] = element(default=None, nillable=True)
+        element2: Optional[int] = element(default=None, nillable=True)
+        element3: Optional[int] = element(default=None, nillable=True)
+
+    src_xml = '''
+    <model>
+        <element1 xsi:nil="true" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" />
+        <element2 xsi:nil="false" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">2</element2>
+        <element3>3</element3>
+    </model>
+    '''
+
+    actual_obj = TestModel.from_xml(src_xml)
+    expected_obj = TestModel(element1=None, element2=2, element3=3)
+
+    assert actual_obj == expected_obj
+
+    actual_xml = actual_obj.to_xml()
+    expected_xml = '''
+    <model>
+        <element1 xsi:nil="true" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" />
+        <element2>2</element2>
+        <element3>3</element3>
+    </model>
+    '''
+
+    assert_xml_equal(actual_xml, expected_xml)
 
 
 def test_model_inheritance():
@@ -188,6 +219,25 @@ def test_root_model_element_extraction():
 
     actual_obj = TestModel.from_xml(xml)
     expected_obj = TestModel(1)
+
+    assert actual_obj == expected_obj
+
+    actual_xml = actual_obj.to_xml()
+    assert_xml_equal(actual_xml, xml)
+
+
+def test_root_model_nillable_element_extraction():
+    class TestModel(RootXmlModel, tag='model'):
+        root: Optional[int] = element(tag="element1", default=None, nillable=True)
+
+    xml = '''
+    <model>
+        <element1 xsi:nil="true" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" />
+    </model>
+    '''
+
+    actual_obj = TestModel.from_xml(xml)
+    expected_obj = TestModel()
 
     assert actual_obj == expected_obj
 

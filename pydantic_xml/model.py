@@ -32,12 +32,13 @@ class ComputedXmlEntityInfo(pd.fields.ComputedFieldInfo):
     Computed field xml meta-information.
     """
 
-    __slots__ = ('location', 'path', 'ns', 'nsmap', 'wrapped')
+    __slots__ = ('location', 'path', 'ns', 'nsmap', 'nillable', 'wrapped')
 
     location: Optional[EntityLocation]
     path: Optional[str]
     ns: Optional[str]
     nsmap: Optional[NsMap]
+    nillable: bool
     wrapped: Optional[XmlEntityInfoP]  # to be compliant with XmlEntityInfoP protocol
 
     def __post_init__(self) -> None:
@@ -57,6 +58,7 @@ def computed_entity(
         path = kwargs.pop('path', None)
         ns = kwargs.pop('ns', None)
         nsmap = kwargs.pop('nsmap', None)
+        nillable = kwargs.pop('nillable', False)
 
         descriptor_proxy = pd.computed_field(**kwargs)(prop)
         descriptor_proxy.decorator_info = ComputedXmlEntityInfo(
@@ -64,6 +66,7 @@ def computed_entity(
             path=path,
             ns=ns,
             nsmap=nsmap,
+            nillable=nillable,
             wrapped=None,
             **dc.asdict(descriptor_proxy.decorator_info),
         )
@@ -101,6 +104,7 @@ def computed_element(
         tag: Optional[str] = None,
         ns: Optional[str] = None,
         nsmap: Optional[NsMap] = None,
+        nillable: bool = False,
         **kwargs: Any,
 ) -> Union[PropertyT, Callable[[PropertyT], PropertyT]]:
     """
@@ -110,10 +114,11 @@ def computed_element(
     :param tag: element tag
     :param ns: element xml namespace
     :param nsmap: element xml namespace map
+    :param nillable: is element nillable. See https://www.w3.org/TR/xmlschema-1/#xsi_nil.
     :param kwargs: pydantic computed field arguments. See :py:class:`pydantic.computed_field`
     """
 
-    return computed_entity(EntityLocation.ELEMENT, prop, path=tag, ns=ns, nsmap=nsmap, **kwargs)
+    return computed_entity(EntityLocation.ELEMENT, prop, path=tag, ns=ns, nsmap=nsmap, nillable=nillable, **kwargs)
 
 
 class XmlEntityInfo(pd.fields.FieldInfo):
@@ -121,7 +126,7 @@ class XmlEntityInfo(pd.fields.FieldInfo):
     Field xml meta-information.
     """
 
-    __slots__ = ('location', 'path', 'ns', 'nsmap', 'wrapped')
+    __slots__ = ('location', 'path', 'ns', 'nsmap', 'nillable', 'wrapped')
 
     def __init__(
             self,
@@ -130,6 +135,7 @@ class XmlEntityInfo(pd.fields.FieldInfo):
             path: Optional[str] = None,
             ns: Optional[str] = None,
             nsmap: Optional[NsMap] = None,
+            nillable: bool = False,
             wrapped: Optional[pd.fields.FieldInfo] = None,
             **kwargs: Any,
     ):
@@ -149,6 +155,7 @@ class XmlEntityInfo(pd.fields.FieldInfo):
         self.path = path
         self.ns = ns
         self.nsmap = nsmap
+        self.nillable = nillable
         self.wrapped: Optional[XmlEntityInfoP] = wrapped if isinstance(wrapped, XmlEntityInfo) else None
 
         if config.REGISTER_NS_PREFIXES and nsmap:
@@ -167,17 +174,24 @@ def attr(name: Optional[str] = None, ns: Optional[str] = None, **kwargs: Any) ->
     return XmlEntityInfo(EntityLocation.ATTRIBUTE, path=name, ns=ns, **kwargs)
 
 
-def element(tag: Optional[str] = None, ns: Optional[str] = None, nsmap: Optional[NsMap] = None, **kwargs: Any) -> Any:
+def element(
+        tag: Optional[str] = None,
+        ns: Optional[str] = None,
+        nsmap: Optional[NsMap] = None,
+        nillable: bool = False,
+        **kwargs: Any,
+) -> Any:
     """
     Marks a pydantic field as an xml element.
 
     :param tag: element tag
     :param ns: element xml namespace
     :param nsmap: element xml namespace map
+    :param nillable: is element nillable. See https://www.w3.org/TR/xmlschema-1/#xsi_nil.
     :param kwargs: pydantic field arguments. See :py:class:`pydantic.Field`
     """
 
-    return XmlEntityInfo(EntityLocation.ELEMENT, path=tag, ns=ns, nsmap=nsmap, **kwargs)
+    return XmlEntityInfo(EntityLocation.ELEMENT, path=tag, ns=ns, nsmap=nsmap, nillable=nillable, **kwargs)
 
 
 def wrapped(

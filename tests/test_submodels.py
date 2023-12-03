@@ -54,6 +54,44 @@ def test_optional_submodel_element_extraction():
     assert_xml_equal(actual_xml, xml)
 
 
+def test_nillable_submodel_element_extraction():
+    class TestSubModel(BaseXmlModel):
+        text: int
+
+    class TestModel(BaseXmlModel, tag='model1'):
+        model2: Optional[TestSubModel] = element(default=None, nillable=True)
+        model3: Optional[TestSubModel] = element(default=None, nillable=True)
+        model4: Optional[TestSubModel] = element(default=None, nillable=True)
+
+    xml = '''
+    <model1>
+        <model2 xsi:nil="true" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" />
+        <model3 xsi:nil="false" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">3</model3>
+        <model4>4</model4>
+    </model1>
+    '''
+
+    actual_obj = TestModel.from_xml(xml)
+    expected_obj = TestModel(
+        model2=None,
+        model3=TestSubModel(text=3),
+        model4=TestSubModel(text=4),
+    )
+
+    assert actual_obj == expected_obj
+
+    actual_xml = actual_obj.to_xml()
+    expected_xml = '''
+    <model1>
+        <model2 xsi:nil="true" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" />
+        <model3>3</model3>
+        <model4>4</model4>
+    </model1>
+    '''
+
+    assert_xml_equal(actual_xml, expected_xml)
+
+
 def test_root_submodel_element_extraction():
     class TestSubModel(RootXmlModel, tag='model2'):
         root: int

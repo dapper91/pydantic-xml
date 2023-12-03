@@ -3,7 +3,7 @@ from typing import Any, Dict, Optional, Union
 from pydantic_core import core_schema as pcs
 
 from pydantic_xml import errors
-from pydantic_xml.element import XmlElementReader, XmlElementWriter
+from pydantic_xml.element import XmlElementReader, XmlElementWriter, is_element_nill, make_element_nill
 from pydantic_xml.serializers.serializer import SearchMode, Serializer, encode_primitive
 from pydantic_xml.typedefs import EntityLocation, NsMap
 from pydantic_xml.utils import QName, merge_nsmaps, select_ns
@@ -32,17 +32,22 @@ class TextSerializer(Serializer):
     @classmethod
     def from_core_schema(cls, schema: PrimitiveTypeSchema, ctx: Serializer.Context) -> 'TextSerializer':
         computed = ctx.field_computed
+        nillable = ctx.nillable
 
-        return cls(computed)
+        return cls(computed, nillable)
 
-    def __init__(self, computed: bool):
+    def __init__(self, computed: bool, nillable: bool):
         self._computed = computed
+        self._nillable = nillable
 
     def serialize(
             self, element: XmlElementWriter, value: Any, encoded: Any, *, skip_empty: bool = False,
     ) -> Optional[XmlElementWriter]:
         if value is None and skip_empty:
             return element
+
+        if self._nillable and value is None:
+            make_element_nill(element)
 
         element.set_text(encode_primitive(encoded))
         return element
@@ -57,6 +62,9 @@ class TextSerializer(Serializer):
             return None
 
         if element is None:
+            return None
+
+        if self._nillable and is_element_nill(element):
             return None
 
         return element.pop_text() or None
@@ -123,14 +131,23 @@ class ElementSerializer(TextSerializer):
         nsmap = merge_nsmaps(ctx.entity_nsmap, ctx.parent_nsmap)
         search_mode = ctx.search_mode
         computed = ctx.field_computed
+        nillable = ctx.nillable
 
         if name is None:
             raise errors.ModelFieldError(ctx.model_name, ctx.field_name, "entity name is not provided")
 
-        return cls(name, ns, nsmap, search_mode, computed)
+        return cls(name, ns, nsmap, search_mode, computed, nillable)
 
-    def __init__(self, name: str, ns: Optional[str], nsmap: Optional[NsMap], search_mode: SearchMode, computed: bool):
-        super().__init__(computed)
+    def __init__(
+            self,
+            name: str,
+            ns: Optional[str],
+            nsmap: Optional[NsMap],
+            search_mode: SearchMode,
+            computed: bool,
+            nillable: bool,
+    ):
+        super().__init__(computed, nillable)
 
         self._nsmap = nsmap
         self._search_mode = search_mode
