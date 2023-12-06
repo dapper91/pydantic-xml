@@ -1,6 +1,11 @@
 Changelog
 =========
 
+2.6.0 (2023-12-06)
+------------------
+
+- nillable element support added. See https://github.com/dapper91/pydantic-xml/pull/146.
+
 
 2.5.0 (2023-11-26)
 ------------------
