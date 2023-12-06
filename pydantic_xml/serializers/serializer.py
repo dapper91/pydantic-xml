@@ -96,6 +96,7 @@ class XmlEntityInfoP(typing.Protocol):
     path: Optional[str]
     ns: Optional[str]
     nsmap: Optional[NsMap]
+    nillable: bool
     wrapped: Optional['XmlEntityInfoP']
 
 
@@ -136,6 +137,10 @@ class Serializer(abc.ABC):
         @property
         def entity_nsmap(self) -> Optional[NsMap]:
             return self.entity_info.nsmap if self.entity_info is not None else None
+
+        @property
+        def nillable(self) -> bool:
+            return self.entity_info.nillable if self.entity_info is not None else False
 
         @property
         def entity_wrapped(self) -> Optional['XmlEntityInfoP']:

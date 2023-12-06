@@ -1,3 +1,5 @@
+from typing import Optional
+
 from helpers import assert_xml_equal
 from pydantic import computed_field
 
@@ -63,6 +65,29 @@ def test_computed_elements():
     assert_xml_equal(actual_xml, xml)
 
 
+def test_computed_nillable_elements():
+    class TestModel(BaseXmlModel, tag='model'):
+        @computed_element(tag='element1', nillable=True)
+        def computed_element1(self) -> Optional[int]:
+            return None
+
+        @computed_element(tag='element2', nillable=True)
+        def computed_element2(self) -> Optional[int]:
+            return 2
+
+    xml = '''
+    <model>
+        <element1 xsi:nil="true" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" />
+        <element2>2</element2>
+    </model>
+    '''
+
+    actual_obj = TestModel.from_xml(xml)
+
+    actual_xml = actual_obj.to_xml()
+    assert_xml_equal(actual_xml, xml)
+
+
 def test_computed_submodel():
     class TestSumModel(BaseXmlModel):
         text: str
@@ -80,6 +105,27 @@ def test_computed_submodel():
     <model>
         <submodel1>text1</submodel1>
         <submodel2>text2</submodel2>
+    </model>
+    '''
+
+    actual_obj = TestModel.from_xml(xml)
+
+    actual_xml = actual_obj.to_xml()
+    assert_xml_equal(actual_xml, xml)
+
+
+def test_computed_nillable_submodel():
+    class TestSumModel(BaseXmlModel):
+        text: str
+
+    class TestModel(BaseXmlModel, tag='model'):
+        @computed_element(tag='submodel1', nillable=True)
+        def submodel1(self) -> Optional[TestSumModel]:
+            return None
+
+    xml = '''
+    <model>
+        <submodel1 xsi:nil="true" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" />
     </model>
     '''
 

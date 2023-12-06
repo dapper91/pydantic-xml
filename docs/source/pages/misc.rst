@@ -42,30 +42,39 @@ The following example illustrate how to encode :py:class:`bytes` typed fields as
     :language: xml
 
 
-None type encoding
-__________________
+Optional type encoding
+~~~~~~~~~~~~~~~~~~~~~~
 
 Since xml format doesn't support ``null`` type natively it is not obvious how to encode ``None`` fields
-(ignore it, encode it as an empty string or mark it as ``xsi:nil``). The library encodes ``None`` typed fields
-as empty strings by default but you can define your own encoding format:
+(ignore it, encode it as an empty string or mark it as ``xsi:nil``).
+The library encodes ``None`` values as empty strings by default.
+There are some alternative ways:
+
+- Define your own encoding format for ``None`` values:
 
 .. literalinclude:: ../../../examples/snippets/py3.9/serialization.py
   :language: python
 
 
-or drop ``None`` fields at all:
+- Mark an empty elements as `nillable <https://www.w3.org/TR/xmlschema-1/#xsi_nil>`_:
+
+.. literalinclude:: ../../../examples/snippets/serialization_nillable.py
+  :language: python
+
+
+- Drop empty elements:
 
 .. code-block:: python
 
     from typing import Optional
     from pydantic_xml import BaseXmlModel, element
 
-    class Company(BaseXmlModel):
+    class Company(BaseXmlModel, skip_empty=True):
         title: Optional[str] = element(default=None)
 
 
     company = Company()
-    assert company.to_xml(skip_empty=True) == b'<Company/>'
+    assert company.to_xml() == b'<Company/>'
 
 
 Empty entities exclusion

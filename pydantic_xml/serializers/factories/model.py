@@ -8,7 +8,7 @@ from pydantic_core import core_schema as pcs
 
 import pydantic_xml as pxml
 from pydantic_xml import errors
-from pydantic_xml.element import XmlElementReader, XmlElementWriter
+from pydantic_xml.element import XmlElementReader, XmlElementWriter, is_element_nill, make_element_nill
 from pydantic_xml.serializers.serializer import SearchMode, Serializer, XmlEntityInfoP
 from pydantic_xml.typedefs import EntityLocation, NsMap
 from pydantic_xml.utils import QName, merge_nsmaps, select_ns
@@ -287,8 +287,9 @@ class ModelProxySerializer(BaseModelSerializer):
         nsmap = merge_nsmaps(ctx.entity_nsmap, model_cls.__xml_nsmap__, ctx.parent_nsmap)
         search_mode = ctx.search_mode
         computed = ctx.field_computed
+        nillable = ctx.nillable
 
-        return cls(model_cls, name, ns, nsmap, search_mode, computed)
+        return cls(model_cls, name, ns, nsmap, search_mode, computed, nillable)
 
     def __init__(
             self,
@@ -298,12 +299,14 @@ class ModelProxySerializer(BaseModelSerializer):
             nsmap: Optional[NsMap],
             search_mode: SearchMode,
             computed: bool,
+            nillable: bool,
     ):
         self._model = model
         self._element_name = QName.from_alias(tag=name, ns=ns, nsmap=nsmap).uri
         self._nsmap = nsmap
         self._search_mode = search_mode
         self._computed = computed
+        self._nillable = nillable
 
     @property
     def model(self) -> Type['pxml.BaseXmlModel']:
@@ -331,6 +334,12 @@ class ModelProxySerializer(BaseModelSerializer):
     ) -> Optional[XmlElementWriter]:
         assert self._model.__xml_serializer__ is not None, f"model {self._model.__name__} is partially initialized"
 
+        if self._nillable and value is None:
+            sub_element = element.make_element(self._element_name, nsmap=self._nsmap)
+            make_element_nill(sub_element)
+            element.append_element(sub_element)
+            return sub_element
+
         if value is None:
             return None
 
@@ -355,7 +364,10 @@ class ModelProxySerializer(BaseModelSerializer):
 
         if element is not None and \
                 (sub_element := element.pop_element(self._element_name, self._search_mode)) is not None:
-            return self._model.__xml_serializer__.deserialize(sub_element, context=context)
+            if is_element_nill(sub_element):
+                return None
+            else:
+                return self._model.__xml_serializer__.deserialize(sub_element, context=context)
         else:
             return None
 

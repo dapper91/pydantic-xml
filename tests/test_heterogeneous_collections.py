@@ -27,6 +27,27 @@ def test_set_of_primitives_extraction():
     assert_xml_equal(actual_xml, xml)
 
 
+def test_tuple_of_nillable_primitives_extraction():
+    class TestModel(BaseXmlModel, tag='model1'):
+        elements: Tuple[Optional[int], Optional[float], Optional[str]] = element(tag='element', nillable=True)
+
+    xml = '''
+    <model1>
+        <element>1</element>
+        <element xsi:nil="true" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" />
+        <element>string3</element>
+    </model1>
+    '''
+
+    actual_obj = TestModel.from_xml(xml)
+    expected_obj = TestModel(elements=(1, None, "string3"))
+
+    assert actual_obj == expected_obj
+
+    actual_xml = actual_obj.to_xml()
+    assert_xml_equal(actual_xml, xml)
+
+
 def test_tuple_of_submodel_extraction():
     class TestSubModel1(BaseXmlModel):
         attr1: int = attr()
