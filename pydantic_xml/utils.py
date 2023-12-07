@@ -2,7 +2,10 @@ import dataclasses as dc
 import itertools as it
 import re
 from collections import ChainMap
-from typing import Iterable, Optional, cast
+from typing import Iterable, List, Mapping, Optional, Union, cast
+
+import pydantic as pd
+import pydantic_core as pdc
 
 from .element.native import etree
 from .typedefs import NsMap
@@ -92,3 +95,25 @@ def select_ns(*nss: Optional[str]) -> Optional[str]:
             return ns
 
     return None
+
+
+def build_validation_error(
+        title: str,
+        errors_map: Mapping[Union[None, str, int], pd.ValidationError],
+) -> pd.ValidationError:
+    line_errors: List[pdc.InitErrorDetails] = []
+    for location, validation_error in errors_map.items():
+        for error in validation_error.errors():
+            line_errors.append(
+                pdc.InitErrorDetails(
+                    type=pdc.PydanticCustomError(error['type'], error['msg'], error.get('ctx')),
+                    loc=(location, *error['loc']) if location is not None else error['loc'],
+                    input=error['input'],
+                ),
+            )
+
+    return pd.ValidationError.from_exception_data(
+        title=title,
+        input_type='json',
+        line_errors=line_errors,
+    )

@@ -1,13 +1,13 @@
 import abc
 import typing
-from typing import Any, Dict, List, Mapping, Optional, Set, Type
+from typing import Any, Dict, List, Mapping, Optional, Set, Type, Union
 
 import pydantic as pd
 import pydantic_core as pdc
 from pydantic_core import core_schema as pcs
 
 import pydantic_xml as pxml
-from pydantic_xml import errors
+from pydantic_xml import errors, utils
 from pydantic_xml.element import XmlElementReader, XmlElementWriter, is_element_nill, make_element_nill
 from pydantic_xml.serializers.serializer import SearchMode, Serializer, XmlEntityInfoP
 from pydantic_xml.typedefs import EntityLocation, NsMap
@@ -175,11 +175,18 @@ class ModelSerializer(BaseModelSerializer):
         if element is None:
             return None
 
-        result = {
-            self._fields_validation_aliases.get(field_name, field_name): field_value
-            for field_name, field_serializer in self._field_serializers.items()
-            if (field_value := field_serializer.deserialize(element, context=context)) is not None
-        }
+        result: Dict[str, Any] = {}
+        field_errors: Dict[Union[None, str, int], pd.ValidationError] = {}
+        for field_name, field_serializer in self._field_serializers.items():
+            try:
+                if (field_value := field_serializer.deserialize(element, context=context)) is not None:
+                    field_name = self._fields_validation_aliases.get(field_name, field_name)
+                    result[field_name] = field_value
+            except pd.ValidationError as err:
+                field_errors[field_name] = err
+
+        if field_errors:
+            raise utils.build_validation_error(title=self._model.__name__, errors_map=field_errors)
 
         if self._model.model_config.get('extra', 'ignore') == 'forbid':
             self._check_extra(self._model.__name__, element)
@@ -267,8 +274,11 @@ class RootModelSerializer(BaseModelSerializer):
         if element is None:
             return None
 
-        if (result := self._root_serializer.deserialize(element, context=context)) is None:
-            result = pdc.PydanticUndefined
+        try:
+            if (result := self._root_serializer.deserialize(element, context=context)) is None:
+                result = pdc.PydanticUndefined
+        except pd.ValidationError as err:
+            raise utils.build_validation_error(title=self._model.__name__, errors_map={None: err})
 
         if self._model.model_config.get('extra', 'ignore') == 'forbid':
             self._check_extra(self._model.__name__, element)

@@ -1,5 +1,4 @@
 from typing import Dict
-from unittest.mock import ANY
 
 import pydantic as pd
 import pytest
@@ -112,29 +111,26 @@ def test_submodel_extra_forbid(search_mode: str):
         TestModel.from_xml(xml)
 
     err = exc.value
-    assert err.title == 'TestSubModel'
+    assert err.title == 'TestModel'
     assert err.error_count() == 3
     assert err.errors() == [
         {
             'input': 'text value',
-            'loc': (),
+            'loc': ('submodel',),
             'msg': 'Extra inputs are not permitted',
             'type': 'extra_forbidden',
-            'url': ANY,
         },
         {
             'input': 'attr value 2',
-            'loc': ('@attr2',),
+            'loc': ('submodel', '@attr2'),
             'msg': 'Extra inputs are not permitted',
             'type': 'extra_forbidden',
-            'url': ANY,
         },
         {
             'input': 'field value 2',
-            'loc': ('field2',),
+            'loc': ('submodel', 'field2'),
             'msg': 'Extra inputs are not permitted',
             'type': 'extra_forbidden',
-            'url': ANY,
         },
     ]
 

@@ -1,8 +1,9 @@
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Union
 
+import pydantic as pd
 from pydantic_core import core_schema as pcs
 
-from pydantic_xml import errors
+from pydantic_xml import errors, utils
 from pydantic_xml.element import XmlElementReader, XmlElementWriter
 from pydantic_xml.serializers.serializer import TYPE_FAMILY, SchemaTypeFamily, Serializer
 from pydantic_xml.typedefs import EntityLocation
@@ -11,14 +12,16 @@ from pydantic_xml.typedefs import EntityLocation
 class ElementSerializer(Serializer):
     @classmethod
     def from_core_schema(cls, schema: pcs.TuplePositionalSchema, ctx: Serializer.Context) -> 'ElementSerializer':
+        model_name = ctx.model_name
         computed = ctx.field_computed
         inner_serializers: List[Serializer] = []
         for item_schema in schema['items_schema']:
             inner_serializers.append(Serializer.parse_core_schema(item_schema, ctx))
 
-        return cls(computed, tuple(inner_serializers))
+        return cls(model_name, computed, tuple(inner_serializers))
 
-    def __init__(self, computed: bool, inner_serializers: Tuple[Serializer, ...]):
+    def __init__(self, model_name: str, computed: bool, inner_serializers: Tuple[Serializer, ...]):
+        self._model_name = model_name
         self._computed = computed
         self._inner_serializers = inner_serializers
 
@@ -51,10 +54,17 @@ class ElementSerializer(Serializer):
         if element is None:
             return None
 
-        result = [
-            serializer.deserialize(element, context=context)
-            for serializer in self._inner_serializers
-        ]
+        result: List[Any] = []
+        item_errors: Dict[Union[None, str, int], pd.ValidationError] = {}
+        for idx, serializer in enumerate(self._inner_serializers):
+            try:
+                result.append(serializer.deserialize(element, context=context))
+            except pd.ValidationError as err:
+                item_errors[idx] = err
+
+        if item_errors:
+            raise utils.build_validation_error(title=self._model_name, errors_map=item_errors)
+
         if all((value is None for value in result)):
             return None
         else:
