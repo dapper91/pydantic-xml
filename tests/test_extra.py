@@ -4,6 +4,7 @@ import pydantic as pd
 import pytest
 
 from pydantic_xml import BaseXmlModel, attr, element, wrapped
+from tests.helpers import fmt_sourceline
 
 
 @pytest.mark.parametrize('search_mode', ['strict', 'ordered', 'unordered'])
@@ -29,23 +30,32 @@ def test_extra_forbid(search_mode: str):
         {
             'input': 'text value',
             'loc': (),
-            'msg': 'Extra inputs are not permitted',
+            'msg': f'[line {fmt_sourceline(2)}]: Extra inputs are not permitted',
             'type': 'extra_forbidden',
-            'url': ANY,
+            'ctx': {
+                'orig': 'Extra inputs are not permitted',
+                'sourceline': fmt_sourceline(2),
+            },
         },
         {
             'input': 'attr value 2',
             'loc': ('@attr2',),
-            'msg': 'Extra inputs are not permitted',
+            'msg': f'[line {fmt_sourceline(2)}]: Extra inputs are not permitted',
             'type': 'extra_forbidden',
-            'url': ANY,
+            'ctx': {
+                'orig': 'Extra inputs are not permitted',
+                'sourceline': fmt_sourceline(2),
+            },
         },
         {
             'input': 'field value 2',
             'loc': ('field2',),
-            'msg': 'Extra inputs are not permitted',
+            'msg': f'[line {fmt_sourceline(4)}]: Extra inputs are not permitted',
             'type': 'extra_forbidden',
-            'url': ANY,
+            'ctx': {
+                'orig': 'Extra inputs are not permitted',
+                'sourceline': fmt_sourceline(4),
+            },
         },
     ]
 
@@ -75,16 +85,22 @@ def test_mapping_extra_forbid(search_mode: str):
         {
             'input': 'text value',
             'loc': ('element1',),
-            'msg': 'Extra inputs are not permitted',
+            'msg': f'[line {fmt_sourceline(3)}]: Extra inputs are not permitted',
             'type': 'extra_forbidden',
-            'url': ANY,
+            'ctx': {
+                'orig': 'Extra inputs are not permitted',
+                'sourceline': fmt_sourceline(3),
+            },
         },
         {
             'input': 'text value',
             'loc': ('element2', 'subelement'),
-            'msg': 'Extra inputs are not permitted',
+            'msg': f'[line {fmt_sourceline(5)}]: Extra inputs are not permitted',
             'type': 'extra_forbidden',
-            'url': ANY,
+            'ctx': {
+                'orig': 'Extra inputs are not permitted',
+                'sourceline': fmt_sourceline(5),
+            },
         },
     ]
 
@@ -117,20 +133,32 @@ def test_submodel_extra_forbid(search_mode: str):
         {
             'input': 'text value',
             'loc': ('submodel',),
-            'msg': 'Extra inputs are not permitted',
+            'msg': f'[line {fmt_sourceline(3)}]: Extra inputs are not permitted',
             'type': 'extra_forbidden',
+            'ctx': {
+                'orig': 'Extra inputs are not permitted',
+                'sourceline': fmt_sourceline(3),
+            },
         },
         {
             'input': 'attr value 2',
             'loc': ('submodel', '@attr2'),
-            'msg': 'Extra inputs are not permitted',
+            'msg': f'[line {fmt_sourceline(3)}]: Extra inputs are not permitted',
             'type': 'extra_forbidden',
+            'ctx': {
+                'orig': 'Extra inputs are not permitted',
+                'sourceline': fmt_sourceline(3),
+            },
         },
         {
             'input': 'field value 2',
             'loc': ('submodel', 'field2'),
-            'msg': 'Extra inputs are not permitted',
+            'msg': f'[line {fmt_sourceline(5)}]: Extra inputs are not permitted',
             'type': 'extra_forbidden',
+            'ctx': {
+                'orig': 'Extra inputs are not permitted',
+                'sourceline': fmt_sourceline(5),
+            },
         },
     ]
 
@@ -164,29 +192,41 @@ def test_wrapped_extra_forbid(search_mode: str):
         {
             'input': 'text value',
             'loc': ('wrapper1',),
-            'msg': 'Extra inputs are not permitted',
+            'msg': f'[line {fmt_sourceline(3)}]: Extra inputs are not permitted',
             'type': 'extra_forbidden',
-            'url': ANY,
+            'ctx': {
+                'orig': 'Extra inputs are not permitted',
+                'sourceline': fmt_sourceline(3),
+            },
         },
         {
             'input': 'field value 2',
             'loc': ('wrapper1', 'field2'),
-            'msg': 'Extra inputs are not permitted',
+            'msg': f'[line {fmt_sourceline(5)}]: Extra inputs are not permitted',
             'type': 'extra_forbidden',
-            'url': ANY,
+            'ctx': {
+                'orig': 'Extra inputs are not permitted',
+                'sourceline': fmt_sourceline(5),
+            },
         },
         {
             'input': 'attr value 1',
             'loc': ('wrapper2', '@attr1'),
-            'msg': 'Extra inputs are not permitted',
+            'msg': f'[line {fmt_sourceline(7)}]: Extra inputs are not permitted',
             'type': 'extra_forbidden',
-            'url': ANY,
+            'ctx': {
+                'orig': 'Extra inputs are not permitted',
+                'sourceline': fmt_sourceline(7),
+            },
         },
         {
             'input': 'field value 2',
             'loc': ('wrapper2', 'field2'),
-            'msg': 'Extra inputs are not permitted',
+            'msg': f'[line {fmt_sourceline(9)}]: Extra inputs are not permitted',
             'type': 'extra_forbidden',
-            'url': ANY,
+            'ctx': {
+                'orig': 'Extra inputs are not permitted',
+                'sourceline': fmt_sourceline(9),
+            },
         },
     ]

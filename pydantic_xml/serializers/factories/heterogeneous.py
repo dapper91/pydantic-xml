@@ -6,7 +6,7 @@ from pydantic_core import core_schema as pcs
 from pydantic_xml import errors, utils
 from pydantic_xml.element import XmlElementReader, XmlElementWriter
 from pydantic_xml.serializers.serializer import TYPE_FAMILY, SchemaTypeFamily, Serializer
-from pydantic_xml.typedefs import EntityLocation
+from pydantic_xml.typedefs import EntityLocation, Location
 
 
 class ElementSerializer(Serializer):
@@ -47,6 +47,8 @@ class ElementSerializer(Serializer):
             element: Optional[XmlElementReader],
             *,
             context: Optional[Dict[str, Any]],
+            sourcemap: Dict[Location, int],
+            loc: Location,
     ) -> Optional[List[Any]]:
         if self._computed:
             return None
@@ -58,7 +60,7 @@ class ElementSerializer(Serializer):
         item_errors: Dict[Union[None, str, int], pd.ValidationError] = {}
         for idx, serializer in enumerate(self._inner_serializers):
             try:
-                result.append(serializer.deserialize(element, context=context))
+                result.append(serializer.deserialize(element, context=context, sourcemap=sourcemap, loc=loc + (idx,)))
             except pd.ValidationError as err:
                 item_errors[idx] = err
 

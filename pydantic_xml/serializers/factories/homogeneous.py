@@ -7,7 +7,7 @@ from pydantic_core import core_schema as pcs
 from pydantic_xml import errors, utils
 from pydantic_xml.element import XmlElementReader, XmlElementWriter
 from pydantic_xml.serializers.serializer import TYPE_FAMILY, SchemaTypeFamily, Serializer
-from pydantic_xml.typedefs import EntityLocation
+from pydantic_xml.typedefs import EntityLocation, Location
 
 HomogeneousCollectionTypeSchema = Union[
     pcs.TupleVariableSchema,
@@ -53,6 +53,8 @@ class ElementSerializer(Serializer):
             element: Optional[XmlElementReader],
             *,
             context: Optional[Dict[str, Any]],
+            sourcemap: Dict[Location, int],
+            loc: Location,
     ) -> Optional[List[Any]]:
         if self._computed:
             return None
@@ -60,11 +62,13 @@ class ElementSerializer(Serializer):
         if element is None:
             return None
 
+        serializer = self._inner_serializer
         result: List[Any] = []
         item_errors: Dict[Union[None, str, int], pd.ValidationError] = {}
         for idx in it.count():
             try:
-                if (value := self._inner_serializer.deserialize(element, context=context)) is None:
+                value = serializer.deserialize(element, context=context, sourcemap=sourcemap, loc=loc + (idx,))
+                if value is None:
                     break
             except pd.ValidationError as err:
                 item_errors[idx] = err

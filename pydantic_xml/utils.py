@@ -2,13 +2,13 @@ import dataclasses as dc
 import itertools as it
 import re
 from collections import ChainMap
-from typing import Iterable, List, Mapping, Optional, Union, cast
+from typing import Dict, Iterable, List, Mapping, Optional, Union, cast
 
 import pydantic as pd
 import pydantic_core as pdc
 
 from .element.native import etree
-from .typedefs import NsMap
+from .typedefs import Location, NsMap
 
 
 @dc.dataclass(frozen=True)
@@ -115,5 +115,30 @@ def build_validation_error(
     return pd.ValidationError.from_exception_data(
         title=title,
         input_type='json',
+        line_errors=line_errors,
+    )
+
+
+def set_validation_error_sourceline(err: pd.ValidationError, sourcemap: Dict[Location, int]) -> pd.ValidationError:
+    line_errors: List[pdc.InitErrorDetails] = []
+    for error in err.errors():
+        loc, sourceline = error['loc'], -1
+        while loc and (sourceline := sourcemap.get(loc, sourceline)) == -1:
+            loc = tuple(loc[:-1])
+
+        line_errors.append(
+            pdc.InitErrorDetails(
+                type=pdc.PydanticCustomError(
+                    error['type'],
+                    "[line {sourceline}]: {orig}",
+                    {'sourceline': sourceline, 'orig': error['msg']},
+                ),
+                loc=error['loc'],
+                input=error['input'],
+            ),
+        )
+
+    return pd.ValidationError.from_exception_data(
+        err.title,
         line_errors=line_errors,
     )

@@ -10,6 +10,7 @@ from pydantic_xml.serializers import factories
 from pydantic_xml.serializers.factories.model import ModelProxySerializer
 from pydantic_xml.serializers.factories.primitive import AttributeSerializer
 from pydantic_xml.serializers.serializer import TYPE_FAMILY, SchemaTypeFamily, SearchMode, Serializer
+from pydantic_xml.typedefs import Location
 
 
 class ModelSerializer(Serializer):
@@ -83,6 +84,8 @@ class ModelSerializer(Serializer):
             element: Optional[XmlElementReader],
             *,
             context: Optional[Dict[str, Any]],
+            sourcemap: Dict[Location, int],
+            loc: Location,
     ) -> Optional['pxml.BaseXmlModel']:
         if self._computed:
             return None
@@ -98,7 +101,8 @@ class ModelSerializer(Serializer):
                 step_forward=False,
             )
             if sub_element is not None and sub_element.get_attrib(self._discriminating_attr_name) == tag:
-                return serializer.deserialize(element, context=context)
+                sourcemap[loc] = sub_element.get_sourceline()
+                return serializer.deserialize(element, context=context, sourcemap=sourcemap, loc=loc)
 
         return None
 

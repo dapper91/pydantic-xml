@@ -4,6 +4,7 @@ import pydantic as pd
 import pytest
 
 from pydantic_xml import BaseXmlModel, attr, element, wrapped
+from tests.helpers import fmt_sourceline
 
 
 def test_submodel_errors():
@@ -35,14 +36,22 @@ def test_submodel_errors():
         {
             'input': 'a',
             'loc': ('submodel', 'field1'),
-            'msg': 'Input should be a valid integer, unable to parse string as an integer',
+            'msg': f'[line {fmt_sourceline(4)}]: Input should be a valid integer, unable to parse string as an integer',
             'type': 'int_parsing',
+            'ctx': {
+                'orig': 'Input should be a valid integer, unable to parse string as an integer',
+                'sourceline': fmt_sourceline(4),
+            },
         },
         {
             'input': 'b',
             'loc': ('submodel', 'field3'),
-            'msg': 'Input should be a valid integer, unable to parse string as an integer',
+            'msg': f'[line {fmt_sourceline(6)}]: Input should be a valid integer, unable to parse string as an integer',
             'type': 'int_parsing',
+            'ctx': {
+                'orig': 'Input should be a valid integer, unable to parse string as an integer',
+                'sourceline': fmt_sourceline(6),
+            },
         },
     ]
 
@@ -72,14 +81,22 @@ def test_homogeneous_collection_errors():
         {
             'input': 'a',
             'loc': ('submodel', 0, 'attr1'),
-            'msg': 'Input should be a valid integer, unable to parse string as an integer',
+            'msg': f'[line {fmt_sourceline(3)}]: Input should be a valid integer, unable to parse string as an integer',
             'type': 'int_parsing',
+            'ctx': {
+                'orig': 'Input should be a valid integer, unable to parse string as an integer',
+                'sourceline': fmt_sourceline(3),
+            },
         },
         {
             'input': 'b',
             'loc': ('submodel', 2, 'attr1'),
-            'msg': 'Input should be a valid integer, unable to parse string as an integer',
+            'msg': f'[line {fmt_sourceline(5)}]: Input should be a valid integer, unable to parse string as an integer',
             'type': 'int_parsing',
+            'ctx': {
+                'orig': 'Input should be a valid integer, unable to parse string as an integer',
+                'sourceline': fmt_sourceline(5),
+            },
         },
     ]
 
@@ -115,25 +132,41 @@ def test_heterogeneous_collection_errors():
         {
             'input': 'a',
             'loc': ('submodel', 0, 'attrs', 'int'),
-            'msg': 'Input should be a valid integer, unable to parse string as an integer',
+            'msg': f'[line {fmt_sourceline(4)}]: Input should be a valid integer, unable to parse string as an integer',
             'type': 'int_parsing',
+            'ctx': {
+                'orig': 'Input should be a valid integer, unable to parse string as an integer',
+                'sourceline': fmt_sourceline(4),
+            },
         },
         {
             'input': 'a',
             'loc': ('submodel', 0, 'attrs', 'bool'),
-            'msg': 'Input should be a valid boolean, unable to interpret input',
+            'msg': f'[line {fmt_sourceline(4)}]: Input should be a valid boolean, unable to interpret input',
             'type': 'bool_parsing',
+            'ctx': {
+                'orig': 'Input should be a valid boolean, unable to interpret input',
+                'sourceline': fmt_sourceline(4),
+            },
         },
         {
             'input': 'b',
             'loc': ('submodel', 2, 'attrs', 'int'),
-            'msg': 'Input should be a valid integer, unable to parse string as an integer',
+            'msg': f'[line {fmt_sourceline(10)}]: Input should be a valid integer, unable to parse string as an integer',
             'type': 'int_parsing',
+            'ctx': {
+                'orig': 'Input should be a valid integer, unable to parse string as an integer',
+                'sourceline': fmt_sourceline(10),
+            },
         },
         {
             'input': 'b',
             'loc': ('submodel', 2, 'attrs', 'bool'),
-            'msg': 'Input should be a valid boolean, unable to interpret input',
+            'msg': f'[line {fmt_sourceline(10)}]: Input should be a valid boolean, unable to interpret input',
             'type': 'bool_parsing',
+            'ctx': {
+                'orig': 'Input should be a valid boolean, unable to interpret input',
+                'sourceline': fmt_sourceline(10),
+            },
         },
     ]

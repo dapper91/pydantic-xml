@@ -340,7 +340,14 @@ class BaseXmlModel(BaseModel, __xml_abstract__=True, metaclass=XmlModelMeta):
         assert cls.__xml_serializer__ is not None, f"model {cls.__name__} is partially initialized"
 
         if root.tag == cls.__xml_serializer__.element_name:
-            obj = typing.cast(ModelT, cls.__xml_serializer__.deserialize(XmlElement.from_native(root), context=context))
+            obj = typing.cast(
+                ModelT, cls.__xml_serializer__.deserialize(
+                    XmlElement.from_native(root),
+                    context=context,
+                    sourcemap={},
+                    loc=(),
+                ),
+            )
             return obj
         else:
             raise errors.ParsingError(

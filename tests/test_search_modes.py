@@ -6,6 +6,7 @@ import pytest
 from helpers import assert_xml_equal
 
 from pydantic_xml import BaseXmlModel, attr, element, wrapped
+from tests.helpers import fmt_sourceline
 
 
 def test_optional_field():
@@ -127,10 +128,13 @@ def test_ordered_mode_error():
     assert len(errors) == 1
     assert errors[0] == {
         'loc': ('element3',),
-        'msg': 'Field required',
+        'msg': f'[line {fmt_sourceline(2)}]: Field required',
+        'ctx': {
+            'orig': 'Field required',
+            'sourceline': fmt_sourceline(2),
+        },
         'type': 'missing',
         'input': ANY,
-        'url': ANY,
     }
 
 
@@ -197,10 +201,13 @@ def test_unordered_mode_error():
     assert len(errors) == 1
     assert errors[0] == {
         'loc': ('element3',),
-        'msg': 'Field required',
+        'msg': f'[line {fmt_sourceline(2)}]: Field required',
+        'ctx': {
+            'orig': 'Field required',
+            'sourceline': fmt_sourceline(2),
+        },
         'type': 'missing',
         'input': ANY,
-        'url': ANY,
     }
 
 
@@ -437,10 +444,13 @@ def test_wrapper_strict_mode_error():
     assert len(errors) == 1
     assert errors[0] == {
         'loc': ('element3',),
-        'msg': 'Field required',
+        'msg': f'[line {fmt_sourceline(2)}]: Field required',
+        'ctx': {
+            'orig': 'Field required',
+            'sourceline': fmt_sourceline(2),
+        },
         'type': 'missing',
         'input': ANY,
-        'url': ANY,
     }
 
 
@@ -517,10 +527,13 @@ def test_wrapper_ordered_mode_error():
     assert len(errors) == 1
     assert errors[0] == {
         'loc': ('element3',),
-        'msg': 'Field required',
+        'msg': f'[line {fmt_sourceline(2)}]: Field required',
+        'ctx': {
+            'orig': 'Field required',
+            'sourceline': fmt_sourceline(2),
+        },
         'type': 'missing',
         'input': ANY,
-        'url': ANY,
     }
 
 
@@ -600,8 +613,11 @@ def test_wrapper_unordered_mode_error():
     assert len(errors) == 1
     assert errors[0] == {
         'loc': ('element3',),
-        'msg': 'Field required',
+        'msg': f'[line {fmt_sourceline(2)}]: Field required',
+        'ctx': {
+            'orig': 'Field required',
+            'sourceline': fmt_sourceline(2),
+        },
         'type': 'missing',
         'input': ANY,
-        'url': ANY,
     }
