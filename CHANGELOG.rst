@@ -1,6 +1,13 @@
 Changelog
 =========
 
+2.7.0 (2023-12-18)
+------------------
+
+- validation errors provide the full path to the malformed field (including nested sub-models).
+- error text contain the xml document source line where the error occurred (lxml parser only). See https://github.com/dapper91/pydantic-xml/pull/150.
+
+
 2.6.0 (2023-12-06)
 ------------------
 
