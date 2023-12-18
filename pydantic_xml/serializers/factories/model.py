@@ -1,16 +1,16 @@
 import abc
 import typing
-from typing import Any, Dict, List, Mapping, Optional, Set, Type
+from typing import Any, Dict, List, Mapping, Optional, Set, Type, Union
 
 import pydantic as pd
 import pydantic_core as pdc
 from pydantic_core import core_schema as pcs
 
 import pydantic_xml as pxml
-from pydantic_xml import errors
+from pydantic_xml import errors, utils
 from pydantic_xml.element import XmlElementReader, XmlElementWriter, is_element_nill, make_element_nill
 from pydantic_xml.serializers.serializer import SearchMode, Serializer, XmlEntityInfoP
-from pydantic_xml.typedefs import EntityLocation, NsMap
+from pydantic_xml.typedefs import EntityLocation, Location, NsMap
 from pydantic_xml.utils import QName, merge_nsmaps, select_ns
 
 
@@ -31,11 +31,18 @@ class BaseModelSerializer(Serializer, abc.ABC):
     def _check_extra(cls, error_title: str, element: XmlElementReader) -> None:
         line_errors: List[pdc.InitErrorDetails] = []
 
-        for path, value in element.get_unbound():
+        for path, attr, value in element.get_unbound():
             line_errors.append(
                 pdc.InitErrorDetails(
-                    type='extra_forbidden',
-                    loc=path,
+                    type=pdc.PydanticCustomError(
+                        'extra_forbidden',
+                        "[line {sourceline}]: {orig}",
+                        {
+                            'sourceline': (path or (element,))[-1].get_sourceline(),
+                            'orig': "Extra inputs are not permitted",
+                        },
+                    ),
+                    loc=tuple(el.tag for el in path) + ((f"@{attr}",) if attr else ()),
                     input=value,
                 ),
             )
@@ -171,20 +178,35 @@ class ModelSerializer(BaseModelSerializer):
             element: Optional[XmlElementReader],
             *,
             context: Optional[Dict[str, Any]],
+            sourcemap: Dict[Location, int],
+            loc: Location,
     ) -> Optional['pxml.BaseXmlModel']:
         if element is None:
             return None
 
-        result = {
-            self._fields_validation_aliases.get(field_name, field_name): field_value
-            for field_name, field_serializer in self._field_serializers.items()
-            if (field_value := field_serializer.deserialize(element, context=context)) is not None
-        }
+        result: Dict[str, Any] = {}
+        field_errors: Dict[Union[None, str, int], pd.ValidationError] = {}
+        for field_name, field_serializer in self._field_serializers.items():
+            try:
+                loc = (field_name,)
+                sourcemap[loc] = element.get_sourceline()
+                field_value = field_serializer.deserialize(element, context=context, sourcemap=sourcemap, loc=loc)
+                if field_value is not None:
+                    field_name = self._fields_validation_aliases.get(field_name, field_name)
+                    result[field_name] = field_value
+            except pd.ValidationError as err:
+                field_errors[field_name] = err
+
+        if field_errors:
+            raise utils.build_validation_error(title=self._model.__name__, errors_map=field_errors)
 
         if self._model.model_config.get('extra', 'ignore') == 'forbid':
             self._check_extra(self._model.__name__, element)
 
-        return self._model.model_validate(result, strict=False, context=context)
+        try:
+            return self._model.model_validate(result, strict=False, context=context)
+        except pd.ValidationError as err:
+            raise utils.set_validation_error_sourceline(err, sourcemap)
 
 
 class RootModelSerializer(BaseModelSerializer):
@@ -263,17 +285,26 @@ class RootModelSerializer(BaseModelSerializer):
             element: Optional[XmlElementReader],
             *,
             context: Optional[Dict[str, Any]],
+            sourcemap: Dict[Location, int],
+            loc: Location,
     ) -> Optional['pxml.BaseXmlModel']:
         if element is None:
             return None
 
-        if (result := self._root_serializer.deserialize(element, context=context)) is None:
-            result = pdc.PydanticUndefined
+        try:
+            result = self._root_serializer.deserialize(element, context=context, sourcemap=sourcemap, loc=loc)
+            if result is None:
+                result = pdc.PydanticUndefined
+        except pd.ValidationError as err:
+            raise utils.build_validation_error(title=self._model.__name__, errors_map={None: err})
 
         if self._model.model_config.get('extra', 'ignore') == 'forbid':
             self._check_extra(self._model.__name__, element)
 
-        return self._model.model_validate(result, strict=False, context=context)
+        try:
+            return self._model.model_validate(result, strict=False, context=context)
+        except pd.ValidationError as err:
+            raise utils.set_validation_error_sourceline(err, sourcemap)
 
 
 class ModelProxySerializer(BaseModelSerializer):
@@ -356,18 +387,25 @@ class ModelProxySerializer(BaseModelSerializer):
             element: Optional[XmlElementReader],
             *,
             context: Optional[Dict[str, Any]],
+            sourcemap: Dict[Location, int],
+            loc: Location,
     ) -> Optional['pxml.BaseXmlModel']:
         assert self._model.__xml_serializer__ is not None, f"model {self._model.__name__} is partially initialized"
 
         if self._computed:
             return None
 
-        if element is not None and \
-                (sub_element := element.pop_element(self._element_name, self._search_mode)) is not None:
+        if element is None:
+            return None
+
+        if (sub_element := element.pop_element(self._element_name, self._search_mode)) is not None:
+            sourcemap[loc] = sub_element.get_sourceline()
             if is_element_nill(sub_element):
                 return None
             else:
-                return self._model.__xml_serializer__.deserialize(sub_element, context=context)
+                return self._model.__xml_serializer__.deserialize(
+                    sub_element, context=context, sourcemap=sourcemap, loc=loc,
+                )
         else:
             return None
 

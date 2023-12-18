@@ -39,6 +39,9 @@ class XmlElement(BaseXmlElement[ElementT]):
     def make_element(self, tag: str, nsmap: Optional[NsMap]) -> 'XmlElement':
         return XmlElement(tag)
 
+    def get_sourceline(self) -> int:
+        return -1
+
 
 def is_xml_comment(element: ElementT) -> bool:
     return element.tag is etree.Comment  # type: ignore[comparison-overlap]

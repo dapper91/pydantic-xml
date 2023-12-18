@@ -1,11 +1,13 @@
+import itertools as it
 from typing import Any, Dict, List, Optional, Union
 
+import pydantic as pd
 from pydantic_core import core_schema as pcs
 
-from pydantic_xml import errors
+from pydantic_xml import errors, utils
 from pydantic_xml.element import XmlElementReader, XmlElementWriter
 from pydantic_xml.serializers.serializer import TYPE_FAMILY, SchemaTypeFamily, Serializer
-from pydantic_xml.typedefs import EntityLocation
+from pydantic_xml.typedefs import EntityLocation, Location
 
 HomogeneousCollectionTypeSchema = Union[
     pcs.TupleVariableSchema,
@@ -18,12 +20,14 @@ HomogeneousCollectionTypeSchema = Union[
 class ElementSerializer(Serializer):
     @classmethod
     def from_core_schema(cls, schema: HomogeneousCollectionTypeSchema, ctx: Serializer.Context) -> 'ElementSerializer':
+        model_name = ctx.model_name
         computed = ctx.field_computed
         inner_serializer = Serializer.parse_core_schema(schema['items_schema'], ctx)
 
-        return cls(computed, inner_serializer)
+        return cls(model_name, computed, inner_serializer)
 
-    def __init__(self, computed: bool, inner_serializer: Serializer):
+    def __init__(self, model_name: str, computed: bool, inner_serializer: Serializer):
+        self._model_name = model_name
         self._computed = computed
         self._inner_serializer = inner_serializer
 
@@ -49,6 +53,8 @@ class ElementSerializer(Serializer):
             element: Optional[XmlElementReader],
             *,
             context: Optional[Dict[str, Any]],
+            sourcemap: Dict[Location, int],
+            loc: Location,
     ) -> Optional[List[Any]]:
         if self._computed:
             return None
@@ -56,9 +62,21 @@ class ElementSerializer(Serializer):
         if element is None:
             return None
 
-        result = []
-        while (value := self._inner_serializer.deserialize(element, context=context)) is not None:
-            result.append(value)
+        serializer = self._inner_serializer
+        result: List[Any] = []
+        item_errors: Dict[Union[None, str, int], pd.ValidationError] = {}
+        for idx in it.count():
+            try:
+                value = serializer.deserialize(element, context=context, sourcemap=sourcemap, loc=loc + (idx,))
+                if value is None:
+                    break
+            except pd.ValidationError as err:
+                item_errors[idx] = err
+            else:
+                result.append(value)
+
+        if item_errors:
+            raise utils.build_validation_error(title=self._model_name, errors_map=item_errors)
 
         return result or None
 

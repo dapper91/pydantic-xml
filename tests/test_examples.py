@@ -3,6 +3,7 @@ import sys
 from pathlib import Path
 
 import pytest
+from helpers import is_lxml_native
 
 MODULE_PATH = Path(__file__).parent
 PROJECT_ROOT = MODULE_PATH.parent
@@ -17,6 +18,13 @@ def test_snippets(snippet: Path):
 
 @pytest.mark.skipif(sys.version_info < (3, 9), reason="requires python 3.9 and above")
 @pytest.mark.parametrize('snippet', list((EXAMPLES_PATH / 'snippets' / 'py3.9').glob('*.py')), ids=lambda p: p.name)
+def test_snippets_py39(snippet: Path):
+    loader = importlib.machinery.SourceFileLoader('snippet', str(snippet))
+    loader.load_module('snippet')
+
+
+@pytest.mark.skipif(not is_lxml_native(), reason='not lxml used')
+@pytest.mark.parametrize('snippet', list((EXAMPLES_PATH / 'snippets' / 'lxml').glob('*.py')), ids=lambda p: p.name)
 def test_snippets_py39(snippet: Path):
     loader = importlib.machinery.SourceFileLoader('snippet', str(snippet))
     loader.load_module('snippet')

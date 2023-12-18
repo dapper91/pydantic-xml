@@ -35,10 +35,10 @@ except pydantic.ValidationError as e:
     error = e.errors()[0]
     assert error == {
         'loc': ('founded',),
-        'msg': 'Field required',
+        'msg': '[line 2]: Field required',
+        'ctx': {'orig': 'Field required', 'sourceline': 2},
         'type': 'missing',
         'input': ANY,
-        'url': ANY,
     }
 else:
     raise AssertionError('exception not raised')

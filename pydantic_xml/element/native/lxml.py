@@ -1,3 +1,4 @@
+import typing
 from typing import Optional, Union
 
 from lxml import etree
@@ -30,6 +31,7 @@ class XmlElement(BaseXmlElement[ElementT]):
                 for sub_element in element
                 if not is_xml_comment(sub_element)
             ],
+            sourceline=typing.cast(int, element.sourceline) if element.sourceline is not None else -1,
         )
 
     def to_native(self) -> ElementT:
@@ -47,6 +49,9 @@ class XmlElement(BaseXmlElement[ElementT]):
 
     def make_element(self, tag: str, nsmap: Optional[NsMap]) -> 'XmlElement':
         return XmlElement(tag, nsmap=nsmap)
+
+    def get_sourceline(self) -> int:
+        return self._sourceline
 
 
 def force_str(val: Union[str, bytes]) -> str:

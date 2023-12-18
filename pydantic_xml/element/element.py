@@ -4,6 +4,9 @@ from typing import Any, Callable, Dict, Generic, List, Optional, Sequence, Tuple
 
 from pydantic_xml.typedefs import NsMap
 
+PathElementT = TypeVar('PathElementT')
+PathT = Tuple[PathElementT, ...]
+
 
 class XmlElementReader(abc.ABC):
     """
@@ -90,7 +93,7 @@ class XmlElementReader(abc.ABC):
         """
 
     @abc.abstractmethod
-    def find_sub_element(self, path: Sequence[str], search_mode: 'SearchMode') -> Optional['XmlElementReader']:
+    def find_sub_element(self, path: Sequence[str], search_mode: 'SearchMode') -> PathT['XmlElementReader']:
         """
         Searches for an element at the provided path. If the element is not found returns `None`.
 
@@ -122,11 +125,19 @@ class XmlElementReader(abc.ABC):
         """
 
     @abc.abstractmethod
-    def get_unbound(self) -> List[Tuple[Tuple[str, ...], str]]:
+    def get_unbound(self) -> List[Tuple[PathT['XmlElementReader'], Optional[str], str]]:
         """
         Returns unbound entities.
 
         :return: list of unbound entities
+        """
+
+    @abc.abstractmethod
+    def get_sourceline(self) -> int:
+        """
+        Returns source line of the element in the xml document.
+
+        :return: source line
         """
 
 
@@ -265,6 +276,7 @@ class XmlElement(XmlElementReader, XmlElementWriter, Generic[NativeElement]):
             attributes: Optional[Dict[str, str]] = None,
             elements: Optional[List['XmlElement[NativeElement]']] = None,
             nsmap: Optional[NsMap] = None,
+            sourceline: int = -1,
     ):
         self._tag = tag
         self._nsmap = nsmap
@@ -275,6 +287,11 @@ class XmlElement(XmlElementReader, XmlElementWriter, Generic[NativeElement]):
             elements=elements or [],
             next_element_idx=0,
         )
+        self._sourceline = sourceline
+
+    @abc.abstractmethod
+    def get_sourceline(self) -> int:
+        return self._sourceline
 
     @property
     def tag(self) -> str:
@@ -345,15 +362,17 @@ class XmlElement(XmlElementReader, XmlElementWriter, Generic[NativeElement]):
 
         return searcher(self._state, tag, False, True)
 
-    def find_sub_element(self, path: Sequence[str], search_mode: 'SearchMode') -> Optional['XmlElement[NativeElement]']:
+    def find_sub_element(self, path: Sequence[str], search_mode: 'SearchMode') -> PathT['XmlElement[NativeElement]']:
         assert len(path) > 0, "path can't be empty"
 
-        root, path = path[0], path[1:]
-        element = self.find_element(root, search_mode)
-        if element and path:
-            return element.find_sub_element(path, search_mode)
-
-        return element
+        root, *path = path
+        if (element := self.find_element(root, search_mode)) is not None:
+            if path:
+                return (element,) + element.find_sub_element(path, search_mode)
+            else:
+                return (element,)
+        else:
+            return ()
 
     def find_element_or_create(
             self,
@@ -379,21 +398,24 @@ class XmlElement(XmlElementReader, XmlElementWriter, Generic[NativeElement]):
 
         return searcher(self._state, tag, look_behind, step_forward)
 
-    def get_unbound(self, path: Tuple[str, ...] = ()) -> List[Tuple[Tuple[str, ...], str]]:
-        result: List[Tuple[Tuple[str, ...], str]] = []
+    def get_unbound(
+            self,
+            path: PathT[XmlElementReader] = (),
+    ) -> List[Tuple[PathT[XmlElementReader], Optional[str], str]]:
+        result: List[Tuple[PathT[XmlElementReader], Optional[str], str]] = []
 
         if self._state.text and (text := self._state.text.strip()):
-            result.append((path, text))
+            result.append((path, None, text))
 
         if self._state.tail and (tail := self._state.tail.strip()):
-            result.append((path, tail))
+            result.append((path, None, tail))
 
         if attrs := self._state.attrib:
             for name, value in attrs.items():
-                result.append((path + (f'@{name}',), value))
+                result.append((path, name, value))
 
         for sub_element in self._state.elements:
-            result.extend(sub_element.get_unbound(path + (sub_element.tag,)))
+            result.extend(sub_element.get_unbound(path + (sub_element,)))
 
         return result
 
