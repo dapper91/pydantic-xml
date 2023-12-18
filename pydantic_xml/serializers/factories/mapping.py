@@ -5,7 +5,7 @@ from pydantic_core import core_schema as pcs
 from pydantic_xml import errors
 from pydantic_xml.element import XmlElementReader, XmlElementWriter
 from pydantic_xml.serializers.serializer import TYPE_FAMILY, SchemaTypeFamily, SearchMode, Serializer
-from pydantic_xml.typedefs import EntityLocation, NsMap
+from pydantic_xml.typedefs import EntityLocation, Location, NsMap
 from pydantic_xml.utils import QName, merge_nsmaps, select_ns
 
 
@@ -49,6 +49,8 @@ class AttributesSerializer(Serializer):
             element: Optional[XmlElementReader],
             *,
             context: Optional[Dict[str, Any]],
+            sourcemap: Dict[Location, int],
+            loc: Location,
     ) -> Optional[Dict[str, str]]:
         if self._computed:
             return None
@@ -115,12 +117,15 @@ class ElementSerializer(AttributesSerializer):
             element: Optional[XmlElementReader],
             *,
             context: Optional[Dict[str, Any]],
+            sourcemap: Dict[Location, int],
+            loc: Location,
     ) -> Optional[Dict[str, str]]:
         if self._computed:
             return None
 
         if element and (sub_element := element.pop_element(self._element_name, self._search_mode)) is not None:
-            return super().deserialize(sub_element, context=context)
+            sourcemap[loc] = sub_element.get_sourceline()
+            return super().deserialize(sub_element, context=context, sourcemap=sourcemap, loc=loc)
         else:
             return None
 

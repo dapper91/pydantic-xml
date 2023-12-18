@@ -39,3 +39,10 @@ def is_lxml_native() -> bool:
         return False
 
     return native.etree is lxml.etree
+
+
+def fmt_sourceline(linenum: int) -> int:
+    if is_lxml_native():
+        return linenum
+    else:
+        return -1

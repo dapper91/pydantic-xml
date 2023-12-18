@@ -4,7 +4,7 @@ from pydantic_core import core_schema as pcs
 
 from pydantic_xml.element import XmlElementReader, XmlElementWriter
 from pydantic_xml.serializers.serializer import SearchMode, Serializer
-from pydantic_xml.typedefs import NsMap
+from pydantic_xml.typedefs import Location, NsMap
 from pydantic_xml.utils import QName, merge_nsmaps, select_ns
 
 
@@ -60,13 +60,22 @@ class ElementPathSerializer(Serializer):
             element: Optional[XmlElementReader],
             *,
             context: Optional[Dict[str, Any]],
+            sourcemap: Dict[Location, int],
+            loc: Location,
     ) -> Optional[Any]:
         if self._computed:
             return None
 
-        if element is not None and \
-                (sub_element := element.find_sub_element(self._path, self._search_mode)) is not None:
-            return self._inner_serializer.deserialize(sub_element, context=context)
+        if element is None:
+            return None
+
+        if sub_elements := element.find_sub_element(self._path, self._search_mode):
+            sub_element = sub_elements[-1]
+            if len(sub_elements) == len(self._path):
+                sourcemap[loc] = sub_element.get_sourceline()
+                return self._inner_serializer.deserialize(sub_element, context=context, sourcemap=sourcemap, loc=loc)
+            else:
+                return None
         else:
             return None
 

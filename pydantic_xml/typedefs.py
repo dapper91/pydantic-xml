@@ -1,6 +1,7 @@
 from enum import IntEnum
-from typing import Dict
+from typing import Dict, Tuple, Union
 
+Location = Tuple[Union[str, int], ...]
 NsMap = Dict[str, str]
 
 

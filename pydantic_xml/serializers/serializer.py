@@ -10,7 +10,7 @@ from pydantic_core import core_schema as pcs
 
 from pydantic_xml.element import SearchMode, XmlElementReader, XmlElementWriter
 from pydantic_xml.errors import ModelError
-from pydantic_xml.typedefs import EntityLocation, NsMap
+from pydantic_xml.typedefs import EntityLocation, Location, NsMap
 from pydantic_xml.utils import select_ns
 
 from . import factories
@@ -289,11 +289,15 @@ class Serializer(abc.ABC):
             element: Optional[XmlElementReader],
             *,
             context: Optional[Dict[str, Any]],
+            sourcemap: Dict[Location, int],
+            loc: Location,
     ) -> Optional[Any]:
         """
         Deserializes a value from the xml element.
 
         :param element: xml element the value is deserialized from
         :param context: pydantic validation context
+        :param sourcemap: source-to-element mapping
+        :param loc: entity location
         :return: deserialized value
         """

@@ -206,7 +206,7 @@ choice because it works in predictable time since it doesn't require any look-ah
 
     .. grid-item-card:: Model
 
-        .. literalinclude:: ../../../../examples/snippets/model_mode_strict.py
+        .. literalinclude:: ../../../../examples/snippets/lxml/model_mode_strict.py
             :language: python
             :start-after: model-start
             :end-before: model-end
@@ -220,7 +220,7 @@ choice because it works in predictable time since it doesn't require any look-ah
 
             .. tab-item:: XML
 
-                .. literalinclude:: ../../../../examples/snippets/model_mode_strict.py
+                .. literalinclude:: ../../../../examples/snippets/lxml/model_mode_strict.py
                     :language: xml
                     :lines: 2-
                     :start-after: xml-start
@@ -228,7 +228,7 @@ choice because it works in predictable time since it doesn't require any look-ah
 
             .. tab-item:: JSON
 
-                .. literalinclude:: ../../../../examples/snippets/model_mode_strict.py
+                .. literalinclude:: ../../../../examples/snippets/lxml/model_mode_strict.py
                     :language: json
                     :lines: 2-
                     :start-after: json-start
