@@ -14,14 +14,14 @@ Initialize the development environment installing dev dependencies:
 Code style
 __________
 
-After any code changes make sure that code style is followed.
+After any code changes made make sure that the code style is followed.
 To control that automatically install pre-commit hooks:
 
 .. code-block:: console
 
     $ pre-commit install
 
-It will be checking your changes for coding conventions used in the project before any commit.
+They will be checking your changes for the coding conventions used in the project before any commit.
 
 
 Pull Requests
@@ -40,7 +40,7 @@ To make a PR to version 1 checkout branch ``v1`` and create a new branch impleme
 Version 2
 *********
 
-To contribute to version 2 checkout branch ``dev``, create a feature branch and make pull request setting
+To contribute to version 2 checkout branch ``dev``, create a feature branch and make a pull request setting
 ``dev`` as a target.
 
 

@@ -6,7 +6,7 @@ ____
 Primitive types
 ***************
 
-Field of a primitive type is bound to a local element text.
+A field of a primitive type is bound to the local element text.
 
 .. grid:: 2
     :gutter: 2

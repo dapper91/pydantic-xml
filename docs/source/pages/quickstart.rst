@@ -8,23 +8,23 @@ Base model
 __________
 
 To declare an xml serializable / deserializable model inherit it
-from :py:class:`pydantic_xml.BaseXmlModel` base class. It collects
-data binding meta-information and generates xml serializer for the model.
+from :py:class:`pydantic_xml.BaseXmlModel` base class. It collects the
+data binding meta-information and generates an xml serializer for the model.
 
-To serialize the object into an xml string use :py:meth:`pydantic_xml.BaseXmlModel.to_xml` method,
+To serialize the object into an xml string use :py:meth:`pydantic_xml.BaseXmlModel.to_xml` method or
 :py:meth:`pydantic_xml.BaseXmlModel.from_xml` to deserialize it.
 For more information see :ref:`XML serialization <pages/misc:xml serialization>`.
 
 Data binding
 ____________
 
-Model field can be bound to an xml attribute, element or text. Binding type is derived using the following rules:
+A model field can be bound to an xml attribute, element or text. Binding type is derived using the following rules:
 
 1. Primitives
 *************
 
 field of a primitive type (``int``, ``float``, ``str``, ``datetime``, ...)
-is bound to an element text by default:
+is bound to the element text by default:
 
 .. literalinclude:: ../../../examples/snippets/text_primitive.py
   :language: xml
@@ -90,7 +90,7 @@ For more information see :ref:`model types<pages/data-binding/elements:model typ
 3. Mapping
 **********
 
-field of a mapping type (``Dict[str, str]``, ``Mapping[str, int]``, ``TypedDict`` ...) is bound to a local element
+field of a mapping type (``Dict[str, str]``, ``Mapping[str, int]``, ``TypedDict`` ...) is bound to local element
 attributes (by default):
 
 .. literalinclude:: ../../../examples/snippets/mapping.py
@@ -104,7 +104,7 @@ attributes (by default):
   :start-after: model-start
   :end-before: model-end
 
-or to a sub-element attributes if the field is marked as :py:func:`pydantic_xml.element`:
+or to sub-element attributes if the field is marked as :py:func:`pydantic_xml.element`:
 
 .. literalinclude:: ../../../examples/snippets/mapping_element.py
   :language: xml
@@ -124,7 +124,7 @@ For more information see :ref:`mappings <pages/data-binding/mappings:mappings>`.
 ***********************
 
 field of a primitive collection type (``List[str]``, ``Set[int]``, ``Tuple[float, float]`` ...) is bound to
-sub-elements text:
+sub-elements texts:
 
 .. literalinclude:: ../../../examples/snippets/homogeneous_primitives.py
   :language: xml
@@ -144,7 +144,7 @@ For more information see
 5. Model collection
 *******************
 
-field of a model collection type (``List[BaseXmlModel]``, ``Tuple[BaseXmlModel]``) is bound to
+field of a model collection type (``List[BaseXmlModel]``, ``Tuple[BaseXmlModel, ...]``) is bound to
 sub-elements:
 
 .. literalinclude:: ../../../examples/snippets/homogeneous_models.py
@@ -186,7 +186,7 @@ For more information see :ref:`wrapped entities <pages/data-binding/wrapper:wrap
 Example
 _______
 
-The following example illustrates all previously described rules combined with some ``pydantic`` features:
+The following example illustrates all the previously described rules combined with some ``pydantic`` features:
 
 *doc.xml:*
 

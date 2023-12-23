@@ -7,9 +7,9 @@ ________
 Primitive types
 ***************
 
-Field of a primitive type marked as :py:func:`pydantic_xml.element` is bound to a sub-element text.
-Parameter ``tag`` is used to declare a sub-element tag from which the text is extracted.
-If it is omitted field name is used (respecting ``pydantic`` field aliases).
+A field of a primitive type marked as :py:func:`pydantic_xml.element` is bound to the sub-element text.
+Parameter ``tag`` is used to declare the sub-element tag to which the field is bound.
+If it is omitted the field name is used (respecting ``pydantic`` field aliases).
 
 .. grid:: 2
     :gutter: 2
@@ -45,12 +45,12 @@ If it is omitted field name is used (respecting ``pydantic`` field aliases).
 Model types
 ***********
 
-Field of a model type marked as :py:func:`pydantic_xml.element` is bound to a sub-element.
-Then the sub-element is used as a root for that sub-model. For more information
+A field of a model type marked as :py:func:`pydantic_xml.element` is bound to a sub-element.
+Then the sub-element is used as the root for that sub-model. For more information
 see :ref:`model data binding <pages/data-binding/models:model>`.
 Parameter ``tag`` is used to declare a sub-element tag to which the sub-model is bound.
 If it is omitted the sub-model ``tag`` setting is used.
-If it is omitted too field name is used (respecting ``pydantic`` field aliases).
+If it is omitted too the field name is used (respecting ``pydantic`` field aliases).
 So the order is the following: element tag, model tag, field alias, field name.
 
 .. grid:: 2
@@ -87,7 +87,7 @@ So the order is the following: element tag, model tag, field alias, field name.
 Namespaces
 **********
 
-You can declare an element namespace passing parameters ``ns`` and ``nsmap`` to :py:func:`pydantic_xml.element`
+You can declare the element namespace passing parameters ``ns`` and ``nsmap`` to :py:func:`pydantic_xml.element`
 where ``ns`` is the element namespace alias and ``nsmap`` is a namespace mapping:
 
 .. grid:: 2
@@ -120,7 +120,7 @@ where ``ns`` is the element namespace alias and ``nsmap`` is a namespace mapping
                     :start-after: json-start
                     :end-before: json-end
 
-Namespace and namespace mapping can be declared for a model. In that case all fields
+The namespace and namespace mapping can be declared for a model. In that case all fields
 :ref:`except attributes <pages/data-binding/attributes:namespace inheritance>` inherit them:
 
 .. grid:: 2
@@ -154,8 +154,8 @@ Namespace and namespace mapping can be declared for a model. In that case all fi
                     :end-before: json-end
 
 
-Namespace and namespace mapping can be also applied to model types passing ``ns`` and ``nsmap``
-to :py:func:`pydantic_xml.element`. If they are omitted model namespace and namespace mapping is used:
+The namespace and namespace mapping can be also applied to model types passing ``ns`` and ``nsmap``
+to :py:func:`pydantic_xml.element`. If they are omitted the model namespace and namespace mapping is used:
 
 .. grid:: 2
     :gutter: 2
@@ -198,7 +198,7 @@ Strict (default)
 
 The element to which a field will be bound is searched sequentially one by one (without skipping unknown elements).
 If the tag of a next element doesn't match the field tag that field is considered unbound.
-This mode is used when strong document validation is required. If you parse a large document it is the best
+This mode is used when the strong document validation is required. If you parse a large document it is the best
 choice because it works in predictable time since it doesn't require any look-ahead operations.
 
 .. grid:: 2
@@ -212,7 +212,7 @@ choice because it works in predictable time since it doesn't require any look-ah
             :end-before: model-end
 
         .. error::
-              code raises an exception because of incorrect field order
+              code raises an exception because of the incorrect field order
 
     .. grid-item-card:: Document
 
@@ -239,7 +239,7 @@ Ordered
 .......
 
 The element to which a field will be bound is searched sequentially skipping unknown elements.
-If the tag of a next element doesn't match the field tag that element is skipped and the search continues.
+If the tag of the next element doesn't match the field tag that element is skipped and the search continues.
 This mode is used when the elements order matters but unexpected (or irrelevant) elements could appear in a document.
 
 .. grid:: 2
@@ -282,7 +282,7 @@ This mode is used when the elements order matters but unexpected (or irrelevant)
            field2: str = element(tag='element2')
            field3: str = element(tag='element1')
 
-    will fail for the following document:
+    fails for the following document:
 
     .. code-block:: xml
 

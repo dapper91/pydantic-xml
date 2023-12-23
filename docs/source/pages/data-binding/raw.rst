@@ -14,7 +14,7 @@ To declare a raw element field annotate it with :py:class:`xml.etree.ElementTree
 (or :py:class:`lxml.etree._Element` for ``lxml``).
 
 Since ``pydantic`` doesn't support arbitrary types by default it is necessary to allow them
-by setting ``arbitrary_types_allowed`` attribute.
+by setting ``arbitrary_types_allowed`` flag.
 See `documentation <https://docs.pydantic.dev/latest/usage/model_config/#arbitrary-types-allowed>`_ for more details.
 
 

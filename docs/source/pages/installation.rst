@@ -20,7 +20,7 @@ To install ``pydantic-xml``, run:
 Optional dependencies
 _____________________
 
-``pydantic-xml`` library supports `lxml <https://lxml.de/>`_ as an xml serializer backend.
+``pydantic-xml`` library supports `lxml <https://lxml.de/>`_ as an xml serialization backend.
 If you wish to use ``lxml`` instead of standard :py:mod:`xml.etree.ElementTree` parser install ``lxml`` extra:
 
 .. code-block:: console

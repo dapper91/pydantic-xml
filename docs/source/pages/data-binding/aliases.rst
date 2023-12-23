@@ -6,8 +6,8 @@ ________________
 Aliased fields
 **************
 
-``pydantic`` library allows to set an alias for a field that is used during serialization/deserialization
-instead of field name. ``pydantic-xml`` respects field aliases too:
+``pydantic`` library allows to set the alias for a field that is used during serialization/deserialization
+instead of the field name. ``pydantic-xml`` respects field aliases too:
 
 .. grid:: 2
     :gutter: 2
@@ -44,8 +44,8 @@ Template models
 ***************
 
 ``pydantic`` aliases make it possible to declare so-called template models.
-The base model implements all data-validation and data-processing logic and
-fields mapping is described in the inherited classes:
+The base model implements the data-validation and data-processing logic but
+the fields mapping is described in the inherited classes:
 
 .. grid:: 2
     :gutter: 2

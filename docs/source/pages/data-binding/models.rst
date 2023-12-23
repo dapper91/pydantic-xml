@@ -7,7 +7,7 @@ _____
 Root model
 **********
 
-Root model is bound to the root xml element with the tag matching the model ``tag`` or class name.
+A root model is bound to the root xml element with the tag matching the model ``tag`` or class name.
 If the corresponding element not found :py:class:`pydantic_xml.ParsingError` exception is raised.
 
 .. grid:: 2
@@ -52,7 +52,7 @@ Namespaces
 
 You can declare the root model namespace by setting parameters ``ns`` and ``nsmap``.
 where ``ns`` is the element namespace alias and ``nsmap`` is a namespace mapping.
-Namespace mapping is inherited by all the model field:
+The namespace mapping is inherited by all the model field:
 
 .. grid:: 2
     :gutter: 2
