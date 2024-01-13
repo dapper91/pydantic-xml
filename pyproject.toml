@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pydantic-xml"
-version = "2.7.0"
+version = "2.8.0"
 description = "pydantic xml extension"
 authors = ["Dmitry Pershin <dapper1291@gmail.com>"]
 license = "Unlicense"
