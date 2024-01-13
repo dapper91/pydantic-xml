@@ -7,7 +7,7 @@ ________
 Local attributes
 ****************
 
-Field of a mapping type is bound to a local element attributes.
+A field of a mapping type is bound to local element attributes.
 
 .. grid:: 2
     :gutter: 2
@@ -43,9 +43,9 @@ Field of a mapping type is bound to a local element attributes.
 Sub-element attributes
 **********************
 
-Field of a mapping type marked as :py:func:`pydantic_xml.element` is bound to a sub-element attributes.
-Parameter ``tag`` of :py:func:`pydantic_xml.element` is used as a sub-element tag to which attributes
-the field is bound. If it is omitted field name is used (respecting ``pydantic`` field aliases).
+A field of a mapping type marked as :py:func:`pydantic_xml.element` is bound to sub-element attributes.
+The ``tag`` parameter of :py:func:`pydantic_xml.element` is used as a sub-element tag to which attributes
+the field is bound. If it is omitted the field name is used (respecting ``pydantic`` field aliases).
 
 .. grid:: 2
     :gutter: 2

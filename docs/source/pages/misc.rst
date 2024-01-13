@@ -9,7 +9,7 @@ Custom type encoding
 ____________________
 
 ``pydantic`` provides mechanisms to `customize <https://docs.pydantic.dev/latest/usage/serialization/#custom-serializers>`_
-the default json encoding format. ``pydantic-xml`` uses custom encoders during xml serialization too:
+the default json encoding format. ``pydantic-xml`` uses custom encoders during the xml serialization too:
 
 .. code-block:: python
 
@@ -21,7 +21,8 @@ the default json encoding format. ``pydantic-xml`` uses custom encoders during x
             return value.timestamp()
 
 
-The following example illustrate how to encode :py:class:`bytes` typed fields as Base64 string during xml serialization:
+The following example illustrate how to encode :py:class:`bytes` typed fields as Base64 string
+during the xml serialization:
 
 *model.py:*
 
@@ -45,10 +46,10 @@ The following example illustrate how to encode :py:class:`bytes` typed fields as
 Optional type encoding
 ~~~~~~~~~~~~~~~~~~~~~~
 
-Since xml format doesn't support ``null`` type natively it is not obvious how to encode ``None`` fields
+Since the xml format doesn't support ``null`` type natively it is not obvious how to encode ``None`` fields
 (ignore it, encode it as an empty string or mark it as ``xsi:nil``).
-The library encodes ``None`` values as empty strings by default.
-There are some alternative ways:
+
+``None`` values are encoded as empty strings by default, but the library provides some alternative ways:
 
 - Define your own encoding format for ``None`` values:
 
@@ -62,7 +63,7 @@ There are some alternative ways:
   :language: python
 
 
-- Drop empty elements:
+- Drop empty elements at all:
 
 .. code-block:: python
 
@@ -81,7 +82,7 @@ Empty entities exclusion
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 It is possible to exclude all empty entities from the resulting xml document at once. To do that
-just pass ``skip_empty=True`` parameter to :py:meth:`pydantic_xml.BaseXmlModel.to_xml` during serialization.
+just pass ``skip_empty=True`` parameter to :py:meth:`pydantic_xml.BaseXmlModel.to_xml` during the serialization.
 That parameter is applied to the root model and all its sub-models by default. But it can be adjusted
 for a particular model during its declaration as illustrated in the following example:
 
@@ -197,7 +198,7 @@ XML serialization
 XML serialization process is customizable depending on which backend you use.
 For example ``lxml`` can pretty-print the output document or serialize it using a particular encoding
 (for more information see :py:func:`lxml.etree.tostring`).
-To set that features pass them to :py:meth:`pydantic_xml.BaseXmlModel.to_xml`
+To set that parameters pass them to :py:meth:`pydantic_xml.BaseXmlModel.to_xml` as extra arguments:
 
 .. code-block:: python
 
