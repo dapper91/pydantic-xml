@@ -12,8 +12,8 @@ variable-length tuple :py:obj:`typing.Tuple` (like ``Tuple[int, ...]``)
 Primitive homogeneous collection
 ********************************
 
-Field of a primitive homogeneous collection type marked as :py:func:`pydantic_xml.element` is bound
-to sub-elements text.
+A field of a primitive homogeneous collection type marked as :py:func:`pydantic_xml.element` is bound
+to the sub-elements texts.
 
 .. grid:: 2
     :gutter: 2
@@ -49,9 +49,9 @@ to sub-elements text.
 Model homogeneous collection
 ****************************
 
-Field of a model homogeneous collection type is bound to sub-elements. Then the sub-element is used
-as a root for that sub-model. For more information see :ref:`model data binding <pages/data-binding/models:model>`.
-Parameter ``tag`` is used to declare sub-elements tag to which the sub-models are bound.
+A field of a model homogeneous collection type is bound to sub-elements. Then the sub-element is used
+as the root for that sub-model. For more information see :ref:`model data binding <pages/data-binding/models:model>`.
+The ``tag`` parameter is used to declare sub-elements tag to which the sub-models are bound.
 If it is omitted the sub-model ``tag`` parameter is used.
 If it is omitted too field name is used (respecting ``pydantic`` field aliases).
 
@@ -89,7 +89,7 @@ If it is omitted too field name is used (respecting ``pydantic`` field aliases).
 Dict homogeneous collection
 ***************************
 
-Field of a mapping homogeneous collection type is bound to sub-elements attributes:
+A field of a mapping homogeneous collection type is bound to sub-elements attributes:
 
 .. grid:: 2
     :gutter: 2

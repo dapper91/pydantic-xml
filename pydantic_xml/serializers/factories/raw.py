@@ -32,7 +32,7 @@ class ElementSerializer(Serializer):
     def serialize(
             self, element: XmlElementWriter, value: Any, encoded: Any, *, skip_empty: bool = False,
     ) -> Optional[XmlElementWriter]:
-        if value is None and skip_empty:
+        if value is None:
             return element
 
         sub_element = element.from_native(value)

@@ -1,6 +1,13 @@
 Changelog
 =========
 
+2.8.0 (2024-01-13)
+------------------
+
+- mypy plugin added. See https://pydantic-xml.readthedocs.io/en/latest/pages/misc.html#mypy.
+- optional raw element bug fixed. See https://github.com/dapper91/pydantic-xml/issues/158.
+
+
 2.7.0 (2023-12-18)
 ------------------
 

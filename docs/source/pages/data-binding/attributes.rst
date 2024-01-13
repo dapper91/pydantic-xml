@@ -7,9 +7,9 @@ __________
 Primitive types
 ***************
 
-Field of a primitive type marked as :py:func:`pydantic_xml.attr` is bound to a local element attribute.
+A field of a primitive type marked as :py:func:`pydantic_xml.attr` is bound to a local element attribute.
 Parameter ``name`` is used to declare the attribute name from which the data is extracted.
-If it is omitted field name is used (respecting ``pydantic`` field aliases).
+If it is omitted the field name is used (respecting ``pydantic`` field aliases).
 
 .. grid:: 2
     :gutter: 2
@@ -45,8 +45,8 @@ If it is omitted field name is used (respecting ``pydantic`` field aliases).
 Namespaces
 **********
 
-Namespace can be defined for attributes. To bind a model field to a namespaced attribute
-pass parameter ``ns`` to a :py:func:`pydantic_xml.attr` and define namespace map for the model.
+The namespace can be defined for attributes as well. To bind a model field to a namespaced attribute
+pass parameter ``ns`` to a :py:func:`pydantic_xml.attr` and define a namespace map for the model.
 
 .. grid:: 2
     :gutter: 2
@@ -82,9 +82,9 @@ pass parameter ``ns`` to a :py:func:`pydantic_xml.attr` and define namespace map
 Namespace inheritance
 *********************
 
-Attribute namespace can be inherited from the model.
-To make attributes inherit the model namespace define model-level namespace and namespace map
-and set parameter ``ns_attrs``.
+The attribute namespace can be inherited from the model.
+To make attributes inherit the model namespace define the model-level namespace and namespace map
+and set ``ns_attrs`` flag.
 
 .. grid:: 2
     :gutter: 2
