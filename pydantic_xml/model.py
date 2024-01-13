@@ -162,16 +162,32 @@ class XmlEntityInfo(pd.fields.FieldInfo):
             utils.register_nsmap(nsmap)
 
 
-def attr(name: Optional[str] = None, ns: Optional[str] = None, **kwargs: Any) -> Any:
+_Unset: Any = pdc.PydanticUndefined
+
+
+def attr(
+        name: Optional[str] = None,
+        ns: Optional[str] = None,
+        *,
+        default: Any = pdc.PydanticUndefined,
+        default_factory: Optional[Callable[[], Any]] = _Unset,
+        **kwargs: Any,
+) -> Any:
     """
     Marks a pydantic field as an xml attribute.
 
     :param name: attribute name
     :param ns: attribute xml namespace
+    :param default: the default value of the field.
+    :param default_factory: the factory function used to construct the default for the field.
     :param kwargs: pydantic field arguments. See :py:class:`pydantic.Field`
     """
 
-    return XmlEntityInfo(EntityLocation.ATTRIBUTE, path=name, ns=ns, **kwargs)
+    return XmlEntityInfo(
+        EntityLocation.ATTRIBUTE,
+        path=name, ns=ns, default=default, default_factory=default_factory,
+        **kwargs,
+    )
 
 
 def element(
@@ -179,6 +195,9 @@ def element(
         ns: Optional[str] = None,
         nsmap: Optional[NsMap] = None,
         nillable: bool = False,
+        *,
+        default: Any = pdc.PydanticUndefined,
+        default_factory: Optional[Callable[[], Any]] = _Unset,
         **kwargs: Any,
 ) -> Any:
     """
@@ -188,10 +207,16 @@ def element(
     :param ns: element xml namespace
     :param nsmap: element xml namespace map
     :param nillable: is element nillable. See https://www.w3.org/TR/xmlschema-1/#xsi_nil.
+    :param default: the default value of the field.
+    :param default_factory: the factory function used to construct the default for the field.
     :param kwargs: pydantic field arguments. See :py:class:`pydantic.Field`
     """
 
-    return XmlEntityInfo(EntityLocation.ELEMENT, path=tag, ns=ns, nsmap=nsmap, nillable=nillable, **kwargs)
+    return XmlEntityInfo(
+        EntityLocation.ELEMENT,
+        path=tag, ns=ns, nsmap=nsmap, nillable=nillable, default=default, default_factory=default_factory,
+        **kwargs,
+    )
 
 
 def wrapped(
@@ -199,6 +224,9 @@ def wrapped(
         entity: Optional[pd.fields.FieldInfo] = None,
         ns: Optional[str] = None,
         nsmap: Optional[NsMap] = None,
+        *,
+        default: Any = pdc.PydanticUndefined,
+        default_factory: Optional[Callable[[], Any]] = _Unset,
         **kwargs: Any,
 ) -> Any:
     """
@@ -208,10 +236,16 @@ def wrapped(
     :param path: entity path
     :param ns: element xml namespace
     :param nsmap: element xml namespace map
+    :param default: the default value of the field.
+    :param default_factory: the factory function used to construct the default for the field.
     :param kwargs: pydantic field arguments. See :py:class:`pydantic.Field`
     """
 
-    return XmlEntityInfo(EntityLocation.WRAPPED, path=path, ns=ns, nsmap=nsmap, wrapped=entity, **kwargs)
+    return XmlEntityInfo(
+        EntityLocation.WRAPPED,
+        path=path, ns=ns, nsmap=nsmap, wrapped=entity, default=default, default_factory=default_factory,
+        **kwargs,
+    )
 
 
 class XmlModelMeta(ModelMetaclass):
