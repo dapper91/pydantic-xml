@@ -1,4 +1,4 @@
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 from helpers import assert_xml_equal
 
@@ -38,6 +38,29 @@ def test_raw_primitive_element_serialization():
     element2.append(sub_element)
 
     actual_obj = TestModel(element1=element1, element2=element2)
+    actual_xml = actual_obj.to_xml()
+    assert_xml_equal(actual_xml, xml)
+
+
+def test_optional_raw_primitive_element_serialization():
+    class TestModel(BaseXmlModel, tag='model', arbitrary_types_allowed=True):
+        element1: Optional[ElementT] = element(default=None)
+        element2: ElementT = element()
+
+    xml = '''
+    <model>
+        <element2>text</element2>
+    </model>
+    '''
+
+    actual_obj = TestModel.from_xml(xml)
+
+    assert actual_obj.element1 is None
+    assert actual_obj.element2.text == 'text'
+
+    element2 = etree.Element('element2')
+    element2.text = 'text'
+    actual_obj = TestModel(element1=None, element2=element2)
     actual_xml = actual_obj.to_xml()
     assert_xml_equal(actual_xml, xml)
 
