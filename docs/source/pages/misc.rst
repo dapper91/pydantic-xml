@@ -213,3 +213,25 @@ To set that parameters pass them to :py:meth:`pydantic_xml.BaseXmlModel.to_xml` 
 
 Standard library serializer also supports customizations.
 For more information see :py:func:`xml.etree.ElementTree.tostring`,
+
+
+Mypy
+~~~~
+
+``pydantic-xml`` provides a ``mypy`` plugin that adds some important pydantic-specific features to type-check your code.
+
+To enable the plugin add the following to your ``mypy.ini`` config file:
+
+.. code-block:: ini
+
+    [mypy]
+    plugins = pydantic_xml.mypy
+
+or ``pyproject.toml``:
+
+.. code-block:: toml
+
+    [tool.mypy]
+    plugins = [
+      "pydantic_xml.mypy"
+    ]
