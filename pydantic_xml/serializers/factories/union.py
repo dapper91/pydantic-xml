@@ -117,6 +117,7 @@ class ModelSerializer(Serializer):
                 last_error = e
 
         if last_error is not None:
+            element.step_forward()
             raise last_error
 
         return result

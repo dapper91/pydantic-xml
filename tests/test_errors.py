@@ -170,3 +170,50 @@ def test_heterogeneous_collection_errors():
             },
         },
     ]
+
+
+def test_models_union_errors():
+    class TestSubModel1(BaseXmlModel, tag='submodel1'):
+        data: int
+
+    class TestSubModel2(BaseXmlModel, tag='submodel2'):
+        data: float
+
+    class TestModel(BaseXmlModel, tag='model'):
+        submodel: List[Union[TestSubModel1, TestSubModel2]]
+
+    xml = '''
+        <model>
+            <submodel2>a</submodel2>
+            <submodel1>b</submodel1>
+        </model>
+    '''
+
+    with pytest.raises(pd.ValidationError) as exc:
+        TestModel.from_xml(xml)
+
+    err = exc.value
+    assert err.title == 'TestModel'
+    assert err.error_count() == 2
+    assert err.errors() == [
+        {
+            'input': 'a',
+            'loc': ('submodel', 0, 'data'),
+            'msg': f'[line {fmt_sourceline(3)}]: Input should be a valid number, unable to parse string as a number',
+            'type': 'float_parsing',
+            'ctx': {
+                'orig': 'Input should be a valid number, unable to parse string as a number',
+                'sourceline': fmt_sourceline(3),
+            },
+        },
+        {
+            'input': 'b',
+            'loc': ('submodel', 1, 'data'),
+            'msg': f'[line {fmt_sourceline(4)}]: Input should be a valid integer, unable to parse string as an integer',
+            'type': 'int_parsing',
+            'ctx': {
+                'orig': 'Input should be a valid integer, unable to parse string as an integer',
+                'sourceline': fmt_sourceline(4),
+            },
+        },
+    ]
