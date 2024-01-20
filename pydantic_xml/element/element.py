@@ -305,6 +305,7 @@ class XmlElement(XmlElementReader, XmlElementWriter, Generic[NativeElement]):
             attributes=dict(self._state.attrib) if self._state.attrib is not None else None,
             elements=[element.create_snapshot() for element in self._state.elements],
             nsmap=dict(self._nsmap) if self._nsmap is not None else None,
+            sourceline=self._sourceline,
         )
         element._state.next_element_idx = self._state.next_element_idx
 
