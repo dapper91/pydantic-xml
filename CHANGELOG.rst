@@ -1,6 +1,12 @@
 Changelog
 =========
 
+2.8.1 (2024-01-21)
+------------------
+
+- union collection deserialization bug fixed. See https://github.com/dapper91/pydantic-xml/pull/165.
+
+
 2.8.0 (2024-01-13)
 ------------------
 
