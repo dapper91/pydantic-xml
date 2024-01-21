@@ -117,6 +117,12 @@ class XmlElementReader(abc.ABC):
         """
 
     @abc.abstractmethod
+    def step_forward(self) -> None:
+        """
+        Increment the current element index.
+        """
+
+    @abc.abstractmethod
     def to_native(self) -> Any:
         """
         Transforms current element to a native one.
@@ -305,6 +311,7 @@ class XmlElement(XmlElementReader, XmlElementWriter, Generic[NativeElement]):
             attributes=dict(self._state.attrib) if self._state.attrib is not None else None,
             elements=[element.create_snapshot() for element in self._state.elements],
             nsmap=dict(self._nsmap) if self._nsmap is not None else None,
+            sourceline=self._sourceline,
         )
         element._state.next_element_idx = self._state.next_element_idx
 
@@ -318,6 +325,9 @@ class XmlElement(XmlElementReader, XmlElementWriter, Generic[NativeElement]):
         self._state.attrib = snapshot._state.attrib
         self._state.elements = snapshot._state.elements
         self._state.next_element_idx = snapshot._state.next_element_idx
+
+    def step_forward(self) -> None:
+        self._state.next_element_idx += 1
 
     def is_empty(self) -> bool:
         if not self._state.text and not self._state.tail and not self._state.attrib and len(self._state.elements) == 0:
