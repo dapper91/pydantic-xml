@@ -243,7 +243,7 @@ class Serializer(abc.ABC):
             return factories.homogeneous.from_core_schema(schema, ctx)
 
         elif type_family is SchemaTypeFamily.HETEROGENEOUS_COLLECTION:
-            schema = typing.cast(pcs.TuplePositionalSchema, schema)
+            schema = typing.cast(pcs.TupleSchema, schema)
             return factories.heterogeneous.from_core_schema(schema, ctx)
 
         elif type_family is SchemaTypeFamily.MAPPING:
