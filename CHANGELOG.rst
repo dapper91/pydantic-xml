@@ -1,6 +1,12 @@
 Changelog
 =========
 
+2.9.0 (2024-02-03)
+------------------
+
+- pydantic 2.6 incompatibility fixed. See https://github.com/dapper91/pydantic-xml/issues/167.
+
+
 2.8.1 (2024-01-21)
 ------------------
 
