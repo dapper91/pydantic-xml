@@ -34,7 +34,8 @@ classifiers = [
 [tool.poetry.dependencies]
 python = ">=3.8"
 lxml = {version = ">=4.9.0", optional = true}
-pydantic = ">=2.0.0"
+pydantic = ">=2.6.0"
+pydantic-core = ">=2.15.0"
 
 furo = {version = "^2022.12.7", optional = true}
 Sphinx = {version = "^5.3.0", optional = true}
