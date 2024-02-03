@@ -10,7 +10,7 @@ from pydantic_xml.serializers.serializer import TYPE_FAMILY, SchemaTypeFamily, S
 from pydantic_xml.typedefs import EntityLocation, Location
 
 HomogeneousCollectionTypeSchema = Union[
-    pcs.TupleVariableSchema,
+    pcs.TupleSchema,
     pcs.ListSchema,
     pcs.SetSchema,
     pcs.FrozenSetSchema,
@@ -22,7 +22,13 @@ class ElementSerializer(Serializer):
     def from_core_schema(cls, schema: HomogeneousCollectionTypeSchema, ctx: Serializer.Context) -> 'ElementSerializer':
         model_name = ctx.model_name
         computed = ctx.field_computed
-        inner_serializer = Serializer.parse_core_schema(schema['items_schema'], ctx)
+
+        items_schema = schema['items_schema']
+        if isinstance(items_schema, list):
+            assert len(items_schema) == 1, "unexpected items schema type"
+            items_schema = items_schema[0]
+
+        inner_serializer = Serializer.parse_core_schema(items_schema, ctx)
 
         return cls(model_name, computed, inner_serializer)
 
@@ -83,6 +89,10 @@ class ElementSerializer(Serializer):
 
 def from_core_schema(schema: HomogeneousCollectionTypeSchema, ctx: Serializer.Context) -> Serializer:
     items_schema = schema['items_schema']
+    if isinstance(items_schema, list):
+        assert len(items_schema) == 1, "unexpected items schema type"
+        items_schema = items_schema[0]
+
     items_schema, ctx = Serializer.preprocess_schema(items_schema, ctx)
 
     items_type_family = TYPE_FAMILY.get(items_schema['type'])
@@ -93,16 +103,16 @@ def from_core_schema(schema: HomogeneousCollectionTypeSchema, ctx: Serializer.Co
         SchemaTypeFamily.TYPED_MAPPING,
         SchemaTypeFamily.UNION,
         SchemaTypeFamily.IS_INSTANCE,
-        SchemaTypeFamily.HETEROGENEOUS_COLLECTION,
+        SchemaTypeFamily.TUPLE,
     ):
         raise errors.ModelFieldError(
-            ctx.model_name, ctx.field_name, "collection item must be of primitive, model, mapping or union type",
+            ctx.model_name, ctx.field_name, "collection item must be of primitive, model, mapping, union or tuple type",
         )
 
     if items_type_family not in (
             SchemaTypeFamily.MODEL,
             SchemaTypeFamily.UNION,
-            SchemaTypeFamily.HETEROGENEOUS_COLLECTION,
+            SchemaTypeFamily.TUPLE,
     ) and ctx.entity_location is None:
         raise errors.ModelFieldError(ctx.model_name, ctx.field_name, "entity name is not provided")
 

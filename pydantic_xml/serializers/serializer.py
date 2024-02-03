@@ -30,7 +30,7 @@ class SchemaTypeFamily(IntEnum):
     PRIMITIVE = 1
     MODEL = 2
     HOMOGENEOUS_COLLECTION = 3
-    HETEROGENEOUS_COLLECTION = 4
+    TUPLE = 4
     MAPPING = 5
     TYPED_MAPPING = 6
     UNION = 7
@@ -64,12 +64,10 @@ TYPE_FAMILY = {
 
     'model':            SchemaTypeFamily.MODEL,
 
-    'tuple-variable':   SchemaTypeFamily.HOMOGENEOUS_COLLECTION,
+    'tuple':            SchemaTypeFamily.TUPLE,
     'list':             SchemaTypeFamily.HOMOGENEOUS_COLLECTION,
     'set':              SchemaTypeFamily.HOMOGENEOUS_COLLECTION,
     'frozenset':        SchemaTypeFamily.HOMOGENEOUS_COLLECTION,
-
-    'tuple-positional': SchemaTypeFamily.HETEROGENEOUS_COLLECTION,
 
     'dict':             SchemaTypeFamily.MAPPING,
     'typed-dict':       SchemaTypeFamily.TYPED_MAPPING,
@@ -242,9 +240,9 @@ class Serializer(abc.ABC):
             schema = typing.cast(factories.homogeneous.HomogeneousCollectionTypeSchema, schema)
             return factories.homogeneous.from_core_schema(schema, ctx)
 
-        elif type_family is SchemaTypeFamily.HETEROGENEOUS_COLLECTION:
-            schema = typing.cast(pcs.TuplePositionalSchema, schema)
-            return factories.heterogeneous.from_core_schema(schema, ctx)
+        elif type_family is SchemaTypeFamily.TUPLE:
+            schema = typing.cast(pcs.TupleSchema, schema)
+            return factories.tuple.from_core_schema(schema, ctx)
 
         elif type_family is SchemaTypeFamily.MAPPING:
             schema = typing.cast(pcs.DictSchema, schema)

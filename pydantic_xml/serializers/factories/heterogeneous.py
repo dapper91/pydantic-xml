@@ -11,7 +11,7 @@ from pydantic_xml.typedefs import EntityLocation, Location
 
 class ElementSerializer(Serializer):
     @classmethod
-    def from_core_schema(cls, schema: pcs.TuplePositionalSchema, ctx: Serializer.Context) -> 'ElementSerializer':
+    def from_core_schema(cls, schema: pcs.TupleSchema, ctx: Serializer.Context) -> 'ElementSerializer':
         model_name = ctx.model_name
         computed = ctx.field_computed
         inner_serializers: List[Serializer] = []
@@ -73,7 +73,7 @@ class ElementSerializer(Serializer):
             return result
 
 
-def from_core_schema(schema: pcs.TuplePositionalSchema, ctx: Serializer.Context) -> Serializer:
+def from_core_schema(schema: pcs.TupleSchema, ctx: Serializer.Context) -> Serializer:
     for item_schema in schema['items_schema']:
         item_schema, ctx = Serializer.preprocess_schema(item_schema, ctx)
 
