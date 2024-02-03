@@ -6,6 +6,7 @@ import pydantic as pd
 import pydantic_core as pdc
 from pydantic import BaseModel, RootModel
 from pydantic._internal._model_construction import ModelMetaclass  # noqa
+from pydantic.root_model import _RootModelMetaclass as RootModelMetaclass  # noqa
 
 from . import config, errors, utils
 from .element import SearchMode
@@ -433,6 +434,10 @@ class BaseXmlModel(BaseModel, __xml_abstract__=True, metaclass=XmlModelMeta):
         return etree.tostring(self.to_xml_tree(skip_empty=skip_empty), **kwargs)
 
 
+class RootXmlModelMeta(XmlModelMeta, RootModelMetaclass):
+    pass
+
+
 RootModelRootType = TypeVar('RootModelRootType')
 
 
@@ -440,6 +445,7 @@ class RootXmlModel(
     RootModel[RootModelRootType],
     BaseXmlModel,
     Generic[RootModelRootType],
+    metaclass=RootXmlModelMeta,
     __xml_abstract__=True,
 ):
     """
