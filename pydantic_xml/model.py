@@ -4,6 +4,7 @@ from typing import Any, Callable, ClassVar, Dict, Generic, Optional, Tuple, Type
 
 import pydantic as pd
 import pydantic_core as pdc
+import typing_extensions as te
 from pydantic import BaseModel, RootModel
 from pydantic._internal._model_construction import ModelMetaclass  # noqa
 from pydantic.root_model import _RootModelMetaclass as RootModelMetaclass  # noqa
@@ -249,6 +250,7 @@ def wrapped(
     )
 
 
+@te.dataclass_transform(kw_only_default=True, field_specifiers=(attr, element, wrapped, pd.Field))
 class XmlModelMeta(ModelMetaclass):
     """
     Xml model metaclass.
@@ -434,6 +436,7 @@ class BaseXmlModel(BaseModel, __xml_abstract__=True, metaclass=XmlModelMeta):
         return etree.tostring(self.to_xml_tree(skip_empty=skip_empty), **kwargs)
 
 
+@te.dataclass_transform(kw_only_default=True, field_specifiers=(attr, element, wrapped, pd.Field))
 class RootXmlModelMeta(XmlModelMeta, RootModelMetaclass):
     pass
 
