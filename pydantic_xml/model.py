@@ -1,6 +1,6 @@
 import dataclasses as dc
 import typing
-from typing import Any, Callable, ClassVar, Dict, Generic, Optional, Tuple, Type, TypeVar, Union
+from typing import Any, Callable, ClassVar, Dict, Generic, List, Optional, Tuple, Type, TypeVar, Union
 
 import pydantic as pd
 import pydantic_core as pdc
@@ -23,8 +23,10 @@ __all__ = (
     'wrapped',
     'computed_attr',
     'computed_element',
+    'unbound_handler',
     'BaseXmlModel',
     'RootXmlModel',
+    'UnboundHandler',
 )
 
 
@@ -250,6 +252,25 @@ def wrapped(
     )
 
 
+UnboundHandler = Callable[['BaseXmlModel', Optional[str], Optional[Dict[str, str]], List[etree.Element]], None]
+
+
+@dc.dataclass
+class UnboundHandlerDecoratorInfo:
+    handler: UnboundHandler
+
+
+def unbound_handler() -> Callable[[UnboundHandler], UnboundHandlerDecoratorInfo]:
+    """
+    Marks a method as an unbound entities handler.
+    """
+
+    def decorator(handler: UnboundHandler) -> UnboundHandlerDecoratorInfo:
+        return UnboundHandlerDecoratorInfo(handler=handler)
+
+    return decorator
+
+
 @te.dataclass_transform(kw_only_default=True, field_specifiers=(attr, element, wrapped, pd.Field))
 class XmlModelMeta(ModelMetaclass):
     """
@@ -266,6 +287,11 @@ class XmlModelMeta(ModelMetaclass):
         is_abstract: bool = kwargs.pop('__xml_abstract__', False)
 
         cls = typing.cast(Type['BaseXmlModel'], super().__new__(mcls, name, bases, namespace, **kwargs))
+
+        for attr_name, attr_value in vars(cls).items():
+            if isinstance(attr_value, UnboundHandlerDecoratorInfo):
+                cls.__xml_unbound_handler__ = attr_value
+
         if not is_abstract:
             cls.__build_serializer__()
 
@@ -287,6 +313,7 @@ class BaseXmlModel(BaseModel, __xml_abstract__=True, metaclass=XmlModelMeta):
     __xml_skip_empty__: ClassVar[Optional[bool]]
     __xml_search_mode__: ClassVar[SearchMode]
     __xml_serializer__: ClassVar[Optional[BaseModelSerializer]] = None
+    __xml_unbound_handler__: Optional[UnboundHandlerDecoratorInfo] = None
 
     def __init_subclass__(
             cls,
@@ -305,6 +332,7 @@ class BaseXmlModel(BaseModel, __xml_abstract__=True, metaclass=XmlModelMeta):
         :param ns: element namespace
         :param nsmap: element namespace map
         :param ns_attrs: use namespaced attributes
+        :param skip_empty: skip empty elements (elements without sub-elements, attributes and text, Nones)
         :param search_mode: element search mode
         """
 
@@ -317,6 +345,7 @@ class BaseXmlModel(BaseModel, __xml_abstract__=True, metaclass=XmlModelMeta):
         cls.__xml_skip_empty__ = skip_empty if skip_empty is not None else getattr(cls, '__xml_skip_empty__', None)
         cls.__xml_search_mode__ = search_mode if search_mode is not None \
             else getattr(cls, '__xml_search_mode__', SearchMode.STRICT)
+        cls.__xml_unbound_handler__ = None
 
     @classmethod
     def __build_serializer__(cls) -> None:
@@ -356,6 +385,10 @@ class BaseXmlModel(BaseModel, __xml_abstract__=True, metaclass=XmlModelMeta):
             cls.__xml_serializer__ = serializer
         else:
             cls.__xml_serializer__ = None
+
+    model_config = pd.ConfigDict(
+        ignored_types=(UnboundHandlerDecoratorInfo,),
+    )
 
     @classmethod
     def model_rebuild(cls, **kwargs: Any) -> None:

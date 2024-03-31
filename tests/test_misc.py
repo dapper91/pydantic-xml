@@ -4,7 +4,8 @@ import pydantic as pd
 import pytest
 from helpers import assert_xml_equal
 
-from pydantic_xml import BaseXmlModel, attr, element, errors, wrapped
+from pydantic_xml import BaseXmlModel, attr, element, errors, unbound_handler, wrapped
+from pydantic_xml.element.native import ElementT
 
 
 def test_xml_declaration():
@@ -312,3 +313,39 @@ def test_pydantic_validation_context():
     '''
 
     TestModel.from_xml(xml, validation_context)
+
+
+def test_unbound_handler():
+    handler_called = False
+
+    class TestModel(BaseXmlModel, tag='model'):
+        attr1: int = attr()
+        sub1: str = element()
+
+        @unbound_handler()
+        def handle_unbound(self, text: Optional[str], attrs: Dict[str, str], elements: List[ElementT]) -> None:
+            nonlocal handler_called
+            handler_called = True
+
+            assert isinstance(self, TestModel)
+
+            assert text.strip() == 'text'
+            assert attrs == {'attr2': '2'}
+
+            assert elements[0].tag == 'sub2'
+            assert elements[0].text == '2'
+
+            assert elements[1].tag == 'sub3'
+            assert elements[1].text == '3'
+
+    xml = '''
+        <model attr1="1" attr2="2">text
+            <sub1>1</sub1>
+            <sub2>2</sub2>
+            <sub3>3</sub3>
+        </model>
+    '''
+
+    TestModel.from_xml(xml)
+
+    assert handler_called, "unbound handler is called"

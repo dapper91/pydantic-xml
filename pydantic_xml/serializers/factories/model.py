@@ -111,10 +111,12 @@ class ModelSerializer(BaseModelSerializer):
         name = model_cls.__xml_tag__ or model_cls.__name__
         ns = model_cls.__xml_ns__
         nsmap = model_cls.__xml_nsmap__
+        unbound_handler = model_cls.__xml_unbound_handler__
 
         return cls(
             model_cls, name, ns, nsmap,
             fields_serializers, fields_validation_aliases, fields_serialization_exclude,
+            unbound_handler,
         )
 
     def __init__(
@@ -126,6 +128,7 @@ class ModelSerializer(BaseModelSerializer):
             field_serializers: Dict[str, Serializer],
             fields_validation_aliases: Dict[str, str],
             fields_serialization_exclude: Set[str],
+            unbound_handler: Optional['pxml.model.UnboundHandlerDecoratorInfo'],
     ):
 
         self._model = model
@@ -134,6 +137,7 @@ class ModelSerializer(BaseModelSerializer):
         self._nsmap = nsmap
         self._fields_validation_aliases = fields_validation_aliases
         self._fields_serialization_exclude = fields_serialization_exclude
+        self._unbound_handler = unbound_handler
 
     @property
     def model(self) -> Type['pxml.BaseXmlModel']:
@@ -204,9 +208,19 @@ class ModelSerializer(BaseModelSerializer):
             self._check_extra(self._model.__name__, element)
 
         try:
-            return self._model.model_validate(result, strict=False, context=context)
+            obj = self._model.model_validate(result, strict=False, context=context)
         except pd.ValidationError as err:
             raise utils.set_validation_error_sourceline(err, sourcemap)
+
+        if self._unbound_handler is not None:
+            self._unbound_handler.handler(
+                obj,
+                element.pop_text(),
+                element.pop_attributes(),
+                [sub.to_native() for sub in element.pop_elements()],
+            )
+
+        return obj
 
 
 class RootModelSerializer(BaseModelSerializer):

@@ -1,6 +1,6 @@
 import abc
 from enum import Enum
-from typing import Any, Callable, Dict, Generic, List, Optional, Sequence, Tuple, TypeVar
+from typing import Any, Callable, Dict, Generic, Iterable, List, Optional, Sequence, Tuple, TypeVar
 
 from pydantic_xml.typedefs import NsMap
 
@@ -89,6 +89,14 @@ class XmlElementReader(abc.ABC):
 
         :param tag: element tag
         :param search_mode: element search mode
+        :return: sub-element
+        """
+
+    @abc.abstractmethod
+    def pop_elements(self) -> Iterable['XmlElementReader']:
+        """
+        Extracts all unbound sub-element from the xml element.
+
         :return: sub-element
         """
 
@@ -371,6 +379,13 @@ class XmlElement(XmlElementReader, XmlElementWriter, Generic[NativeElement]):
         searcher: Searcher[NativeElement] = get_searcher(search_mode)
 
         return searcher(self._state, tag, False, True)
+
+    def pop_elements(self) -> Iterable['XmlElement[NativeElement]']:
+        elements = self._state.elements
+        next_element_idx = self._state.next_element_idx
+        elements, unbound_elements = elements[0:next_element_idx], elements[next_element_idx:]
+
+        return unbound_elements
 
     def find_sub_element(self, path: Sequence[str], search_mode: 'SearchMode') -> PathT['XmlElement[NativeElement]']:
         assert len(path) > 0, "path can't be empty"
