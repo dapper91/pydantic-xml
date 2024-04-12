@@ -1,6 +1,13 @@
 Changelog
 =========
 
+2.9.1 (2024-04-12)
+------------------
+
+- PEP-681 (Data Class Transforms) support added. See https://github.com/dapper91/pydantic-xml/pull/178.
+- pydantic 2.7 enum type support added. See https://github.com/dapper91/pydantic-xml/issues/182
+
+
 2.9.0 (2024-02-03)
 ------------------
 
