@@ -48,6 +48,7 @@ TYPE_FAMILY = {
     'float':            SchemaTypeFamily.PRIMITIVE,
     'str':              SchemaTypeFamily.PRIMITIVE,
     'bytes':            SchemaTypeFamily.PRIMITIVE,
+    'enum':             SchemaTypeFamily.PRIMITIVE,
     'date':             SchemaTypeFamily.PRIMITIVE,
     'time':             SchemaTypeFamily.PRIMITIVE,
     'datetime':         SchemaTypeFamily.PRIMITIVE,
