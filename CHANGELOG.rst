@@ -1,6 +1,12 @@
 Changelog
 =========
 
+2.9.2 (2024-04-19)
+------------------
+
+- mypy plugin dataclass_transform decorated model bug fixed. See https://github.com/dapper91/pydantic-xml/issues/152#issuecomment-2057949479.
+
+
 2.9.1 (2024-04-12)
 ------------------
 
