@@ -4,6 +4,7 @@ from mypy import nodes
 from mypy.plugin import ClassDefContext, FunctionContext, Plugin, Type
 from pydantic.mypy import PydanticModelTransformer, PydanticPlugin
 
+MODEL_METACLASS_FULLNAME = 'pydantic_xml.model.XmlModelMeta'
 ATTR_FULLNAME = 'pydantic_xml.model.attr'
 ELEMENT_FULLNAME = 'pydantic_xml.model.element'
 WRAPPED_FULLNAME = 'pydantic_xml.model.wrapped'
@@ -15,6 +16,11 @@ def plugin(version: str) -> type[Plugin]:
 
 
 class PydanticXmlPlugin(PydanticPlugin):
+    def get_metaclass_hook(self, fullname: str) -> Optional[Callable[[ClassDefContext], None]]:
+        if fullname == MODEL_METACLASS_FULLNAME:
+            return self._pydantic_model_metaclass_marker_callback
+        return super().get_metaclass_hook(fullname)
+
     def get_function_hook(self, fullname: str) -> Optional[Callable[[FunctionContext], Type]]:
         sym = self.lookup_fully_qualified(fullname)
         if sym and sym.fullname == ATTR_FULLNAME:
