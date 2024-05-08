@@ -42,7 +42,6 @@ Features
 What is not supported?
 ______________________
 
-- `dynamic model creation <https://docs.pydantic.dev/usage/models/#dynamic-model-creation>`_
 - `dataclasses <https://docs.pydantic.dev/usage/dataclasses/>`_
 
 Getting started
