@@ -1,6 +1,12 @@
 Changelog
 =========
 
+2.10.0 (2024-05-09)
+------------------
+
+- dynamic model creation support added. See https://pydantic-xml.readthedocs.io/en/latest/pages/misc.html#dynamic-model-creation
+
+
 2.9.2 (2024-04-19)
 ------------------
 

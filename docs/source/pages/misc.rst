@@ -215,6 +215,21 @@ Standard library serializer also supports customizations.
 For more information see :py:func:`xml.etree.ElementTree.tostring`,
 
 
+Dynamic model creation
+~~~~~~~~~~~~~~~~~~~~~~
+
+There are some cases when it is necessary to create a model using runtime information to describe model fields.
+For this ``pydantic-xml`` provides the :py:func:`pydantic_xml.create_model` function to create a model on the fly:
+
+.. literalinclude:: ../../../examples/snippets/dynamic_model_creation.py
+    :language: python
+    :start-after: model-start
+    :end-before: model-end
+
+Field specification syntax is similar to ``pydantic`` one. For more information
+see the `documentation <https://docs.pydantic.dev/latest/concepts/models/#dynamic-model-creation>`_.
+
+
 Mypy
 ~~~~
 

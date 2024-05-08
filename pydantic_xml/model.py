@@ -19,6 +19,7 @@ from .utils import NsMap
 
 __all__ = (
     'attr',
+    'create_model',
     'element',
     'wrapped',
     'computed_attr',
@@ -250,6 +251,70 @@ def wrapped(
     )
 
 
+Model = TypeVar('Model', bound='BaseXmlModel')
+
+
+def create_model(
+        __model_name: str,
+        *,
+        __tag__: Optional[str] = None,
+        __ns__: Optional[str] = None,
+        __nsmap__: Optional[NsMap] = None,
+        __ns_attrs__: Optional[bool] = None,
+        __skip_empty__: Optional[bool] = None,
+        __search_mode__: Optional[SearchMode] = None,
+        __base__: Union[Type[Model], Tuple[Type[Model], ...], None] = None,
+        __module__: Optional[str] = None,
+        **kwargs: Any,
+) -> Type[Model]:
+    """
+    Dynamically creates a new pydantic-xml model.
+
+    :param __model_name: model name
+    :param __tag__: element tag
+    :param __ns__: element namespace
+    :param __nsmap__: element namespace map
+    :param __ns_attrs__: use namespaced attributes
+    :param __skip_empty__: skip empty elements (elements without sub-elements, attributes and text)
+    :param __search_mode__: element search mode
+    :param __base__: model base class
+    :param __module__: module name that the model belongs to
+    :param kwargs: pydantic model creation arguments.
+                   See https://docs.pydantic.dev/latest/api/base_model/#pydantic.create_model.
+
+    :return: created model
+    """
+
+    cls_kwargs = kwargs.setdefault('__cls_kwargs__', {})
+    cls_kwargs['metaclass'] = XmlModelMeta
+
+    cls_kwargs['tag'] = __tag__
+    cls_kwargs['ns'] = __ns__
+    cls_kwargs['nsmap'] = __nsmap__
+    cls_kwargs['ns_attrs'] = __ns_attrs__
+    cls_kwargs['skip_empty'] = __skip_empty__
+    cls_kwargs['search_mode'] = __search_mode__
+
+    model_base: Union[Type[BaseModel], Tuple[Type[BaseModel], ...]] = __base__ or BaseXmlModel
+
+    if model_config := kwargs.pop('__config__', None):
+        # since pydantic create_model function forbids __base__ and __config__ arguments together,
+        # we create base pydantic class with __config__ and inherit from it
+        BaseWithConfig = pd.create_model(
+            f'{__model_name}Base',
+            __module__=__module__,  # type: ignore[arg-type]
+            __config__=model_config,
+        )
+        if not isinstance(model_base, tuple):
+            model_base = (model_base, BaseWithConfig)
+        else:
+            model_base = (*model_base, BaseWithConfig)
+
+    model = pd.create_model(__model_name, __base__=model_base, **kwargs)
+
+    return typing.cast(Type[Model], model)
+
+
 @te.dataclass_transform(kw_only_default=True, field_specifiers=(attr, element, wrapped, pd.Field))
 class XmlModelMeta(ModelMetaclass):
     """
@@ -305,6 +370,7 @@ class BaseXmlModel(BaseModel, __xml_abstract__=True, metaclass=XmlModelMeta):
         :param ns: element namespace
         :param nsmap: element namespace map
         :param ns_attrs: use namespaced attributes
+        :param skip_empty: skip empty elements (elements without sub-elements, attributes and text)
         :param search_mode: element search mode
         """
 
