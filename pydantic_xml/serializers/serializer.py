@@ -39,6 +39,7 @@ class SchemaTypeFamily(IntEnum):
     DEFINITION_REF = 10
     JSON_OR_PYTHON = 11
     IS_INSTANCE = 12
+    CALL = 13
 
 
 TYPE_FAMILY = {
@@ -87,6 +88,8 @@ TYPE_FAMILY = {
     'definition-ref':   SchemaTypeFamily.DEFINITION_REF,
 
     'json-or-python':   SchemaTypeFamily.JSON_OR_PYTHON,
+
+    'call':             SchemaTypeFamily.CALL,
 }
 
 
@@ -264,6 +267,10 @@ class Serializer(abc.ABC):
         elif type_family is SchemaTypeFamily.IS_INSTANCE:
             schema = typing.cast(pcs.IsInstanceSchema, schema)
             return factories.is_instance.from_core_schema(schema, ctx)
+
+        elif type_family is SchemaTypeFamily.CALL:
+            schema = typing.cast(pcs.CallSchema, schema)
+            return factories.call.from_core_schema(schema, ctx)
 
         else:
             raise AssertionError("unreachable")
