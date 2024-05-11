@@ -43,6 +43,7 @@ What is not supported?
 ______________________
 
 - `dataclasses <https://docs.pydantic.dev/usage/dataclasses/>`_
+- `callable discriminators <https://docs.pydantic.dev/latest/concepts/unions/#discriminated-unions-with-callable-discriminator>`_
 
 Getting started
 ---------------
