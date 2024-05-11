@@ -85,6 +85,7 @@ def from_core_schema(schema: pcs.TupleSchema, ctx: Serializer.Context) -> Serial
                 SchemaTypeFamily.TYPED_MAPPING,
                 SchemaTypeFamily.UNION,
                 SchemaTypeFamily.IS_INSTANCE,
+                SchemaTypeFamily.CALL,
         ):
             raise errors.ModelFieldError(
                 ctx.model_name, ctx.field_name, "collection item must be of primitive, model, mapping or union type",

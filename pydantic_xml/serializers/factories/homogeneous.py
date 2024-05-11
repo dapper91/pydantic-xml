@@ -103,6 +103,7 @@ def from_core_schema(schema: HomogeneousCollectionTypeSchema, ctx: Serializer.Co
         SchemaTypeFamily.TYPED_MAPPING,
         SchemaTypeFamily.UNION,
         SchemaTypeFamily.IS_INSTANCE,
+        SchemaTypeFamily.CALL,
         SchemaTypeFamily.TUPLE,
     ):
         raise errors.ModelFieldError(
@@ -113,6 +114,7 @@ def from_core_schema(schema: HomogeneousCollectionTypeSchema, ctx: Serializer.Co
             SchemaTypeFamily.MODEL,
             SchemaTypeFamily.UNION,
             SchemaTypeFamily.TUPLE,
+            SchemaTypeFamily.CALL,
     ) and ctx.entity_location is None:
         raise errors.ModelFieldError(ctx.model_name, ctx.field_name, "entity name is not provided")
 
