@@ -106,12 +106,10 @@ class ModelSerializer(Serializer):
         last_error: Optional[Exception] = None
         result: Any = None
         for serializer in self._inner_serializers:
-            snapshot = element.create_snapshot()
             try:
-                if (result := serializer.deserialize(snapshot, context=context, sourcemap=sourcemap, loc=loc)) is None:
+                if (result := serializer.deserialize(element, context=context, sourcemap=sourcemap, loc=loc)) is None:
                     continue
                 else:
-                    element.apply_snapshot(snapshot)
                     return result
             except pd.ValidationError as e:
                 last_error = e
