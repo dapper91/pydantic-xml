@@ -388,3 +388,28 @@ def test_path_discriminated_model_tagged_union():
 
     actual_xml = actual_obj.to_xml()
     assert_xml_equal(actual_xml, xml)
+
+
+def test_union_snapshot():
+    class SubModel1(BaseXmlModel, tag='submodel'):
+        attr1: int = attr()
+
+    class SubModel2(BaseXmlModel, tag='submodel'):
+        attr1: str = attr()
+
+    class TestModel(BaseXmlModel, tag='model'):
+        element1: Union[SubModel1, SubModel2]
+
+    xml = '''
+    <model>
+        <submodel attr1="a" />
+    </model>
+    '''
+
+    actual_obj = TestModel.from_xml(xml)
+    expected_obj = TestModel(element1=SubModel2(attr1="a"))
+
+    assert actual_obj == expected_obj
+
+    actual_xml = actual_obj.to_xml()
+    assert_xml_equal(actual_xml, xml)
