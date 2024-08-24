@@ -97,6 +97,33 @@ for a particular model during its declaration as illustrated in the following ex
     :start-after: xml-start
     :end-before: xml-end
 
+It is also possible to exclude ``None`` values:
+
+.. literalinclude:: ../../../examples/snippets/exclude_none.py
+    :language: python
+    :start-after: model-start
+    :end-before: model-end
+
+.. literalinclude:: ../../../examples/snippets/exclude_none.py
+    :language: xml
+    :lines: 2-
+    :start-after: xml-start
+    :end-before: xml-end
+
+
+... or unset values:
+
+.. literalinclude:: ../../../examples/snippets/exclude_unset.py
+    :language: python
+    :start-after: model-start
+    :end-before: model-end
+
+.. literalinclude:: ../../../examples/snippets/exclude_unset.py
+    :language: xml
+    :lines: 2-
+    :start-after: xml-start
+    :end-before: xml-end
+
 
 Default namespace
 ~~~~~~~~~~~~~~~~~

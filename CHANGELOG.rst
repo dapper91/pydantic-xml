@@ -1,14 +1,20 @@
 Changelog
 =========
 
+2.12.0 (2024-08-24)
+-------------------
+
+- exclude_none and exclude_unset serialization flags support added. See https://github.com/dapper91/pydantic-xml/pull/204.
+
+
 2.11.0 (2024-05-11)
-------------------
+-------------------
 
 - named tuple support added. See https://github.com/dapper91/pydantic-xml/issues/172
 
 
 2.10.0 (2024-05-09)
-------------------
+-------------------
 
 - dynamic model creation support added. See https://pydantic-xml.readthedocs.io/en/latest/pages/misc.html#dynamic-model-creation
 

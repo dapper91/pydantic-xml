@@ -73,9 +73,13 @@ class ModelSerializer(Serializer):
             encoded: Dict[str, Any],
             *,
             skip_empty: bool = False,
+            exclude_none: bool = False,
+            exclude_unset: bool = False,
     ) -> Optional[XmlElementWriter]:
         if (tag := encoded.get(self._discriminator)) and (serializer := self._inner_serializers[tag]):
-            return serializer.serialize(element, value, encoded, skip_empty=skip_empty)
+            return serializer.serialize(
+                element, value, encoded, skip_empty=skip_empty, exclude_none=exclude_none, exclude_unset=exclude_unset,
+            )
 
         return None
 

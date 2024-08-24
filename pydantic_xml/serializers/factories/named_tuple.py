@@ -26,9 +26,18 @@ class ElementSerializer(Serializer):
         self._inner_serializer = heterogeneous.ElementSerializer(model_name, computed, inner_serializers)
 
     def serialize(
-            self, element: XmlElementWriter, value: List[Any], encoded: List[Any], *, skip_empty: bool = False,
+            self,
+            element: XmlElementWriter,
+            value: List[Any],
+            encoded: List[Any],
+            *,
+            skip_empty: bool = False,
+            exclude_none: bool = False,
+            exclude_unset: bool = False,
     ) -> Optional[XmlElementWriter]:
-        return self._inner_serializer.serialize(element, value, encoded, skip_empty=skip_empty)
+        return self._inner_serializer.serialize(
+            element, value, encoded, skip_empty=skip_empty, exclude_none=exclude_none, exclude_unset=exclude_unset,
+        )
 
     def deserialize(
             self,

@@ -41,9 +41,16 @@ class TextSerializer(Serializer):
         self._nillable = nillable
 
     def serialize(
-            self, element: XmlElementWriter, value: Any, encoded: Any, *, skip_empty: bool = False,
+            self,
+            element: XmlElementWriter,
+            value: Any,
+            encoded: Any,
+            *,
+            skip_empty: bool = False,
+            exclude_none: bool = False,
+            exclude_unset: bool = False,
     ) -> Optional[XmlElementWriter]:
-        if value is None and skip_empty:
+        if value is None and (skip_empty or exclude_none):
             return element
 
         if self._nillable and value is None:
@@ -101,9 +108,16 @@ class AttributeSerializer(Serializer):
         return self._attr_name
 
     def serialize(
-            self, element: XmlElementWriter, value: Any, encoded: Any, *, skip_empty: bool = False,
+            self,
+            element: XmlElementWriter,
+            value: Any,
+            encoded: Any,
+            *,
+            skip_empty: bool = False,
+            exclude_none: bool = False,
+            exclude_unset: bool = False,
     ) -> Optional[XmlElementWriter]:
-        if value is None and skip_empty:
+        if value is None and (skip_empty or exclude_none):
             return element
 
         element.set_attribute(self._attr_name, encode_primitive(encoded))
@@ -158,13 +172,22 @@ class ElementSerializer(TextSerializer):
         self._element_name = QName.from_alias(tag=name, ns=ns, nsmap=nsmap).uri
 
     def serialize(
-            self, element: XmlElementWriter, value: Any, encoded: Any, *, skip_empty: bool = False,
+            self,
+            element: XmlElementWriter,
+            value: Any,
+            encoded: Any,
+            *,
+            skip_empty: bool = False,
+            exclude_none: bool = False,
+            exclude_unset: bool = False,
     ) -> Optional[XmlElementWriter]:
-        if value is None and skip_empty:
+        if value is None and (skip_empty or exclude_none):
             return element
 
         sub_element = element.make_element(self._element_name, nsmap=self._nsmap)
-        super().serialize(sub_element, value, encoded, skip_empty=skip_empty)
+        super().serialize(
+            sub_element, value, encoded, skip_empty=skip_empty, exclude_none=exclude_none, exclude_unset=exclude_unset,
+        )
         if skip_empty and sub_element.is_empty():
             return None
         else:

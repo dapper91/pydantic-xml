@@ -26,7 +26,14 @@ class ElementSerializer(Serializer):
         self._inner_serializers = inner_serializers
 
     def serialize(
-            self, element: XmlElementWriter, value: List[Any], encoded: List[Any], *, skip_empty: bool = False,
+            self,
+            element: XmlElementWriter,
+            value: List[Any],
+            encoded: List[Any],
+            *,
+            skip_empty: bool = False,
+            exclude_none: bool = False,
+            exclude_unset: bool = False,
     ) -> Optional[XmlElementWriter]:
         if value is None:
             return element
@@ -38,7 +45,9 @@ class ElementSerializer(Serializer):
             raise errors.SerializationError("value length is incorrect")
 
         for serializer, val, enc in zip(self._inner_serializers, value, encoded):
-            serializer.serialize(element, val, enc, skip_empty=skip_empty)
+            serializer.serialize(
+                element, val, enc, skip_empty=skip_empty, exclude_none=exclude_none, exclude_unset=exclude_unset,
+            )
 
         return element
 
