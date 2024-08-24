@@ -158,6 +158,8 @@ class ModelSerializer(BaseModelSerializer):
             encoded: Dict[str, Any],
             *,
             skip_empty: bool = False,
+            exclude_none: bool = False,
+            exclude_unset: bool = False,
     ) -> Optional[XmlElementWriter]:
         if value is None:
             return None
@@ -166,10 +168,17 @@ class ModelSerializer(BaseModelSerializer):
             skip_empty = self._model.__xml_skip_empty__
 
         for field_name, field_serializer in self._field_serializers.items():
-            if field_name not in self._fields_serialization_exclude:
-                field_serializer.serialize(
-                    element, getattr(value, field_name), encoded[field_name], skip_empty=skip_empty,
-                )
+            if field_name in self._fields_serialization_exclude:
+                continue
+            if exclude_unset and field_name not in value.__pydantic_fields_set__:
+                continue
+
+            field_serializer.serialize(
+                element, getattr(value, field_name), encoded[field_name],
+                skip_empty=skip_empty,
+                exclude_none=exclude_none,
+                exclude_unset=exclude_unset,
+            )
 
         return element
 
@@ -269,14 +278,24 @@ class RootModelSerializer(BaseModelSerializer):
             encoded: Dict[str, Any],
             *,
             skip_empty: bool = False,
+            exclude_none: bool = False,
+            exclude_unset: bool = False,
     ) -> Optional[XmlElementWriter]:
         if value is None:
+            return None
+
+        if exclude_unset and 'root' not in value.__pydantic_fields_set__:
             return None
 
         if self._model.__xml_skip_empty__ is not None:
             skip_empty = self._model.__xml_skip_empty__
 
-        self._root_serializer.serialize(element, getattr(value, 'root'), encoded, skip_empty=skip_empty)
+        self._root_serializer.serialize(
+            element, getattr(value, 'root'), encoded,
+            skip_empty=skip_empty,
+            exclude_none=exclude_none,
+            exclude_unset=exclude_unset,
+        )
 
         return element
 
@@ -362,8 +381,13 @@ class ModelProxySerializer(BaseModelSerializer):
             encoded: Dict[str, Any],
             *,
             skip_empty: bool = False,
+            exclude_none: bool = False,
+            exclude_unset: bool = False,
     ) -> Optional[XmlElementWriter]:
         assert self._model.__xml_serializer__ is not None, f"model {self._model.__name__} is partially initialized"
+
+        if exclude_none and value is None:
+            return None
 
         if self._nillable and value is None:
             sub_element = element.make_element(self._element_name, nsmap=self._nsmap)
@@ -375,7 +399,9 @@ class ModelProxySerializer(BaseModelSerializer):
             return None
 
         sub_element = element.make_element(self._element_name, nsmap=self._nsmap)
-        self._model.__xml_serializer__.serialize(sub_element, value, encoded, skip_empty=skip_empty)
+        self._model.__xml_serializer__.serialize(
+            sub_element, value, encoded, skip_empty=skip_empty, exclude_none=exclude_none, exclude_unset=exclude_unset,
+        )
         if skip_empty and sub_element.is_empty():
             return None
         else:

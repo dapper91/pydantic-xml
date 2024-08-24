@@ -32,6 +32,8 @@ class AttributesSerializer(Serializer):
             encoded: Dict[str, Any],
             *,
             skip_empty: bool = False,
+            exclude_none: bool = False,
+            exclude_unset: bool = False,
     ) -> Optional[XmlElementWriter]:
         if value is None:
             return element
@@ -100,12 +102,16 @@ class ElementSerializer(AttributesSerializer):
             encoded: Dict[str, Any],
             *,
             skip_empty: bool = False,
+            exclude_none: bool = False,
+            exclude_unset: bool = False,
     ) -> Optional[XmlElementWriter]:
         if skip_empty and len(value) == 0:
             return element
 
         sub_element = element.make_element(self._element_name, nsmap=self._nsmap)
-        super().serialize(sub_element, value, encoded, skip_empty=skip_empty)
+        super().serialize(
+            sub_element, value, encoded, skip_empty=skip_empty, exclude_none=exclude_none, exclude_unset=exclude_unset,
+        )
         if skip_empty and sub_element.is_empty():
             return None
         else:

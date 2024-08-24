@@ -35,9 +35,18 @@ class PrimitiveTypeSerializer(Serializer):
         self._inner_serializer = inner_serializer
 
     def serialize(
-            self, element: XmlElementWriter, value: Any, encoded: Any, *, skip_empty: bool = False,
+            self,
+            element: XmlElementWriter,
+            value: Any,
+            encoded: Any,
+            *,
+            skip_empty: bool = False,
+            exclude_none: bool = False,
+            exclude_unset: bool = False,
     ) -> Optional[XmlElementWriter]:
-        return self._inner_serializer.serialize(element, value, encoded, skip_empty=skip_empty)
+        return self._inner_serializer.serialize(
+            element, value, encoded, skip_empty=skip_empty, exclude_none=exclude_none, exclude_unset=exclude_unset,
+        )
 
     def deserialize(
             self,
@@ -82,10 +91,17 @@ class ModelSerializer(Serializer):
             encoded: Dict[str, Any],
             *,
             skip_empty: bool = False,
+            exclude_none: bool = False,
+            exclude_unset: bool = False,
     ) -> Optional[XmlElementWriter]:
         for serializer in self._inner_serializers:
             if serializer.model is type(value):
-                return serializer.serialize(element, value, encoded, skip_empty=skip_empty)
+                return serializer.serialize(
+                    element, value, encoded,
+                    skip_empty=skip_empty,
+                    exclude_none=exclude_none,
+                    exclude_unset=exclude_unset,
+                )
 
         return None
 

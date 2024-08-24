@@ -277,7 +277,14 @@ class Serializer(abc.ABC):
 
     @abc.abstractmethod
     def serialize(
-            self, element: XmlElementWriter, value: Any, encoded: Any, *, skip_empty: bool = False,
+            self,
+            element: XmlElementWriter,
+            value: Any,
+            encoded: Any,
+            *,
+            skip_empty: bool = False,
+            exclude_none: bool = False,
+            exclude_unset: bool = False,
     ) -> Optional[XmlElementWriter]:
         """
         Serializes a value to the provided xml element.
@@ -286,6 +293,8 @@ class Serializer(abc.ABC):
         :param value: original value
         :param encoded: encoded value (encoded by pydantic)
         :param skip_empty: skip empty element
+        :param exclude_none: exclude `None` values
+        :param exclude_unset: exclude unset values
         :return: created sub-element or original one if sub-element has not been created
         """
 

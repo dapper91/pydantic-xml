@@ -40,7 +40,14 @@ class ElementPathSerializer(Serializer):
         self._inner_serializer = inner_serializer
 
     def serialize(
-            self, element: XmlElementWriter, value: Any, encoded: Any, *, skip_empty: bool = False,
+            self,
+            element: XmlElementWriter,
+            value: Any,
+            encoded: Any,
+            *,
+            skip_empty: bool = False,
+            exclude_none: bool = False,
+            exclude_unset: bool = False,
     ) -> Optional[XmlElementWriter]:
         if value is None:
             return element
@@ -51,7 +58,9 @@ class ElementPathSerializer(Serializer):
         for part in self._path:
             element = element.find_element_or_create(part, self._search_mode, nsmap=self._nsmap)
 
-        self._inner_serializer.serialize(element, value, encoded, skip_empty=skip_empty)
+        self._inner_serializer.serialize(
+            element, value, encoded, skip_empty=skip_empty, exclude_none=exclude_none, exclude_unset=exclude_unset,
+        )
 
         return element
 

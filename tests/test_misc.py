@@ -4,7 +4,7 @@ import pydantic as pd
 import pytest
 from helpers import assert_xml_equal
 
-from pydantic_xml import BaseXmlModel, attr, element, errors, wrapped
+from pydantic_xml import BaseXmlModel, RootXmlModel, attr, element, errors, wrapped
 
 
 def test_xml_declaration():
@@ -118,6 +118,71 @@ def test_model_level_skip_empty_disable():
     )
 
     actual_xml = obj.to_xml(skip_empty=True)
+    assert_xml_equal(actual_xml, xml.encode())
+
+
+def test_exclude_none():
+    class TestSubModel(BaseXmlModel, tag='sub-model'):
+        text: Optional[str] = None
+        attr1: Optional[str] = attr(default=None)
+        element1: Optional[str] = element(default=None)
+
+    class TestModel(BaseXmlModel, tag='model'):
+        text: Optional[str] = None
+        attr1: Optional[str] = attr(default=None)
+        element1: Optional[str] = element(default=None)
+        model: TestSubModel
+
+    xml = '''
+    <model attr1="attribute">text<element1>element</element1><sub-model/></model>
+    '''
+
+    obj = TestModel(
+        text='text',
+        attr1='attribute',
+        element1='element',
+        model=TestSubModel(text=None, element1=None, attr1=None),
+    )
+
+    actual_xml = obj.to_xml(exclude_none=True)
+    assert_xml_equal(actual_xml, xml.encode())
+
+
+def test_exclude_unset():
+    class TestSubModel(BaseXmlModel, tag='sub-model'):
+        text: Optional[str] = 'default text'
+        element1: Optional[str] = element(default='default element')
+        attr1: Optional[str] = attr(default='default attribute')
+
+    class TestModel(BaseXmlModel, tag='model'):
+        text: Optional[str] = None
+        attr1: Optional[str] = attr(default=None)
+        element1: Optional[str] = element(default=None)
+        model: TestSubModel
+
+    xml = '''
+    <model attr1="attribute">text<element1>element</element1><sub-model/></model>
+    '''
+
+    obj = TestModel(
+        text='text',
+        attr1='attribute',
+        element1='element',
+        model=TestSubModel(),
+    )
+
+    actual_xml = obj.to_xml(exclude_unset=True)
+    assert_xml_equal(actual_xml, xml.encode())
+
+
+def test_exclude_unset_root_model():
+    class TestModel(RootXmlModel, tag='model'):
+        root: str = 'text'
+
+    xml = '<model/>'
+    obj = TestModel()
+
+    actual_xml = obj.to_xml(exclude_unset=True)
     assert_xml_equal(actual_xml, xml.encode())
 
 

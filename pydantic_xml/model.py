@@ -469,11 +469,15 @@ class BaseXmlModel(BaseModel, __xml_abstract__=True, metaclass=XmlModelMeta):
 
         return cls.from_xml_tree(etree.fromstring(source), context=context)
 
-    def to_xml_tree(self, *, skip_empty: bool = False) -> etree.Element:
+    def to_xml_tree(
+            self, *, skip_empty: bool = False, exclude_none: bool = False, exclude_unset: bool = False,
+    ) -> etree.Element:
         """
         Serializes the object to an xml tree.
 
         :param skip_empty: skip empty elements (elements without sub-elements, attributes and text, Nones)
+        :param exclude_none: exclude `None` values
+        :param exclude_unset: exclude values that haven't been explicitly set
         :return: object xml representation
         """
 
@@ -485,21 +489,31 @@ class BaseXmlModel(BaseModel, __xml_abstract__=True, metaclass=XmlModelMeta):
                 self,
                 by_alias=False,
                 fallback=lambda obj: obj if not isinstance(obj, ElementT) else None,  # for raw fields support
-            ), skip_empty=skip_empty,
+            ),
+            skip_empty=skip_empty,
+            exclude_none=exclude_none,
+            exclude_unset=exclude_unset,
         )
 
         return root.to_native()
 
-    def to_xml(self, *, skip_empty: bool = False, **kwargs: Any) -> Union[str, bytes]:
+    def to_xml(
+            self, *, skip_empty: bool = False, exclude_none: bool = False, exclude_unset: bool = False, **kwargs: Any,
+    ) -> Union[str, bytes]:
         """
         Serializes the object to an xml string.
 
         :param skip_empty: skip empty elements (elements without sub-elements, attributes and text, Nones)
+        :param exclude_none: exclude `None` values
+        :param exclude_unset: exclude values that haven't been explicitly set
         :param kwargs: additional xml serialization arguments
         :return: object xml representation
         """
 
-        return etree.tostring(self.to_xml_tree(skip_empty=skip_empty), **kwargs)
+        return etree.tostring(
+            self.to_xml_tree(skip_empty=skip_empty, exclude_none=exclude_none, exclude_unset=exclude_unset),
+            **kwargs,
+        )
 
 
 @te.dataclass_transform(kw_only_default=True, field_specifiers=(attr, element, wrapped, pd.Field))
