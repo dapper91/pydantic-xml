@@ -38,7 +38,14 @@ class ElementSerializer(Serializer):
         self._inner_serializer = inner_serializer
 
     def serialize(
-            self, element: XmlElementWriter, value: List[Any], encoded: List[Any], *, skip_empty: bool = False,
+            self,
+            element: XmlElementWriter,
+            value: List[Any],
+            encoded: List[Any],
+            *,
+            skip_empty: bool = False,
+            exclude_none: bool = False,
+            exclude_unset: bool = False,
     ) -> Optional[XmlElementWriter]:
         if value is None:
             return element
@@ -50,7 +57,9 @@ class ElementSerializer(Serializer):
             if skip_empty and val is None:
                 continue
 
-            self._inner_serializer.serialize(element, val, enc, skip_empty=skip_empty)
+            self._inner_serializer.serialize(
+                element, val, enc, skip_empty=skip_empty, exclude_none=exclude_none, exclude_unset=exclude_unset,
+            )
 
         return element
 

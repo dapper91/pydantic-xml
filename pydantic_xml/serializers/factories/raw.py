@@ -30,7 +30,14 @@ class ElementSerializer(Serializer):
         self._element_name = QName.from_alias(tag=name, ns=ns, nsmap=nsmap).uri
 
     def serialize(
-            self, element: XmlElementWriter, value: Any, encoded: Any, *, skip_empty: bool = False,
+            self,
+            element: XmlElementWriter,
+            value: Any,
+            encoded: Any,
+            *,
+            skip_empty: bool = False,
+            exclude_none: bool = False,
+            exclude_unset: bool = False,
     ) -> Optional[XmlElementWriter]:
         if value is None:
             return element
