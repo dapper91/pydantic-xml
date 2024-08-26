@@ -390,6 +390,46 @@ def test_path_discriminated_model_tagged_union():
     assert_xml_equal(actual_xml, xml)
 
 
+@pytest.mark.skipif(sys.version_info < (3, 9), reason="requires python 3.9 and above")
+def test_tagged_union_collection():
+    from typing import Annotated
+
+    class SubModel1(BaseXmlModel):
+        type: Literal['type1'] = attr()
+        data: int
+
+    class SubModel2(BaseXmlModel):
+        type: Literal['type2'] = attr()
+        data: str
+
+    class TestModel(BaseXmlModel, tag='model'):
+        collection: List[Annotated[Union[SubModel1, SubModel2], Field(discriminator='type')]] = element('submodel')
+
+    xml = '''
+    <model>
+        <submodel type="type1">1</submodel>
+        <submodel type="type2">a</submodel>
+        <submodel type="type2">b</submodel>
+        <submodel type="type1">2</submodel>
+    </model>
+    '''
+
+    actual_obj = TestModel.from_xml(xml)
+    expected_obj = TestModel(
+        collection=[
+            SubModel1(type='type1', data='1'),
+            SubModel2(type='type2', data='a'),
+            SubModel2(type='type2', data='b'),
+            SubModel1(type='type1', data='2'),
+        ],
+    )
+
+    assert actual_obj == expected_obj
+
+    actual_xml = actual_obj.to_xml()
+    assert_xml_equal(actual_xml, xml)
+
+
 def test_union_snapshot():
     class SubModel1(BaseXmlModel, tag='submodel'):
         attr1: int = attr()

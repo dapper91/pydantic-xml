@@ -111,6 +111,7 @@ def from_core_schema(schema: HomogeneousCollectionTypeSchema, ctx: Serializer.Co
         SchemaTypeFamily.MAPPING,
         SchemaTypeFamily.TYPED_MAPPING,
         SchemaTypeFamily.UNION,
+        SchemaTypeFamily.TAGGED_UNION,
         SchemaTypeFamily.IS_INSTANCE,
         SchemaTypeFamily.CALL,
         SchemaTypeFamily.TUPLE,
@@ -122,6 +123,7 @@ def from_core_schema(schema: HomogeneousCollectionTypeSchema, ctx: Serializer.Co
     if items_type_family not in (
             SchemaTypeFamily.MODEL,
             SchemaTypeFamily.UNION,
+            SchemaTypeFamily.TAGGED_UNION,
             SchemaTypeFamily.TUPLE,
             SchemaTypeFamily.CALL,
     ) and ctx.entity_location is None:
