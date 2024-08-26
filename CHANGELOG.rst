@@ -1,6 +1,12 @@
 Changelog
 =========
 
+2.12.1 (2024-08-26)
+-------------------
+
+- collection of tagged union deserialization bug fixed. See https://github.com/dapper91/pydantic-xml/issues/206
+
+
 2.12.0 (2024-08-24)
 -------------------
 
