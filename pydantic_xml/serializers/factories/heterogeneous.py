@@ -93,6 +93,7 @@ def from_core_schema(schema: pcs.TupleSchema, ctx: Serializer.Context) -> Serial
                 SchemaTypeFamily.MAPPING,
                 SchemaTypeFamily.TYPED_MAPPING,
                 SchemaTypeFamily.UNION,
+                SchemaTypeFamily.TAGGED_UNION,
                 SchemaTypeFamily.IS_INSTANCE,
                 SchemaTypeFamily.CALL,
         ):
