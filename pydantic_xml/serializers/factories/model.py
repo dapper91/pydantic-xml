@@ -173,12 +173,15 @@ class ModelSerializer(BaseModelSerializer):
             if exclude_unset and field_name not in value.__pydantic_fields_set__:
                 continue
 
-            field_serializer.serialize(
-                element, getattr(value, field_name), encoded[field_name],
-                skip_empty=skip_empty,
-                exclude_none=exclude_none,
-                exclude_unset=exclude_unset,
-            )
+            if custom_field_serializer := self._model.__xml_field_serializers__.get(field_name):
+                custom_field_serializer(value, element, getattr(value, field_name), field_name)
+            else:
+                field_serializer.serialize(
+                    element, getattr(value, field_name), encoded[field_name],
+                    skip_empty=skip_empty,
+                    exclude_none=exclude_none,
+                    exclude_unset=exclude_unset,
+                )
 
         return element
 
@@ -199,7 +202,11 @@ class ModelSerializer(BaseModelSerializer):
             try:
                 loc = (field_name,)
                 sourcemap[loc] = element.get_sourceline()
-                field_value = field_serializer.deserialize(element, context=context, sourcemap=sourcemap, loc=loc)
+                if custom_field_validator := self._model.__xml_field_validators__.get(field_name):
+                    field_value = custom_field_validator(self._model, element, field_name)
+                else:
+                    field_value = field_serializer.deserialize(element, context=context, sourcemap=sourcemap, loc=loc)
+
                 if field_value is not None:
                     field_name = self._fields_validation_aliases.get(field_name, field_name)
                     result[field_name] = field_value

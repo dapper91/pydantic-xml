@@ -43,6 +43,26 @@ during the xml serialization:
     :language: xml
 
 
+Custom xml serialization
+________________________
+
+``pydantic-xml`` provides functional serializers and validators to customise how a field is serialized to xml
+or validated from it. Use :py:func:`pydantic_xml.xml_field_serializer` decorator to mark a method as an xml serializer
+or :py:func:`pydantic_xml.xml_field_serializer` decorators to mark it as an xml validator.
+
+The following example illustrate how to serialize ``xs:list`` element:
+
+*model.py:*
+
+.. literalinclude:: ../../../examples/xml-serialization/model.py
+    :language: python
+
+*doc.xml:*
+
+.. literalinclude:: ../../../examples/xml-serialization/doc.xml
+    :language: xml
+
+
 Optional type encoding
 ~~~~~~~~~~~~~~~~~~~~~~
 
