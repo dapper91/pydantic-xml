@@ -32,6 +32,7 @@ def test_snippets_py39(snippet: Path):
 
 @pytest.fixture(
     params=[
+        'computed-entities',
         'custom-encoder',
         'generic-model',
         'quickstart',
