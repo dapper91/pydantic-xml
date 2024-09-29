@@ -36,6 +36,7 @@ def test_snippets_py39(snippet: Path):
         'generic-model',
         'quickstart',
         'self-ref-model',
+        'xml-serialization',
     ],
 )
 def example_dir(request: pytest.FixtureRequest, monkeypatch: pytest.MonkeyPatch):
