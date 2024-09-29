@@ -1,9 +1,9 @@
 import pathlib
 from ipaddress import IPv4Address
-from typing import Dict, List, Tuple
+from typing import Dict, List
 from xml.etree.ElementTree import canonicalize
 
-from pydantic import Field, IPvAnyAddress, SecretStr, computed_field, field_validator
+from pydantic import Field, IPvAnyAddress, SecretStr, computed_field
 
 from pydantic_xml import BaseXmlModel, attr, computed_attr, computed_element
 
@@ -14,22 +14,18 @@ class Auth(BaseXmlModel, tag='Authorization'):
 
 
 class Request(BaseXmlModel, tag='Request'):
-    forwarded_for: List[IPv4Address] = Field(exclude=True)
+    raw_forwarded_for: str = Field(exclude=True)
     raw_cookies: str = Field(exclude=True)
     raw_auth: str = Field(exclude=True)
 
-    @field_validator('forwarded_for', mode='before')
-    def validate_address_list(cls, value: str) -> List[IPv4Address]:
-        return [IPvAnyAddress(addr) for addr in value.split(',')]
-
     @computed_attr(name='Client')
     def client(self) -> IPv4Address:
-        client, *proxies = self.forwarded_for
+        client, *proxies = [IPvAnyAddress(addr) for addr in self.raw_forwarded_for.split(',')]
         return client
 
     @computed_element(tag='Proxy')
-    def proxy(self) -> Tuple[IPv4Address]:
-        client, *proxies = self.forwarded_for
+    def proxy(self) -> List[IPv4Address]:
+        client, *proxies = [IPvAnyAddress(addr) for addr in self.raw_forwarded_for.split(',')]
         return proxies
 
     @computed_element(tag='Cookies')
@@ -47,7 +43,7 @@ class Request(BaseXmlModel, tag='Request'):
 
 
 request = Request(
-    forwarded_for="203.0.113.195,150.172.238.178,150.172.230.21",
+    raw_forwarded_for="203.0.113.195,150.172.238.178,150.172.230.21",
     raw_cookies="PHPSESSID=298zf09hf012fh2; csrftoken=u32t4o3tb3gg43;",
     raw_auth="Basic YWxhZGRpbjpvcGVuc2VzYW1l",
 )

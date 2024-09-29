@@ -10,7 +10,7 @@ from pydantic._internal._model_construction import ModelMetaclass  # noqa
 from pydantic.root_model import _RootModelMetaclass as RootModelMetaclass  # noqa
 
 from . import config, errors, utils
-from .element import SearchMode
+from .element import SearchMode, XmlElementReader, XmlElementWriter
 from .element.native import ElementT, XmlElement, etree
 from .serializers.factories.model import BaseModelSerializer
 from .serializers.serializer import Serializer, XmlEntityInfoP
@@ -24,6 +24,8 @@ __all__ = (
     'wrapped',
     'computed_attr',
     'computed_element',
+    'xml_field_serializer',
+    'xml_field_validator',
     'BaseXmlModel',
     'RootXmlModel',
 )
@@ -315,6 +317,44 @@ def create_model(
     return typing.cast(Type[Model], model)
 
 
+ValidatorFunc = Callable[[Type['BaseXmlModel'], XmlElementReader, str], Any]
+ValidatorFuncT = TypeVar('ValidatorFuncT', bound=ValidatorFunc)
+
+
+def xml_field_validator(field: str, /, *fields: str) -> Callable[[ValidatorFuncT], ValidatorFuncT]:
+    """
+    Marks the method as a field xml validator.
+
+    :param field: field to be validated
+    :param fields: fields to be validated
+    """
+
+    def wrapper(func: ValidatorFuncT) -> ValidatorFuncT:
+        setattr(func, '__xml_field_validator__', (field, *fields))
+        return func
+
+    return wrapper
+
+
+SerializerFunc = Callable[['BaseXmlModel', XmlElementWriter, Any, str], Any]
+SerializerFuncT = TypeVar('SerializerFuncT', bound=SerializerFunc)
+
+
+def xml_field_serializer(field: str, /, *fields: str) -> Callable[[SerializerFuncT], SerializerFuncT]:
+    """
+    Marks the method as a field xml serializer.
+
+    :param field: field to be serialized
+    :param fields: fields to be serialized
+    """
+
+    def wrapper(func: SerializerFuncT) -> SerializerFuncT:
+        setattr(func, '__xml_field_serializer__', (field, *fields))
+        return func
+
+    return wrapper
+
+
 @te.dataclass_transform(kw_only_default=True, field_specifiers=(attr, element, wrapped, pd.Field))
 class XmlModelMeta(ModelMetaclass):
     """
@@ -353,6 +393,9 @@ class BaseXmlModel(BaseModel, __xml_abstract__=True, metaclass=XmlModelMeta):
     __xml_search_mode__: ClassVar[SearchMode]
     __xml_serializer__: ClassVar[Optional[BaseModelSerializer]] = None
 
+    __xml_field_validators__: ClassVar[Dict[str, ValidatorFunc]] = {}
+    __xml_field_serializers__: ClassVar[Dict[str, SerializerFunc]] = {}
+
     def __init_subclass__(
             cls,
             tag: Optional[str] = None,
@@ -383,6 +426,17 @@ class BaseXmlModel(BaseModel, __xml_abstract__=True, metaclass=XmlModelMeta):
         cls.__xml_skip_empty__ = skip_empty if skip_empty is not None else getattr(cls, '__xml_skip_empty__', None)
         cls.__xml_search_mode__ = search_mode if search_mode is not None \
             else getattr(cls, '__xml_search_mode__', SearchMode.STRICT)
+
+        cls.__xml_field_serializers__ = {}
+        cls.__xml_field_validators__ = {}
+        for attr_name in dir(cls):
+            if func := getattr(cls, attr_name, None):
+                if fields := getattr(func, '__xml_field_serializer__', None):
+                    for field in fields:
+                        cls.__xml_field_serializers__[field] = func
+                if fields := getattr(func, '__xml_field_validator__', None):
+                    for field in fields:
+                        cls.__xml_field_validators__[field] = func
 
     @classmethod
     def __build_serializer__(cls) -> None:

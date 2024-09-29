@@ -1,6 +1,13 @@
 Changelog
 =========
 
+2.13.0 (2024-09-29)
+-------------------
+
+- custom field xml serializer/validator support added. See https://github.com/dapper91/pydantic-xml/pull/212
+
+
+
 2.12.1 (2024-08-26)
 -------------------
 
