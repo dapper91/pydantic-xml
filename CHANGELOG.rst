@@ -1,6 +1,12 @@
 Changelog
 =========
 
+2.13.1 (2024-10-03)
+-------------------
+
+- multiple pydantic model validators bug fixed.
+
+
 2.13.0 (2024-09-29)
 -------------------
 
