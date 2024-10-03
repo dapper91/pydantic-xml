@@ -57,7 +57,7 @@ class ModelSerializer(BaseModelSerializer):
         model_cls = schema['cls']
         fields_schema = schema['schema']
 
-        if fields_schema['type'] == 'function-before':
+        while fields_schema['type'] == 'function-before':
             fields_schema = fields_schema['schema']
 
         assert issubclass(model_cls, pxml.BaseXmlModel), "model class must be a BaseXmlModel subclass"

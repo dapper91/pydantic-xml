@@ -1,8 +1,10 @@
-from typing import List
+from typing import Any, Dict, List
 
+import pydantic as pd
+import pytest
 from helpers import assert_xml_equal
 
-from pydantic_xml import BaseXmlModel, element, xml_field_serializer, xml_field_validator
+from pydantic_xml import BaseXmlModel, attr, element, xml_field_serializer, xml_field_validator
 from pydantic_xml.element import XmlElementReader, XmlElementWriter
 
 
@@ -54,3 +56,49 @@ def test_xml_field_serializer():
 
     actual_xml = obj.to_xml()
     assert_xml_equal(actual_xml, expected_xml)
+
+
+def test_pydantic_model_validator():
+    class TestModel(BaseXmlModel, tag='model1'):
+        text: str
+        attr1: str = attr()
+        attr2: str = attr()
+
+        @pd.model_validator(mode='before')
+        def validate_before_attr1(cls, values: Dict[str, Any]) -> Dict[str, Any]:
+            if values.get('attr1') != "expected attr value":
+                raise ValueError('attr1')
+
+            return values
+
+        @pd.model_validator(mode='before')
+        def validate_before_attr2(cls, values: Dict[str, Any]) -> Dict[str, Any]:
+            if values.get('attr2') != "expected attr value":
+                raise ValueError('attr2')
+
+            return values
+
+        @pd.model_validator(mode='after')
+        def validate_model(self) -> 'TestModel':
+            if self.text != "expected text value":
+                raise ValueError('text')
+
+            return self
+
+    xml = '<model1 attr1="expected attr value" attr2="expected attr value">expected text value</model1>'
+    TestModel.from_xml(xml)
+
+    xml = '<model1 attr1="unexpected attr value" attr2="expected attr value">expected text value</model1>'
+    with pytest.raises(ValueError) as err:
+        TestModel.from_xml(xml)
+    assert err.value.errors()[0]['ctx']['orig'] == 'Value error, attr1'
+
+    xml = '<model1 attr1="expected attr value" attr2="unexpected attr value">expected text value</model1>'
+    with pytest.raises(ValueError) as err:
+        TestModel.from_xml(xml)
+    assert err.value.errors()[0]['ctx']['orig'] == 'Value error, attr2'
+
+    xml = '<model1 attr1="expected attr value" attr2="expected attr value">unexpected text value</model1>'
+    with pytest.raises(ValueError) as err:
+        TestModel.from_xml(xml)
+    assert err.value.errors()[0]['ctx']['orig'] == 'Value error, text'
