@@ -214,7 +214,7 @@ class ModelSerializer(BaseModelSerializer):
                 field_errors[field_name] = err
 
         if field_errors:
-            raise utils.build_validation_error(title=self._model.__name__, errors_map=field_errors)
+            raise utils.into_validation_error(title=self._model.__name__, errors_map=field_errors)
 
         if self._model.model_config.get('extra', 'ignore') == 'forbid':
             self._check_extra(self._model.__name__, element)
@@ -322,7 +322,7 @@ class RootModelSerializer(BaseModelSerializer):
             if result is None:
                 result = pdc.PydanticUndefined
         except pd.ValidationError as err:
-            raise utils.build_validation_error(title=self._model.__name__, errors_map={None: err})
+            raise utils.into_validation_error(title=self._model.__name__, errors_map={None: err})
 
         if self._model.model_config.get('extra', 'ignore') == 'forbid':
             self._check_extra(self._model.__name__, element)
