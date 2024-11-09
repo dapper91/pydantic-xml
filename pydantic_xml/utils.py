@@ -2,7 +2,7 @@ import dataclasses as dc
 import itertools as it
 import re
 from collections import ChainMap
-from typing import Dict, Iterable, List, Mapping, Optional, Union, cast
+from typing import Dict, Iterable, List, Optional, Union, cast
 
 import pydantic as pd
 import pydantic_core as pdc
@@ -97,12 +97,13 @@ def select_ns(*nss: Optional[str]) -> Optional[str]:
     return None
 
 
-def build_validation_error(
+def into_validation_error(
         title: str,
-        errors_map: Mapping[Union[None, str, int], pd.ValidationError],
+        errors_map: Dict[Union[None, str, int], pd.ValidationError],
 ) -> pd.ValidationError:
     line_errors: List[pdc.InitErrorDetails] = []
-    for location, validation_error in errors_map.items():
+    for location in list(errors_map):
+        validation_error = errors_map.pop(location)
         for error in validation_error.errors():
             line_errors.append(
                 pdc.InitErrorDetails(

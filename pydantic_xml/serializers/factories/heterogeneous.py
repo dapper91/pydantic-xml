@@ -74,7 +74,7 @@ class ElementSerializer(Serializer):
                 item_errors[idx] = err
 
         if item_errors:
-            raise utils.build_validation_error(title=self._model_name, errors_map=item_errors)
+            raise utils.into_validation_error(title=self._model_name, errors_map=item_errors)
 
         if all((value is None for value in result)):
             return None

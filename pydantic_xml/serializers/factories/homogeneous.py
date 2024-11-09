@@ -91,7 +91,7 @@ class ElementSerializer(Serializer):
                 result.append(value)
 
         if item_errors:
-            raise utils.build_validation_error(title=self._model_name, errors_map=item_errors)
+            raise utils.into_validation_error(title=self._model_name, errors_map=item_errors)
 
         return result or None
 

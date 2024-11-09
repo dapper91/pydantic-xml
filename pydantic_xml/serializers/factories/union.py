@@ -136,7 +136,7 @@ class ModelSerializer(Serializer):
 
         if union_errors:
             element.step_forward()
-            raise utils.build_validation_error(title=self._model_name, errors_map=union_errors)
+            raise utils.into_validation_error(title=self._model_name, errors_map=union_errors)
 
         return result
 
