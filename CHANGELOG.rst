@@ -1,6 +1,13 @@
 Changelog
 =========
 
+2.14.0 (2024-11-09)
+-------------------
+- union validation error location fixed.
+- potential memory leak fixed. See https://github.com/dapper91/pydantic-xml/issues/222.
+- python 3.13 support added.
+
+
 2.13.1 (2024-10-03)
 -------------------
 
