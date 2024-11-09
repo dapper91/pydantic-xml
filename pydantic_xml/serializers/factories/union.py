@@ -1,10 +1,10 @@
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
 import pydantic as pd
 from pydantic_core import core_schema as pcs
 
 import pydantic_xml as pxml
-from pydantic_xml import errors
+from pydantic_xml import errors, utils
 from pydantic_xml.element import XmlElementReader, XmlElementWriter
 from pydantic_xml.serializers.factories.model import ModelProxySerializer
 from pydantic_xml.serializers.serializer import TYPE_FAMILY, SchemaTypeFamily, Serializer
@@ -65,6 +65,7 @@ class PrimitiveTypeSerializer(Serializer):
 class ModelSerializer(Serializer):
     @classmethod
     def from_core_schema(cls, schema: pcs.UnionSchema, ctx: Serializer.Context) -> 'ModelSerializer':
+        model_name = ctx.model_name
         computed = ctx.field_computed
         inner_serializers: List[ModelProxySerializer] = []
         for choice_schema in schema['choices']:
@@ -78,9 +79,10 @@ class ModelSerializer(Serializer):
 
         assert len(inner_serializers) > 0, "union choice is not provided"
 
-        return cls(computed, tuple(inner_serializers))
+        return cls(model_name, computed, tuple(inner_serializers))
 
-    def __init__(self, computed: bool, inner_serializers: Tuple[ModelProxySerializer, ...]):
+    def __init__(self, model_name: str, computed: bool, inner_serializers: Tuple[ModelProxySerializer, ...]):
+        self._model_name = model_name
         self._computed = computed
         self._inner_serializers = inner_serializers
 
@@ -119,7 +121,7 @@ class ModelSerializer(Serializer):
         if element is None:
             return None
 
-        last_error: Optional[Exception] = None
+        union_errors: Dict[Union[None, str, int], pd.ValidationError] = {}
         result: Any = None
         for serializer in self._inner_serializers:
             snapshot = element.create_snapshot()
@@ -130,11 +132,11 @@ class ModelSerializer(Serializer):
                     element.apply_snapshot(snapshot)
                     return result
             except pd.ValidationError as e:
-                last_error = e
+                union_errors[e.title] = e
 
-        if last_error is not None:
+        if union_errors:
             element.step_forward()
-            raise last_error
+            raise utils.build_validation_error(title=self._model_name, errors_map=union_errors)
 
         return result
 

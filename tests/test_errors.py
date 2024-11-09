@@ -198,7 +198,7 @@ def test_models_union_errors():
     assert err.errors() == [
         {
             'input': 'a',
-            'loc': ('submodel', 0, 'data'),
+            'loc': ('submodel', 0, 'TestSubModel2', 'data'),
             'msg': f'[line {fmt_sourceline(3)}]: Input should be a valid number, unable to parse string as a number',
             'type': 'float_parsing',
             'ctx': {
@@ -208,7 +208,7 @@ def test_models_union_errors():
         },
         {
             'input': 'b',
-            'loc': ('submodel', 1, 'data'),
+            'loc': ('submodel', 1, 'TestSubModel1', 'data'),
             'msg': f'[line {fmt_sourceline(4)}]: Input should be a valid integer, unable to parse string as an integer',
             'type': 'int_parsing',
             'ctx': {
