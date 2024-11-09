@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pydantic-xml"
-version = "2.13.1"
+version = "2.14.0"
 description = "pydantic xml extension"
 authors = ["Dmitry Pershin <dapper1291@gmail.com>"]
 license = "Unlicense"
@@ -28,13 +28,14 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Typing :: Typed",
 ]
 
 [tool.poetry.dependencies]
 python = ">=3.8"
 lxml = {version = ">=4.9.0", optional = true}
-pydantic = ">=2.6.0"
+pydantic = ">=2.6.0, !=2.10.0b1"
 pydantic-core = ">=2.15.0"
 
 furo = {version = "^2022.12.7", optional = true}
