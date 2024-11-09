@@ -87,4 +87,5 @@ xml_doc = pathlib.Path('./doc.xml').read_text()
 
 request = CreateCompanyRequest.from_xml(xml_doc)
 
-assert request == CreateCompanyRequest.parse_file('./doc.json')
+json_doc = pathlib.Path('./doc.json').read_text()
+assert request == CreateCompanyRequest.model_validate_json(json_doc)
