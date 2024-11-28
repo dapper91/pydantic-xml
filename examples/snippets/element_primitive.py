@@ -8,7 +8,7 @@ from pydantic_xml import BaseXmlModel, element
 # [model-start]
 class Company(BaseXmlModel, tag='company'):
     founded: dt.date = element()
-    website: HttpUrl = element(tag='web-size')
+    website: HttpUrl = element(tag='web-site')
 # [model-end]
 
 
@@ -16,7 +16,7 @@ class Company(BaseXmlModel, tag='company'):
 xml_doc = '''
 <company>
     <founded>2002-03-14</founded>
-    <web-size>https://www.spacex.com</web-size>
+    <web-site>https://www.spacex.com</web-site>
 </company>
 '''  # [xml-end]
 

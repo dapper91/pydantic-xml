@@ -13,7 +13,7 @@ class Company(
     nsmap={'co': 'http://www.company.com/co'},
 ):
     founded: dt.date = element()
-    website: HttpUrl = element(tag='web-size', ns='co')
+    website: HttpUrl = element(tag='web-site', ns='co')
 # [model-end]
 
 
@@ -21,7 +21,7 @@ class Company(
 xml_doc = '''
 <co:company xmlns:co="http://www.company.com/co">
     <co:founded>2002-03-14</co:founded>
-    <co:web-size>https://www.spacex.com</co:web-size>
+    <co:web-site>https://www.spacex.com</co:web-site>
 </co:company>
 '''  # [xml-end]
 
