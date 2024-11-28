@@ -1,8 +1,16 @@
 Changelog
 =========
 
+2.14.1 (2024-11-28)
+-------------------
+
+- pydantic 2.10 mypy plugin compatibility fixed. See https://github.com/dapper91/pydantic-xml/issues/232
+- recursive model bug fixed. See https://github.com/dapper91/pydantic-xml/issues/227.
+
+
 2.14.0 (2024-11-09)
 -------------------
+
 - union validation error location fixed.
 - potential memory leak fixed. See https://github.com/dapper91/pydantic-xml/issues/222.
 - python 3.13 support added.
