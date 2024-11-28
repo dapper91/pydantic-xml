@@ -11,7 +11,7 @@ class Company(BaseXmlModel, tag='company'):
         ns='co',
         nsmap={'co': 'http://www.company.com/co'},
     )
-    website: HttpUrl = element(tag='web-size')
+    website: HttpUrl = element(tag='web-site')
 # [model-end]
 
 
@@ -19,7 +19,7 @@ class Company(BaseXmlModel, tag='company'):
 xml_doc = '''
 <company>
     <co:founded xmlns:co="http://www.company.com/co">2002-03-14</co:founded>
-    <web-size>https://www.spacex.com</web-size>
+    <web-site>https://www.spacex.com</web-site>
 </company>
 '''  # [xml-end]
 
