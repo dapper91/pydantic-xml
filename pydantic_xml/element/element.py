@@ -378,7 +378,6 @@ class XmlElement(XmlElementReader, XmlElementWriter, Generic[NativeElement]):
             self._state.elements.pop(self._state.next_element_idx)
         return result
 
-
     def find_sub_element(self, path: Sequence[str], search_mode: 'SearchMode') -> PathT['XmlElement[NativeElement]']:
         assert len(path) > 0, "path can't be empty"
 
