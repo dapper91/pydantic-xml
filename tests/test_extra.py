@@ -4,6 +4,7 @@ import pydantic as pd
 import pytest
 
 from pydantic_xml import BaseXmlModel, attr, element, wrapped
+from pydantic_xml.element.native import ElementT
 from tests.helpers import fmt_sourceline
 
 
@@ -227,6 +228,55 @@ def test_wrapped_extra_forbid(search_mode: str):
             'ctx': {
                 'orig': 'Extra inputs are not permitted',
                 'sourceline': fmt_sourceline(9),
+            },
+        },
+    ]
+
+
+@pytest.mark.parametrize('search_mode', ['strict', 'ordered', 'unordered'])
+def test_raw_extra_forbid(search_mode: str):
+    class TestModel(
+        BaseXmlModel,
+        tag='model',
+        extra='forbid',
+        arbitrary_types_allowed=True,
+        search_mode=search_mode
+    ):
+        field1: ElementT = element("field1")
+        field2: ElementT | None = element("field2", default=None)
+
+    xml = '''
+        <model>
+            <field1>field value 1<nested>nested element field</nested></field1>
+            <field2>field value 2</field2>
+            <extra>undefined field<nested>nested undefined field</nested></extra>
+        </model>
+    '''
+    with pytest.raises(pd.ValidationError) as exc:
+        TestModel.from_xml(xml)
+
+    err = exc.value
+    assert err.title == 'TestModel'
+    assert err.error_count() == 2
+    assert err.errors() == [
+        {
+            'input': 'undefined field',
+            'loc': ('extra',),
+            'msg': f'[line {fmt_sourceline(5)}]: Extra inputs are not permitted',
+            'type': 'extra_forbidden',
+            'ctx': {
+                'orig': 'Extra inputs are not permitted',
+                'sourceline': fmt_sourceline(5),
+            },
+        },
+        {
+            'input': 'nested undefined field',
+            'loc': ('extra', 'nested'),
+            'msg': f'[line {fmt_sourceline(5)}]: Extra inputs are not permitted',
+            'type': 'extra_forbidden',
+            'ctx': {
+                'orig': 'Extra inputs are not permitted',
+                'sourceline': fmt_sourceline(5),
             },
         },
     ]

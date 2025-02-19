@@ -370,7 +370,14 @@ class XmlElement(XmlElementReader, XmlElementWriter, Generic[NativeElement]):
     def pop_element(self, tag: str, search_mode: 'SearchMode') -> Optional['XmlElement[NativeElement]']:
         searcher: Searcher[NativeElement] = get_searcher(search_mode)
 
-        return searcher(self._state, tag, False, True)
+        # don't step forward, self._state.next_element_idx points to the desired element
+        result = searcher(self._state, tag, False, False)
+        if result is not None:
+            # pop the element, self._state.next_element_idx now points to the first not-found
+            # element
+            self._state.elements.pop(self._state.next_element_idx)
+        return result
+
 
     def find_sub_element(self, path: Sequence[str], search_mode: 'SearchMode') -> PathT['XmlElement[NativeElement]']:
         assert len(path) > 0, "path can't be empty"
