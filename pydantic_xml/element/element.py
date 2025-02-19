@@ -83,12 +83,13 @@ class XmlElementReader(abc.ABC):
         """
 
     @abc.abstractmethod
-    def pop_element(self, tag: str, search_mode: 'SearchMode') -> Optional['XmlElementReader']:
+    def pop_element(self, tag: str, search_mode: 'SearchMode', remove: bool = False) -> Optional['XmlElementReader']:
         """
         Extracts a sub-element from the xml element matching `tag`.
 
         :param tag: element tag
         :param search_mode: element search mode
+        :param remove: whether to _actually_ remove the element (e.g. for ElementT fields)
         :return: sub-element
         """
 
@@ -367,14 +368,15 @@ class XmlElement(XmlElementReader, XmlElementWriter, Generic[NativeElement]):
 
         return result
 
-    def pop_element(self, tag: str, search_mode: 'SearchMode') -> Optional['XmlElement[NativeElement]']:
+    def pop_element(self, tag: str, search_mode: 'SearchMode', remove: bool = False) -> Optional['XmlElement[NativeElement]']:
         searcher: Searcher[NativeElement] = get_searcher(search_mode)
 
         # don't step forward, self._state.next_element_idx points to the desired element
-        result = searcher(self._state, tag, False, False)
-        if result is not None:
-            # pop the element, self._state.next_element_idx now points to the first not-found
-            # element
+        result = searcher(self._state, tag, False, True)
+        if result is not None and remove:
+            # remove the element, self._state.next_element_idx now points to the first
+            # not-found element
+            self._state.next_element_idx -= 1
             self._state.elements.pop(self._state.next_element_idx)
         return result
 
