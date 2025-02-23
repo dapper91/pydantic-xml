@@ -21,9 +21,9 @@ class PydanticXmlPlugin(PydanticPlugin):
             return self._pydantic_model_metaclass_marker_callback
         return super().get_metaclass_hook(fullname)
 
-    def _pydantic_model_class_maker_callback(self, ctx: ClassDefContext) -> bool:
+    def _pydantic_model_class_maker_callback(self, ctx: ClassDefContext) -> None:
         transformer = PydanticXmlModelTransformer(ctx.cls, ctx.reason, ctx.api, self.plugin_config)
-        return transformer.transform()
+        transformer.transform()
 
 
 class PydanticXmlModelTransformer(PydanticModelTransformer):

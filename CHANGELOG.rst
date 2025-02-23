@@ -1,6 +1,13 @@
 Changelog
 =========
 
+2.14.2 (2025-02-24)
+-------------------
+
+- raw element deserialization bug fixed.
+- mypy plugin typing fixed.
+
+
 2.14.1 (2024-11-28)
 -------------------
 
