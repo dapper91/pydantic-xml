@@ -7,7 +7,7 @@ from pydantic_xml.element.native import ElementT, etree
 
 
 def test_raw_primitive_element_serialization():
-    class TestModel(BaseXmlModel, tag='model', arbitrary_types_allowed=True):
+    class TestModel(BaseXmlModel, tag='model', arbitrary_types_allowed=True, extra='forbid'):
         element1: ElementT = element()
         element2: ElementT = element()
 
@@ -43,7 +43,7 @@ def test_raw_primitive_element_serialization():
 
 
 def test_optional_raw_primitive_element_serialization():
-    class TestModel(BaseXmlModel, tag='model', arbitrary_types_allowed=True):
+    class TestModel(BaseXmlModel, tag='model', arbitrary_types_allowed=True, extra='forbid'):
         element1: Optional[ElementT] = element(default=None)
         element2: ElementT = element()
 
@@ -66,7 +66,7 @@ def test_optional_raw_primitive_element_serialization():
 
 
 def test_raw_element_homogeneous_collection_serialization():
-    class TestModel(BaseXmlModel, tag='model', arbitrary_types_allowed=True):
+    class TestModel(BaseXmlModel, tag='model', arbitrary_types_allowed=True, extra='forbid'):
         field1: List[ElementT] = element(tag="element1")
 
     xml = '''
@@ -97,7 +97,7 @@ def test_raw_element_homogeneous_collection_serialization():
 
 
 def test_raw_element_heterogeneous_collection_serialization():
-    class TestModel(BaseXmlModel, tag='model', arbitrary_types_allowed=True):
+    class TestModel(BaseXmlModel, tag='model', arbitrary_types_allowed=True, extra='forbid'):
         field1: Tuple[ElementT, ElementT] = element(tag="element1")
 
     xml = '''
@@ -128,7 +128,7 @@ def test_raw_element_heterogeneous_collection_serialization():
 
 
 def test_wrapped_raw_element_serialization():
-    class TestModel(BaseXmlModel, tag='model', arbitrary_types_allowed=True):
+    class TestModel(BaseXmlModel, tag='model', arbitrary_types_allowed=True, extra='forbid'):
         field1: ElementT = wrapped('wrapper', element(tag="element1"))
 
     xml = '''
