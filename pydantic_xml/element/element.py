@@ -1,6 +1,6 @@
 import abc
 from enum import Enum
-from typing import Any, Callable, Dict, Generic, List, Optional, Sequence, Tuple, TypeVar
+from typing import Any, Callable, Dict, Generic, Iterable, List, Optional, Sequence, Tuple, TypeVar
 
 from pydantic_xml.typedefs import NsMap
 
@@ -19,6 +19,13 @@ class XmlElementReader(abc.ABC):
     def tag(self) -> str:
         """
         Xml element tag.
+        """
+
+    @property
+    @abc.abstractmethod
+    def nsmap(self) -> Optional[NsMap]:
+        """
+        Xml element namespace map.
         """
 
     @abc.abstractmethod
@@ -65,6 +72,15 @@ class XmlElementReader(abc.ABC):
         """
 
     @abc.abstractmethod
+    def pop_tail(self) -> Optional[str]:
+        """
+        Extracts the tail from the xml element.
+        All subsequent calls return `None`.
+
+        :return: element tail
+        """
+
+    @abc.abstractmethod
     def pop_attrib(self, name: str) -> Optional[str]:
         """
         Extracts an attribute from the xml element matching `name`.
@@ -83,12 +99,22 @@ class XmlElementReader(abc.ABC):
         """
 
     @abc.abstractmethod
-    def pop_element(self, tag: str, search_mode: 'SearchMode') -> Optional['XmlElementReader']:
+    def pop_elements(self) -> Tuple['XmlElementReader', ...]:
+        """
+        Extracts all sub-elements from the xml element.
+        All subsequent calls return empty list.
+
+        :return: element sub-elements
+        """
+
+    @abc.abstractmethod
+    def pop_element(self, tag: str, search_mode: 'SearchMode', remove: bool = False) -> Optional['XmlElementReader']:
         """
         Extracts a sub-element from the xml element matching `tag`.
 
         :param tag: element tag
         :param search_mode: element search mode
+        :param remove: remove all entities from the element
         :return: sub-element
         """
 
@@ -280,7 +306,7 @@ class XmlElement(XmlElementReader, XmlElementWriter, Generic[NativeElement]):
             text: Optional[str] = None,
             tail: Optional[str] = None,
             attributes: Optional[Dict[str, str]] = None,
-            elements: Optional[List['XmlElement[NativeElement]']] = None,
+            elements: Optional[Iterable['XmlElement[NativeElement]']] = None,
             nsmap: Optional[NsMap] = None,
             sourceline: int = -1,
     ):
@@ -290,7 +316,7 @@ class XmlElement(XmlElementReader, XmlElementWriter, Generic[NativeElement]):
             text=text,
             tail=tail,
             attrib=dict(attributes) if attributes is not None else None,
-            elements=elements or [],
+            elements=list(elements) if elements is not None else [],
             next_element_idx=0,
         )
         self._sourceline = sourceline
@@ -302,6 +328,10 @@ class XmlElement(XmlElementReader, XmlElementWriter, Generic[NativeElement]):
     @property
     def tag(self) -> str:
         return self._tag
+
+    @property
+    def nsmap(self) -> Optional[NsMap]:
+        return self._nsmap
 
     def create_snapshot(self) -> 'XmlElement[NativeElement]':
         element = self.__class__(
@@ -359,6 +389,11 @@ class XmlElement(XmlElementReader, XmlElementWriter, Generic[NativeElement]):
 
         return result
 
+    def pop_tail(self) -> Optional[str]:
+        result, self._state.tail = self._state.tail, None
+
+        return result
+
     def pop_attrib(self, name: str) -> Optional[str]:
         return self._state.attrib.pop(name, None) if self._state.attrib else None
 
@@ -367,10 +402,33 @@ class XmlElement(XmlElementReader, XmlElementWriter, Generic[NativeElement]):
 
         return result
 
-    def pop_element(self, tag: str, search_mode: 'SearchMode') -> Optional['XmlElement[NativeElement]']:
+    def pop_elements(self) -> Tuple['XmlElement[NativeElement]', ...]:
+        elements, self._state.elements = self._state.elements, []
+        self._state.next_element_idx = 0
+
+        return tuple(elements)
+
+    def pop_element(
+            self,
+            tag: str,
+            search_mode: 'SearchMode',
+            remove: bool = False,
+    ) -> Optional['XmlElement[NativeElement]']:
         searcher: Searcher[NativeElement] = get_searcher(search_mode)
 
-        return searcher(self._state, tag, False, True)
+        element = searcher(self._state, tag, False, True)
+        if element is not None and remove:
+            return self.__class__(
+                tag=element.tag,
+                nsmap=element.nsmap,
+                text=element.pop_text(),
+                tail=element.pop_tail(),
+                attributes=element.pop_attributes(),
+                elements=element.pop_elements(),
+                sourceline=element.get_sourceline(),
+            )
+
+        return element
 
     def find_sub_element(self, path: Sequence[str], search_mode: 'SearchMode') -> PathT['XmlElement[NativeElement]']:
         assert len(path) > 0, "path can't be empty"
