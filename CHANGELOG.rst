@@ -1,6 +1,12 @@
 Changelog
 =========
 
+2.14.3 (2025-03-11)
+-------------------
+
+- reserved namespaces registration skipped.
+
+
 2.14.2 (2025-02-24)
 -------------------
 
