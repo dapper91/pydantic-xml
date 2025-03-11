@@ -81,7 +81,7 @@ def register_nsmap(nsmap: NsMap) -> None:
     """
 
     for prefix, uri in nsmap.items():
-        if prefix != '':  # skip default namespace
+        if prefix != '' and not re.match(r"ns\d+$", prefix):  # skip default namespace and reserved ones
             etree.register_namespace(prefix, uri)
 
 
