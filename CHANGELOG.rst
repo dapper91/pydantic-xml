@@ -1,6 +1,12 @@
 Changelog
 =========
 
+2.15.0 (2025-03-29)
+-------------------
+
+- model deserialization additional arguments added. See https://github.com/dapper91/pydantic-xml/issues/247
+
+
 2.14.3 (2025-03-11)
 -------------------
 
