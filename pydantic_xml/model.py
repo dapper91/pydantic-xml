@@ -517,16 +517,19 @@ class BaseXmlModel(BaseModel, __xml_abstract__=True, metaclass=XmlModelMeta):
             )
 
     @classmethod
-    def from_xml(cls: Type[ModelT], source: Union[str, bytes], context: Optional[Dict[str, Any]] = None) -> ModelT:
+    def from_xml(
+            cls: Type[ModelT], source: Union[str, bytes], context: Optional[Dict[str, Any]] = None, **kwargs: Any,
+    ) -> ModelT:
         """
         Deserializes an xml string to an object of `cls` type.
 
         :param source: xml string
         :param context: pydantic validation context
+        :param kwargs: additional xml deserialization arguments
         :return: deserialized object
         """
 
-        return cls.from_xml_tree(etree.fromstring(source), context=context)
+        return cls.from_xml_tree(etree.fromstring(source, **kwargs), context=context)
 
     def to_xml_tree(
             self, *, skip_empty: bool = False, exclude_none: bool = False, exclude_unset: bool = False,
