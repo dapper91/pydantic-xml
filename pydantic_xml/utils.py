@@ -7,6 +7,8 @@ from typing import Dict, Iterable, List, Optional, Union, cast
 import pydantic as pd
 import pydantic_core as pdc
 
+from pydantic_xml import errors
+
 from .element.native import etree
 from .typedefs import Location, NsMap
 
@@ -52,7 +54,13 @@ class QName:
         """
 
         if not is_attr or ns is not None:
-            ns = nsmap.get(ns or '') if nsmap else None
+            if ns is None:
+                ns = nsmap.get('') if nsmap else None
+            else:
+                try:
+                    ns = nsmap[ns] if nsmap else None
+                except KeyError:
+                    raise errors.ModelError(f"namespace alias {ns} not declared in nsmap")
 
         return QName(tag=tag, ns=ns)
 

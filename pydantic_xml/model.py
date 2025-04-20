@@ -421,11 +421,16 @@ class BaseXmlModel(BaseModel, __xml_abstract__=True, metaclass=XmlModelMeta):
 
         cls.__xml_tag__ = tag if tag is not None else getattr(cls, '__xml_tag__', None)
         cls.__xml_ns__ = ns if ns is not None else getattr(cls, '__xml_ns__', None)
-        cls.__xml_nsmap__ = nsmap if nsmap is not None else getattr(cls, '__xml_nsmap__', None)
         cls.__xml_ns_attrs__ = ns_attrs if ns_attrs is not None else getattr(cls, '__xml_ns_attrs__', False)
         cls.__xml_skip_empty__ = skip_empty if skip_empty is not None else getattr(cls, '__xml_skip_empty__', None)
         cls.__xml_search_mode__ = search_mode if search_mode is not None \
             else getattr(cls, '__xml_search_mode__', SearchMode.STRICT)
+
+        if parent_nsmap := getattr(cls, '__xml_nsmap__', None):
+            parent_nsmap.update(nsmap or {})
+            cls.__xml_nsmap__ = parent_nsmap
+        else:
+            cls.__xml_nsmap__ = nsmap
 
         cls.__xml_field_serializers__ = {}
         cls.__xml_field_validators__ = {}

@@ -153,6 +153,39 @@ The namespace and namespace mapping can be declared for a model. In that case al
                     :start-after: json-start
                     :end-before: json-end
 
+.. note::
+    **Pay attention** to the namespace inheritance rule: namespace and namespace mapping
+    are only inherited by primitive types not sub-models. If your sub-model share
+    the namespace with the parent model you must define it explicitly:
+
+    .. code-block:: python
+
+        from pydantic_xml import BaseXmlModel, element
+
+        NSMAP = {
+            'co': 'http://www.company.com/co',
+        }
+
+        class SubModel(BaseXmlModel, ns='co', nsmap=NSMAP):  # define ns and nsmap explicitly
+            field2: str = element(tag='element1')
+
+        class Model(BaseXmlModel, ns='co', nsmap=NSMAP):
+            field1: str = element(tag='element1')  # ns "co" is inherited by the element
+            sub: SubModel  # ns and nsmap are not inherited by the SubModel
+
+        model = Model(field1="value1", sub=SubModel(field2="value2"))
+        print(model.to_xml(pretty_print=True).decode())
+
+
+    .. code-block:: xml
+
+        <co:Model xmlns:co="http://www.company.com/co">
+          <co:element1>value1</co:element1>
+          <co:sub>
+            <co:element1>value2</co:element1>
+          </co:sub>
+        </co:Model>
+
 
 The namespace and namespace mapping can be also applied to model types passing ``ns`` and ``nsmap``
 to :py:func:`pydantic_xml.element`. If they are omitted the model namespace and namespace mapping is used:
