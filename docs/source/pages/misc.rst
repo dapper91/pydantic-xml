@@ -277,6 +277,68 @@ Field specification syntax is similar to ``pydantic`` one. For more information
 see the `documentation <https://docs.pydantic.dev/latest/concepts/models/#dynamic-model-creation>`_.
 
 
+Document type declaration
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+A document type declaration is an instruction that associates a particular XML document
+with a document type definition (DTD).
+
+DTD is supported by ``lxml`` backend only so the library doesn't provide an api for that natively,
+but it can be easily implemented by your hand:
+
+.. code-block:: python
+
+    from typing import Any, ClassVar, Union
+
+    import pydantic_xml as pxml
+    import lxml.etree
+
+
+    class DTDXmlModel(pxml.BaseXmlModel):
+        DOC_PUBLIC_ID: ClassVar[str]
+        DOC_SYSTEM_URL: ClassVar[str]
+
+        def to_xml(
+                self,
+                *,
+                skip_empty: bool = False,
+                exclude_none: bool = False,
+                exclude_unset: bool = False,
+                **kwargs: Any,
+        ) -> Union[str, bytes]:
+            root = self.to_xml_tree(skip_empty=skip_empty, exclude_none=exclude_none, exclude_unset=exclude_unset)
+            tree = lxml.etree.ElementTree(root)
+            tree.docinfo.public_id = self.DOC_PUBLIC_ID
+            tree.docinfo.system_url = self.DOC_SYSTEM_URL
+
+            return lxml.etree.tostring(tree, **kwargs)
+
+
+    class Html(DTDXmlModel, tag='html'):
+        DOC_PUBLIC_ID: ClassVar[str] = '-//W3C//DTD HTML 4.01//EN'
+        DOC_SYSTEM_URL: ClassVar[str] = 'http://www.w3.org/TR/html4/strict.dtd'
+
+        title: str = pxml.wrapped('head', pxml.element())
+        body: str = pxml.element()
+
+
+    html_doc = Html(title="This is a title", body="Hello world!")
+    xml = html_doc.to_xml(pretty_print=True)
+
+    print(xml.decode())
+
+
+.. code-block:: xml
+
+    <!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+    <html>
+      <head>
+        <title>This is a title</title>
+      </head>
+      <body>Hello world!</body>
+    </html>
+
+
 Mypy
 ~~~~
 
