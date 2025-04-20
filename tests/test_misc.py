@@ -320,7 +320,7 @@ def test_model_params_inheritance():
         BaseXmlModel,
         tag='TestTag',
         ns='TestNamespace',
-        nsmap={'test': 'value'},
+        nsmap={'TestNamespace': 'value'},
         ns_attrs=True,
         search_mode='ordered',
     ):
