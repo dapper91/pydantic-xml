@@ -1,6 +1,14 @@
 Changelog
 =========
 
+2.16.0 (2025-04-20)
+-------------------
+
+- exception is raised if namespace alias is not found in the namespace map.
+- child model inherits parent namespace map.
+- documentation enhanced.
+
+
 2.15.0 (2025-03-29)
 -------------------
 
