@@ -67,9 +67,6 @@ class TextSerializer(Serializer):
             sourcemap: Dict[Location, int],
             loc: Location,
     ) -> Optional[str]:
-        if self._computed:
-            return None
-
         if element is None:
             return None
 
@@ -132,9 +129,6 @@ class AttributeSerializer(Serializer):
             sourcemap: Dict[Location, int],
             loc: Location,
     ) -> Optional[str]:
-        if self._computed:
-            return None
-
         if element is None:
             return None
 
@@ -202,9 +196,6 @@ class ElementSerializer(TextSerializer):
             sourcemap: Dict[Location, int],
             loc: Location,
     ) -> Optional[str]:
-        if self._computed:
-            return None
-
         if element is None:
             return None
 
