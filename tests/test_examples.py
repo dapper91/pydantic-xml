@@ -37,7 +37,11 @@ def test_snippets_py39(snippet: Path):
         'generic-model',
         'quickstart',
         'self-ref-model',
-        'xml-serialization',
+        'xml-serialization-decorator',
+        pytest.param(
+            'xml-serialization-annotation',
+            marks=pytest.mark.skipif(sys.version_info < (3, 9), reason="requires python 3.9 and above"),
+        ),
     ],
 )
 def example_dir(request: pytest.FixtureRequest, monkeypatch: pytest.MonkeyPatch):

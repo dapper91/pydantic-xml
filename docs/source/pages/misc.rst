@@ -54,13 +54,21 @@ The following example illustrate how to serialize ``xs:list`` element:
 
 *model.py:*
 
-.. literalinclude:: ../../../examples/xml-serialization/model.py
+.. literalinclude:: ../../../examples/xml-serialization-decorator/model.py
     :language: python
 
 *doc.xml:*
 
-.. literalinclude:: ../../../examples/xml-serialization/doc.xml
+.. literalinclude:: ../../../examples/xml-serialization-decorator/doc.xml
     :language: xml
+
+
+``pydantic-xml`` also supports the ``Annotated`` typing form to attach metadata to an annotation:
+
+*model.py:*
+
+.. literalinclude:: ../../../examples/xml-serialization-annotation/model.py
+    :language: python
 
 
 Optional type encoding

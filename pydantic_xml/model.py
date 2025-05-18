@@ -26,6 +26,8 @@ __all__ = (
     'computed_element',
     'xml_field_serializer',
     'xml_field_validator',
+    'XmlFieldSerializer',
+    'XmlFieldValidator',
     'BaseXmlModel',
     'RootXmlModel',
 )
@@ -355,6 +357,16 @@ def xml_field_serializer(field: str, /, *fields: str) -> Callable[[SerializerFun
     return wrapper
 
 
+@dc.dataclass(frozen=True)
+class XmlFieldValidator:
+    func: ValidatorFunc
+
+
+@dc.dataclass(frozen=True)
+class XmlFieldSerializer:
+    func: SerializerFunc
+
+
 @te.dataclass_transform(kw_only_default=True, field_specifiers=(attr, element, wrapped, pd.Field))
 class XmlModelMeta(ModelMetaclass):
     """
@@ -374,7 +386,31 @@ class XmlModelMeta(ModelMetaclass):
         if not is_abstract:
             cls.__build_serializer__()
 
+        cls._collect_xml_field_serializers_validators(cls)
+
         return cls
+
+    @classmethod
+    def _collect_xml_field_serializers_validators(mcls, cls: Type['BaseXmlModel']) -> None:
+        for field_name, field_info in cls.model_fields.items():
+            for metadatum in field_info.metadata:
+                if isinstance(metadatum, XmlFieldValidator):
+                    cls.__xml_field_validators__[field_name] = metadatum.func
+                if isinstance(metadatum, XmlFieldSerializer):
+                    cls.__xml_field_serializers__[field_name] = metadatum.func
+
+        # find custom validators/serializers in all defined attributes
+        # though we want to skip any BaseModel attributes, as these can never be field
+        # serializers/validators, and getting certain pydantic fields
+        # may cause recursion errors for recursive / self-referential models
+        for attr_name in set(dir(cls)) - set(dir(BaseModel)):
+            if func := getattr(cls, attr_name, None):
+                if fields := getattr(func, '__xml_field_serializer__', None):
+                    for field in fields:
+                        cls.__xml_field_serializers__[field] = func
+                if fields := getattr(func, '__xml_field_validator__', None):
+                    for field in fields:
+                        cls.__xml_field_validators__[field] = func
 
 
 ModelT = TypeVar('ModelT', bound='BaseXmlModel')
@@ -434,19 +470,6 @@ class BaseXmlModel(BaseModel, __xml_abstract__=True, metaclass=XmlModelMeta):
 
         cls.__xml_field_serializers__ = {}
         cls.__xml_field_validators__ = {}
-
-        # find custom validators/serializers in all defined attributes
-        # though we want to skip any Base(Xml)Model attributes, as these can never be field
-        # serializers/validators, and getting certain pydantic fields, like __pydantic_post_init__
-        # may cause recursion errors for recursive / self-referential models
-        for attr_name in set(dir(cls)) - set(dir(BaseXmlModel)):
-            if func := getattr(cls, attr_name, None):
-                if fields := getattr(func, '__xml_field_serializer__', None):
-                    for field in fields:
-                        cls.__xml_field_serializers__[field] = func
-                if fields := getattr(func, '__xml_field_validator__', None):
-                    for field in fields:
-                        cls.__xml_field_validators__[field] = func
 
     @classmethod
     def __build_serializer__(cls) -> None:
