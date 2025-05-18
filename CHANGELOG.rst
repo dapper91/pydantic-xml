@@ -1,6 +1,13 @@
 Changelog
 =========
 
+
+2.17.0 (2025-05-18)
+-------------------
+
+- feat: annotated form of field serializer/validator support added. See https://github.com/dapper91/pydantic-xml/pull/261.
+
+
 2.16.0 (2025-04-20)
 -------------------
 
