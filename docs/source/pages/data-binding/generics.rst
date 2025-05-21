@@ -55,7 +55,7 @@ Generic xml model can be declared the same way:
 
 
 A generic model can be of one or more types and organized in a recursive structure.
-The following example illustrate how to describes a flexable SOAP request model:
+The following example illustrates how to describe a flexible SOAP request model:
 
 *model.py:*
 
