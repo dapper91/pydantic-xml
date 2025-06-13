@@ -31,7 +31,7 @@ Features
 --------
 
 - pydantic v1 / v2 support
-- flexable attributes, elements and text binding
+- flexible attributes, elements and text binding
 - python collection types support (``Dict``, ``TypedDict``, ``List``, ``Set``, ``Tuple``, ...)
 - ``Union`` type support
 - pydantic `generic models <https://docs.pydantic.dev/latest/usage/models/#generic-models>`_ support

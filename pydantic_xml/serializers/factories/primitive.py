@@ -36,7 +36,7 @@ class TextSerializer(Serializer):
 
         return cls(computed, nillable)
 
-    def __init__(self, computed: bool, nillable: bool):
+    def __init__(self, computed: bool, nillable: Optional[bool]):
         self._computed = computed
         self._nillable = nillable
 
@@ -163,7 +163,7 @@ class ElementSerializer(TextSerializer):
             nsmap: Optional[NsMap],
             search_mode: SearchMode,
             computed: bool,
-            nillable: bool,
+            nillable: Optional[bool],
     ):
         super().__init__(computed, nillable)
 

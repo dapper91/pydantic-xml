@@ -2,6 +2,12 @@ Changelog
 =========
 
 
+2.17.1 (2025-06-13)
+-------------------
+
+- fix: multiple field annotations bug fixed. See https://github.com/dapper91/pydantic-xml/pull/268.
+
+
 2.17.0 (2025-05-18)
 -------------------
 
