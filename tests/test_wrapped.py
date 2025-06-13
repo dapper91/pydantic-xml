@@ -1,5 +1,7 @@
 from typing import Dict, List, Optional
 
+import pydantic as pd
+import pytest
 from helpers import assert_xml_equal
 
 from pydantic_xml import BaseXmlModel, RootXmlModel, attr, element, wrapped
@@ -26,6 +28,30 @@ def test_wrapped_primitive_extraction():
 
     actual_xml = actual_obj.to_xml()
     assert_xml_equal(actual_xml, xml)
+
+
+@pytest.mark.parametrize(
+    'value, field_gt, wrapped_gt, should_fail',
+    [
+        (1, 1, 0, True),
+        (1, 1, None, True),
+        (1, None, 1, True),
+        (1, 0, 1, False),
+    ],
+)
+def test_wrapped_field(value: int, field_gt: Optional[int], wrapped_gt: Optional[int], should_fail: bool):
+    class TestModel(BaseXmlModel, tag='model1'):
+        data: int = wrapped('model2', pd.Field(gt=field_gt), gt=wrapped_gt)
+
+    xml = f'''
+    <model1><model2>{value}</model2></model1>
+    '''
+
+    if should_fail:
+        with pytest.raises(pd.ValidationError):
+            TestModel.from_xml(xml)
+    else:
+        TestModel.from_xml(xml)
 
 
 def test_wrapped_path_merge():

@@ -9,7 +9,8 @@ from pydantic_core import core_schema as pcs
 import pydantic_xml as pxml
 from pydantic_xml import errors, utils
 from pydantic_xml.element import XmlElementReader, XmlElementWriter, is_element_nill, make_element_nill
-from pydantic_xml.serializers.serializer import SearchMode, Serializer, XmlEntityInfoP
+from pydantic_xml.fields import ComputedXmlEntityInfo, XmlEntityInfoP
+from pydantic_xml.serializers.serializer import SearchMode, Serializer
 from pydantic_xml.typedefs import EntityLocation, Location, NsMap
 from pydantic_xml.utils import QName, merge_nsmaps, select_ns
 
@@ -95,7 +96,7 @@ class ModelSerializer(BaseModelSerializer):
             field_alias = model_field.get('alias')
 
             computed_field_info = model_cls.__pydantic_decorators__.computed_fields[field_name].info
-            if isinstance(computed_field_info, pxml.model.ComputedXmlEntityInfo):
+            if isinstance(computed_field_info, ComputedXmlEntityInfo):
                 entity_info = computed_field_info
             else:
                 entity_info = None
@@ -356,7 +357,7 @@ class ModelProxySerializer(BaseModelSerializer):
             nsmap: Optional[NsMap],
             search_mode: SearchMode,
             computed: bool,
-            nillable: bool,
+            nillable: Optional[bool],
     ):
         self._model = model
         self._element_name = QName.from_alias(tag=name, ns=ns, nsmap=nsmap).uri
