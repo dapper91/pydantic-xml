@@ -10,6 +10,7 @@ from pydantic_core import core_schema as pcs
 
 from pydantic_xml.element import SearchMode, XmlElementReader, XmlElementWriter
 from pydantic_xml.errors import ModelError
+from pydantic_xml.fields import XmlEntityInfoP
 from pydantic_xml.typedefs import EntityLocation, Location, NsMap
 from pydantic_xml.utils import select_ns
 
@@ -93,15 +94,6 @@ TYPE_FAMILY = {
 }
 
 
-class XmlEntityInfoP(typing.Protocol):
-    location: Optional[EntityLocation]
-    path: Optional[str]
-    ns: Optional[str]
-    nsmap: Optional[NsMap]
-    nillable: bool
-    wrapped: Optional['XmlEntityInfoP']
-
-
 class Serializer(abc.ABC):
     @dc.dataclass(frozen=True)
     class Context:
@@ -145,7 +137,7 @@ class Serializer(abc.ABC):
             return self.entity_info.nillable if self.entity_info is not None else False
 
         @property
-        def entity_wrapped(self) -> Optional['XmlEntityInfoP']:
+        def entity_wrapped(self) -> Optional[XmlEntityInfoP]:
             return self.entity_info.wrapped if self.entity_info is not None else None
 
         @cached_property
