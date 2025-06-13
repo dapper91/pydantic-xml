@@ -36,7 +36,7 @@ class XmlEntityInfoP(typing.Protocol):
     path: Optional[str]
     ns: Optional[str]
     nsmap: Optional[NsMap]
-    nillable: bool
+    nillable: Optional[bool]
     wrapped: Optional['XmlEntityInfoP']
 
 
@@ -54,7 +54,7 @@ class XmlEntityInfo(pd.fields.FieldInfo):
             path: Optional[str] = None,
             ns: Optional[str] = None,
             nsmap: Optional[NsMap] = None,
-            nillable: bool = False,
+            nillable: Optional[bool] = None,
             wrapped: Optional[pd.fields.FieldInfo] = None,
             **kwargs: Any,
     ):
@@ -113,7 +113,7 @@ def element(
         tag: Optional[str] = None,
         ns: Optional[str] = None,
         nsmap: Optional[NsMap] = None,
-        nillable: bool = False,
+        nillable: Optional[bool] = None,
         *,
         default: Any = pdc.PydanticUndefined,
         default_factory: Optional[Callable[[], Any]] = _Unset,
@@ -179,7 +179,7 @@ class ComputedXmlEntityInfo(pd.fields.ComputedFieldInfo):
     path: Optional[str]
     ns: Optional[str]
     nsmap: Optional[NsMap]
-    nillable: bool
+    nillable: Optional[bool]
     wrapped: Optional[XmlEntityInfoP]  # to be compliant with XmlEntityInfoP protocol
 
     def __post_init__(self) -> None:
@@ -199,7 +199,7 @@ def computed_entity(
         path = kwargs.pop('path', None)
         ns = kwargs.pop('ns', None)
         nsmap = kwargs.pop('nsmap', None)
-        nillable = kwargs.pop('nillable', False)
+        nillable = kwargs.pop('nillable', None)
 
         descriptor_proxy = pd.computed_field(**kwargs)(prop)
         descriptor_proxy.decorator_info = ComputedXmlEntityInfo(
@@ -245,7 +245,7 @@ def computed_element(
         tag: Optional[str] = None,
         ns: Optional[str] = None,
         nsmap: Optional[NsMap] = None,
-        nillable: bool = False,
+        nillable: Optional[bool] = None,
         **kwargs: Any,
 ) -> Union[PropertyT, Callable[[PropertyT], PropertyT]]:
     """

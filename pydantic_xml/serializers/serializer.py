@@ -133,7 +133,7 @@ class Serializer(abc.ABC):
             return self.entity_info.nsmap if self.entity_info is not None else None
 
         @property
-        def nillable(self) -> bool:
+        def nillable(self) -> Optional[bool]:
             return self.entity_info.nillable if self.entity_info is not None else False
 
         @property

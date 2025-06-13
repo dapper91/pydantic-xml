@@ -357,7 +357,7 @@ class ModelProxySerializer(BaseModelSerializer):
             nsmap: Optional[NsMap],
             search_mode: SearchMode,
             computed: bool,
-            nillable: bool,
+            nillable: Optional[bool],
     ):
         self._model = model
         self._element_name = QName.from_alias(tag=name, ns=ns, nsmap=nsmap).uri
