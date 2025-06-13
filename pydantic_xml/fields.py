@@ -40,12 +40,40 @@ class XmlEntityInfoP(typing.Protocol):
     wrapped: Optional['XmlEntityInfoP']
 
 
-class XmlEntityInfo(pd.fields.FieldInfo):
+class XmlEntityInfo(pd.fields.FieldInfo, XmlEntityInfoP):
     """
     Field xml meta-information.
     """
 
     __slots__ = ('location', 'path', 'ns', 'nsmap', 'nillable', 'wrapped')
+
+    @staticmethod
+    def merge_field_infos(*field_infos: pd.fields.FieldInfo, **overrides: Any) -> pd.fields.FieldInfo:
+        location, path, ns, nsmap, nillable, wrapped = None, None, None, None, None, None
+
+        for field_info in field_infos:
+            if isinstance(field_info, XmlEntityInfo):
+                location = field_info.location if field_info.location is not None else location
+                path = field_info.path if field_info.path is not None else path
+                ns = field_info.ns if field_info.ns is not None else ns
+                nsmap = field_info.nsmap if field_info.nsmap is not None else nsmap
+                nillable = field_info.nillable if field_info.nillable is not None else nillable
+                wrapped = field_info.wrapped if field_info.wrapped is not None else wrapped
+
+        field_info = pd.fields.FieldInfo.merge_field_infos(*field_infos, **overrides)
+
+        xml_entity_info = XmlEntityInfo(
+            location,
+            path=path,
+            ns=ns,
+            nsmap=nsmap,
+            nillable=nillable,
+            wrapped=wrapped if isinstance(wrapped, XmlEntityInfo) else None,
+            **field_info._attributes_set,
+        )
+        xml_entity_info.metadata = field_info.metadata
+
+        return xml_entity_info
 
     def __init__(
             self,
@@ -58,10 +86,13 @@ class XmlEntityInfo(pd.fields.FieldInfo):
             wrapped: Optional[pd.fields.FieldInfo] = None,
             **kwargs: Any,
     ):
+        wrapped_metadata: list[Any] = []
         if wrapped is not None:
             # copy arguments from the wrapped entity to let pydantic know how to process the field
             for entity_field_name in utils.get_slots(wrapped):
-                kwargs[entity_field_name] = getattr(wrapped, entity_field_name)
+                if entity_field_name in pd.fields._FIELD_ARG_NAMES:
+                    kwargs[entity_field_name] = getattr(wrapped, entity_field_name)
+            wrapped_metadata = wrapped.metadata
 
         if kwargs.get('serialization_alias') is None:
             kwargs['serialization_alias'] = kwargs.get('alias')
@@ -70,6 +101,8 @@ class XmlEntityInfo(pd.fields.FieldInfo):
             kwargs['validation_alias'] = kwargs.get('alias')
 
         super().__init__(**kwargs)
+        self.metadata.extend(wrapped_metadata)
+
         self.location = location
         self.path = path
         self.ns = ns
@@ -168,7 +201,7 @@ def wrapped(
 
 
 @dc.dataclass
-class ComputedXmlEntityInfo(pd.fields.ComputedFieldInfo):
+class ComputedXmlEntityInfo(pd.fields.ComputedFieldInfo, XmlEntityInfoP):
     """
     Computed field xml meta-information.
     """

@@ -1,3 +1,4 @@
+import sys
 from typing import Dict, List, Optional, Tuple, Union
 
 import pydantic as pd
@@ -5,6 +6,7 @@ import pytest
 from helpers import assert_xml_equal
 
 from pydantic_xml import BaseXmlModel, RootXmlModel, attr, element, errors, wrapped
+from pydantic_xml.fields import XmlEntityInfo
 
 
 def test_xml_declaration():
@@ -377,3 +379,30 @@ def test_pydantic_validation_context():
     '''
 
     TestModel.from_xml(xml, validation_context)
+
+
+@pytest.mark.skipif(sys.version_info < (3, 9), reason="requires python 3.9 and above")
+def test_field_info_merge():
+    from typing import Annotated
+
+    from annotated_types import Ge, Lt
+
+    class TestModel(BaseXmlModel, tag='root'):
+        element1: Annotated[
+            int,
+            pd.Field(ge=0),
+            pd.Field(default=0, lt=100),
+            element(nillable=True),
+        ] = element(tag='elm', lt=10)
+
+    field_info = TestModel.model_fields['element1']
+    assert isinstance(field_info, XmlEntityInfo)
+    assert field_info.metadata == [Ge(ge=0), Lt(lt=10)]
+    assert field_info.default == 0
+    assert field_info.nillable == True
+    assert field_info.path == 'elm'
+
+    TestModel.from_xml("<root><elm>0</elm></root>")
+
+    with pytest.raises(pd.ValidationError):
+        TestModel.from_xml("<root><elm>-1</elm></root>")
