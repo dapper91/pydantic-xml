@@ -5,6 +5,7 @@ from pydantic_core import core_schema as pcs
 
 from pydantic_xml import errors, utils
 from pydantic_xml.element import XmlElementReader, XmlElementWriter
+from pydantic_xml.serializers.factories import primitive
 from pydantic_xml.serializers.serializer import TYPE_FAMILY, SchemaTypeFamily, Serializer
 from pydantic_xml.typedefs import EntityLocation, Location
 
@@ -109,6 +110,6 @@ def from_core_schema(schema: pcs.TupleSchema, ctx: Serializer.Context) -> Serial
     elif ctx.entity_location is None:
         return ElementSerializer.from_core_schema(schema, ctx)
     elif ctx.entity_location is EntityLocation.ATTRIBUTE:
-        raise errors.ModelFieldError(ctx.model_name, ctx.field_name, "attributes of collection types are not supported")
+        return primitive.from_core_schema(pcs.StringSchema(type="str"), ctx)
     else:
         raise AssertionError("unreachable")
