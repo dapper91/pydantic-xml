@@ -1,6 +1,6 @@
 import dataclasses as dc
 import typing
-from typing import Any, Callable, Optional, Type, TypeVar, Union
+from typing import Any, Callable, Optional, TypeVar, Union
 
 import pydantic as pd
 import pydantic_core as pdc
@@ -8,7 +8,6 @@ from pydantic._internal._model_construction import ModelMetaclass  # noqa
 from pydantic.root_model import _RootModelMetaclass as RootModelMetaclass  # noqa
 
 from . import config, model, utils
-from .element import XmlElementReader, XmlElementWriter
 from .typedefs import EntityLocation
 from .utils import NsMap
 
@@ -22,8 +21,6 @@ __all__ = (
     'xml_field_serializer',
     'xml_field_validator',
     'ComputedXmlEntityInfo',
-    'SerializerFunc',
-    'ValidatorFunc',
     'XmlEntityInfo',
     'XmlEntityInfoP',
     'XmlFieldSerializer',
@@ -295,8 +292,7 @@ def computed_element(
     return computed_entity(EntityLocation.ELEMENT, prop, path=tag, ns=ns, nsmap=nsmap, nillable=nillable, **kwargs)
 
 
-ValidatorFunc = Callable[[Type['model.BaseXmlModel'], XmlElementReader, str], Any]
-ValidatorFuncT = TypeVar('ValidatorFuncT', bound=ValidatorFunc)
+ValidatorFuncT = TypeVar('ValidatorFuncT', bound='model.SerializerFunc')
 
 
 def xml_field_validator(field: str, /, *fields: str) -> Callable[[ValidatorFuncT], ValidatorFuncT]:
@@ -314,8 +310,7 @@ def xml_field_validator(field: str, /, *fields: str) -> Callable[[ValidatorFuncT
     return wrapper
 
 
-SerializerFunc = Callable[['model.BaseXmlModel', XmlElementWriter, Any, str], Any]
-SerializerFuncT = TypeVar('SerializerFuncT', bound=SerializerFunc)
+SerializerFuncT = TypeVar('SerializerFuncT', bound='model.SerializerFunc')
 
 
 def xml_field_serializer(field: str, /, *fields: str) -> Callable[[SerializerFuncT], SerializerFuncT]:
@@ -335,9 +330,9 @@ def xml_field_serializer(field: str, /, *fields: str) -> Callable[[SerializerFun
 
 @dc.dataclass(frozen=True)
 class XmlFieldValidator:
-    func: ValidatorFunc
+    func: 'model.ValidatorFunc'
 
 
 @dc.dataclass(frozen=True)
 class XmlFieldSerializer:
-    func: SerializerFunc
+    func: 'model.SerializerFunc'
