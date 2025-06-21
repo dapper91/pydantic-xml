@@ -1,5 +1,5 @@
 import typing
-from typing import Any, ClassVar, Dict, Generic, Optional, Tuple, Type, TypeVar, Union
+from typing import Any, Callable, ClassVar, Dict, Generic, Optional, Tuple, Type, TypeVar, Union
 
 import pydantic as pd
 import pydantic_core as pdc
@@ -9,10 +9,9 @@ from pydantic._internal._model_construction import ModelMetaclass  # noqa
 from pydantic.root_model import _RootModelMetaclass as RootModelMetaclass  # noqa
 
 from . import config, errors, utils
-from .element import SearchMode
+from .element import SearchMode, XmlElementReader, XmlElementWriter
 from .element.native import ElementT, XmlElement, etree
-from .fields import SerializerFunc, ValidatorFunc, XmlEntityInfo, XmlFieldSerializer, XmlFieldValidator, attr, element
-from .fields import wrapped
+from .fields import XmlEntityInfo, XmlFieldSerializer, XmlFieldValidator, attr, element, wrapped
 from .serializers.factories.model import BaseModelSerializer
 from .serializers.serializer import Serializer
 from .typedefs import EntityLocation
@@ -22,6 +21,8 @@ __all__ = (
     'BaseXmlModel',
     'create_model',
     'RootXmlModel',
+    'SerializerFunc',
+    'ValidatorFunc',
     'XmlModelMeta',
 )
 
@@ -136,6 +137,8 @@ class XmlModelMeta(ModelMetaclass):
                         cls.__xml_field_validators__[field] = func
 
 
+ValidatorFunc = Callable[[Type['BaseXmlModel'], XmlElementReader, str], Any]
+SerializerFunc = Callable[['BaseXmlModel', XmlElementWriter, Any, str], Any]
 ModelT = TypeVar('ModelT', bound='BaseXmlModel')
 
 
