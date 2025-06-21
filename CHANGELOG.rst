@@ -2,6 +2,12 @@ Changelog
 =========
 
 
+2.17.2 (2025-06-21)
+-------------------
+
+- fix: func type aliases moved to model module to make get_type_hints work correctly.
+
+
 2.17.1 (2025-06-13)
 -------------------
 
