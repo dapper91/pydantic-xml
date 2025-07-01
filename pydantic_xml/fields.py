@@ -1,6 +1,6 @@
 import dataclasses as dc
 import typing
-from typing import Any, Callable, Optional, TypeVar, Union
+from typing import Any, Callable, Optional, Union
 
 import pydantic as pd
 import pydantic_core as pdc
@@ -292,10 +292,9 @@ def computed_element(
     return computed_entity(EntityLocation.ELEMENT, prop, path=tag, ns=ns, nsmap=nsmap, nillable=nillable, **kwargs)
 
 
-ValidatorFuncT = TypeVar('ValidatorFuncT', bound='model.SerializerFunc')
-
-
-def xml_field_validator(field: str, /, *fields: str) -> Callable[[ValidatorFuncT], ValidatorFuncT]:
+def xml_field_validator(
+    field: str, /, *fields: str
+) -> 'Callable[[model.ValidatorFuncT[model.ModelT]], model.ValidatorFuncT[model.ModelT]]':
     """
     Marks the method as a field xml validator.
 
@@ -303,17 +302,18 @@ def xml_field_validator(field: str, /, *fields: str) -> Callable[[ValidatorFuncT
     :param fields: fields to be validated
     """
 
-    def wrapper(func: ValidatorFuncT) -> ValidatorFuncT:
+    def wrapper(func: model.ValidatorFuncT[model.ModelT]) -> model.ValidatorFuncT[model.ModelT]:
+        if isinstance(func, (classmethod, staticmethod)):
+            func = func.__func__
         setattr(func, '__xml_field_validator__', (field, *fields))
         return func
 
     return wrapper
 
 
-SerializerFuncT = TypeVar('SerializerFuncT', bound='model.SerializerFunc')
-
-
-def xml_field_serializer(field: str, /, *fields: str) -> Callable[[SerializerFuncT], SerializerFuncT]:
+def xml_field_serializer(
+    field: str, /, *fields: str
+) -> 'Callable[[model.SerializerFuncT[model.ModelT]], model.SerializerFuncT[model.ModelT]]':
     """
     Marks the method as a field xml serializer.
 
@@ -321,7 +321,7 @@ def xml_field_serializer(field: str, /, *fields: str) -> Callable[[SerializerFun
     :param fields: fields to be serialized
     """
 
-    def wrapper(func: SerializerFuncT) -> SerializerFuncT:
+    def wrapper(func: model.SerializerFuncT[model.ModelT]) -> model.SerializerFuncT[model.ModelT]:
         setattr(func, '__xml_field_serializer__', (field, *fields))
         return func
 

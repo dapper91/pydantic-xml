@@ -13,9 +13,12 @@ def test_xml_field_validator():
         element1: List[int] = element()
 
         @xml_field_validator('element1')
+        @classmethod
         def validate_element(cls, element: XmlElementReader, field_name: str) -> List[int]:
-            if element := element.pop_element(field_name, search_mode=cls.__xml_search_mode__):
-                return list(map(int, element.pop_text().split()))
+            if (sub_element := element.pop_element(field_name, search_mode=cls.__xml_search_mode__)) and (
+                text := sub_element.pop_text()
+            ):
+                return list(map(float, text.split()))
 
             return []
 
