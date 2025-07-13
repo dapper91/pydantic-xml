@@ -11,9 +11,12 @@ class Plot(BaseXmlModel):
     y: List[float] = element()
 
     @xml_field_validator('x', 'y')
+    @classmethod
     def validate_space_separated_list(cls, element: XmlElementReader, field_name: str) -> List[float]:
-        if element := element.pop_element(field_name, search_mode=cls.__xml_search_mode__):
-            return list(map(float, element.pop_text().split()))
+        if (sub_element := element.pop_element(field_name, search_mode=cls.__xml_search_mode__)) and (
+            text := sub_element.pop_text()
+        ):
+            return list(map(float, text.split()))
 
         return []
 
