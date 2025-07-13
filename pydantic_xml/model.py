@@ -20,9 +20,12 @@ from .utils import NsMap
 __all__ = (
     'BaseXmlModel',
     'create_model',
+    'ModelT',
     'RootXmlModel',
     'SerializerFunc',
+    'SerializerFuncT',
     'ValidatorFunc',
+    'ValidatorFuncT',
     'XmlModelMeta',
 )
 
@@ -137,9 +140,11 @@ class XmlModelMeta(ModelMetaclass):
                         cls.__xml_field_validators__[field] = func
 
 
-ValidatorFunc = Callable[[Type['BaseXmlModel'], XmlElementReader, str], Any]
-SerializerFunc = Callable[['BaseXmlModel', XmlElementWriter, Any, str], Any]
 ModelT = TypeVar('ModelT', bound='BaseXmlModel')
+ValidatorFuncT = Callable[[Type[ModelT], XmlElementReader, str], Any]
+ValidatorFunc = ValidatorFuncT['BaseXmlModel']
+SerializerFuncT = Callable[[ModelT, XmlElementWriter, Any, str], Any]
+SerializerFunc = SerializerFuncT['BaseXmlModel']
 
 
 class BaseXmlModel(BaseModel, __xml_abstract__=True, metaclass=XmlModelMeta):
