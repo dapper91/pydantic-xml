@@ -406,3 +406,13 @@ def test_field_info_merge():
 
     with pytest.raises(pd.ValidationError):
         TestModel.from_xml("<root><elm>-1</elm></root>")
+
+
+def test_get_type_hints():
+    from typing import get_type_hints
+
+    class TestModel(BaseXmlModel, tag="model"):
+        int_val: int = element()
+
+    hints = get_type_hints(TestModel)
+    assert isinstance(hints, dict)
