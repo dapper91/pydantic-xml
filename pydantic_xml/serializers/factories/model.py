@@ -9,7 +9,7 @@ from pydantic_core import core_schema as pcs
 import pydantic_xml as pxml
 from pydantic_xml import errors, utils
 from pydantic_xml.element import XmlElementReader, XmlElementWriter, is_element_nill, make_element_nill
-from pydantic_xml.fields import ComputedXmlEntityInfo, XmlEntityInfoP
+from pydantic_xml.fields import ComputedXmlEntityInfo, XmlEntityInfoP, extract_field_xml_entity_info
 from pydantic_xml.serializers.serializer import SearchMode, Serializer
 from pydantic_xml.typedefs import EntityLocation, Location, NsMap
 from pydantic_xml.utils import QName, merge_nsmaps, select_ns
@@ -79,15 +79,10 @@ class ModelSerializer(BaseModelSerializer):
                     fields_validation_aliases[field_name] = validation_alias
 
             field_info = model_cls.model_fields[field_name]
-            if isinstance(field_info, pxml.model.XmlEntityInfo):
-                entity_info = field_info
-            else:
-                entity_info = None
-
             field_ctx = ctx.child(
                 field_name=field_name,
                 field_alias=field_alias,
-                entity_info=entity_info,
+                entity_info=extract_field_xml_entity_info(field_info),
             )
             fields_serializers[field_name] = Serializer.parse_core_schema(model_field['schema'], field_ctx)
 
@@ -234,16 +229,10 @@ class RootModelSerializer(BaseModelSerializer):
 
         assert issubclass(model_cls, pxml.BaseXmlModel), "model class must be a BaseXmlModel subclass"
 
-        entity_info: Optional[XmlEntityInfoP]
         field_info = model_cls.model_fields['root']
-        if isinstance(field_info, pxml.model.XmlEntityInfo):
-            entity_info = field_info
-        else:
-            entity_info = None
-
         field_ctx = ctx.child(
             field_name=None,
-            entity_info=entity_info,
+            entity_info=extract_field_xml_entity_info(field_info),
         )
         root_serializer = Serializer.parse_core_schema(root_schema, field_ctx)
 

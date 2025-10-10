@@ -1,13 +1,11 @@
 import dataclasses as dc
 import typing
-from typing import Any, Callable, Optional, Union
+from typing import Any, Callable, Dict, Optional, Union
 
 import pydantic as pd
 import pydantic_core as pdc
-from pydantic._internal._model_construction import ModelMetaclass  # noqa
-from pydantic.root_model import _RootModelMetaclass as RootModelMetaclass  # noqa
 
-from . import config, model, utils
+from . import compat, config, model, utils
 from .typedefs import EntityLocation
 from .utils import NsMap
 
@@ -17,6 +15,7 @@ __all__ = (
     'computed_element',
     'computed_entity',
     'element',
+    'extract_field_xml_entity_info',
     'wrapped',
     'xml_field_serializer',
     'xml_field_validator',
@@ -37,81 +36,77 @@ class XmlEntityInfoP(typing.Protocol):
     wrapped: Optional['XmlEntityInfoP']
 
 
-class XmlEntityInfo(pd.fields.FieldInfo, XmlEntityInfoP):
+@dc.dataclass(frozen=True)
+class XmlEntityInfo(XmlEntityInfoP):
     """
     Field xml meta-information.
     """
 
-    __slots__ = ('location', 'path', 'ns', 'nsmap', 'nillable', 'wrapped')
+    location: Optional[EntityLocation]
+    path: Optional[str] = None
+    ns: Optional[str] = None
+    nsmap: Optional[NsMap] = None
+    nillable: Optional[bool] = None
+    wrapped: Optional[XmlEntityInfoP] = None
+
+    def __post_init__(self) -> None:
+        if config.REGISTER_NS_PREFIXES and self.nsmap:
+            utils.register_nsmap(self.nsmap)
 
     @staticmethod
-    def merge_field_infos(*field_infos: pd.fields.FieldInfo, **overrides: Any) -> pd.fields.FieldInfo:
-        location, path, ns, nsmap, nillable, wrapped = None, None, None, None, None, None
+    def merge(*entity_infos: XmlEntityInfoP) -> 'XmlEntityInfo':
+        location: Optional[EntityLocation] = None
+        path: Optional[str] = None
+        ns: Optional[str] = None
+        nsmap: Optional[NsMap] = None
+        nillable: Optional[bool] = None
+        wrapped: Optional[XmlEntityInfoP] = None
 
-        for field_info in field_infos:
-            if isinstance(field_info, XmlEntityInfo):
-                location = field_info.location if field_info.location is not None else location
-                path = field_info.path if field_info.path is not None else path
-                ns = field_info.ns if field_info.ns is not None else ns
-                nsmap = field_info.nsmap if field_info.nsmap is not None else nsmap
-                nillable = field_info.nillable if field_info.nillable is not None else nillable
-                wrapped = field_info.wrapped if field_info.wrapped is not None else wrapped
+        for entity_info in entity_infos:
+            if entity_info.location is not None:
+                location = entity_info.location
+            if entity_info.wrapped is not None:
+                wrapped = entity_info.wrapped
+            if entity_info.path is not None:
+                path = entity_info.path
+            if entity_info.ns is not None:
+                ns = entity_info.ns
+            if entity_info.nsmap is not None:
+                nsmap = utils.merge_nsmaps(entity_info.nsmap, nsmap)
+            if entity_info.nillable is not None:
+                nillable = entity_info.nillable
 
-        field_info = pd.fields.FieldInfo.merge_field_infos(*field_infos, **overrides)
-
-        xml_entity_info = XmlEntityInfo(
-            location,
+        return XmlEntityInfo(
+            location=location,
             path=path,
             ns=ns,
             nsmap=nsmap,
             nillable=nillable,
-            wrapped=wrapped if isinstance(wrapped, XmlEntityInfo) else None,
-            **field_info._attributes_set,
+            wrapped=wrapped,
         )
-        xml_entity_info.metadata = field_info.metadata
 
-        return xml_entity_info
 
-    def __init__(
-            self,
-            location: Optional[EntityLocation],
-            /,
-            path: Optional[str] = None,
-            ns: Optional[str] = None,
-            nsmap: Optional[NsMap] = None,
-            nillable: Optional[bool] = None,
-            wrapped: Optional[pd.fields.FieldInfo] = None,
-            **kwargs: Any,
-    ):
-        wrapped_metadata: list[Any] = []
-        if wrapped is not None:
-            # copy arguments from the wrapped entity to let pydantic know how to process the field
-            for entity_field_name in utils.get_slots(wrapped):
-                if entity_field_name in pd.fields._FIELD_ARG_NAMES:
-                    kwargs[entity_field_name] = getattr(wrapped, entity_field_name)
-            wrapped_metadata = wrapped.metadata
+def extract_field_xml_entity_info(field_info: pd.fields.FieldInfo) -> Optional[XmlEntityInfoP]:
+    entity_info_list = list(filter(lambda meta: isinstance(meta, XmlEntityInfo), field_info.metadata))
+    if entity_info_list:
+        entity_info = XmlEntityInfo.merge(*entity_info_list)
+    else:
+        entity_info = None
 
-        if kwargs.get('serialization_alias') is None:
-            kwargs['serialization_alias'] = kwargs.get('alias')
-
-        if kwargs.get('validation_alias') is None:
-            kwargs['validation_alias'] = kwargs.get('alias')
-
-        super().__init__(**kwargs)
-        self.metadata.extend(wrapped_metadata)
-
-        self.location = location
-        self.path = path
-        self.ns = ns
-        self.nsmap = nsmap
-        self.nillable = nillable
-        self.wrapped: Optional[XmlEntityInfoP] = wrapped if isinstance(wrapped, XmlEntityInfo) else None
-
-        if config.REGISTER_NS_PREFIXES and nsmap:
-            utils.register_nsmap(nsmap)
+    return entity_info
 
 
 _Unset: Any = pdc.PydanticUndefined
+
+
+def prepare_field_kwargs(kwargs: Dict[str, Any]) -> Dict[str, Any]:
+    if kwargs.get('serialization_alias') in (None, pdc.PydanticUndefined):
+        kwargs['serialization_alias'] = kwargs.get('alias')
+
+    if kwargs.get('validation_alias') in (None, pdc.PydanticUndefined):
+        kwargs['validation_alias'] = kwargs.get('alias')
+
+    return kwargs
 
 
 def attr(
@@ -132,11 +127,14 @@ def attr(
     :param kwargs: pydantic field arguments. See :py:class:`pydantic.Field`
     """
 
-    return XmlEntityInfo(
-        EntityLocation.ATTRIBUTE,
-        path=name, ns=ns, default=default, default_factory=default_factory,
-        **kwargs,
+    kwargs = prepare_field_kwargs(kwargs)
+
+    field_info = pd.fields.FieldInfo(default=default, default_factory=default_factory, **kwargs)
+    field_info.metadata.append(
+        XmlEntityInfo(EntityLocation.ATTRIBUTE, path=name, ns=ns),
     )
+
+    return field_info
 
 
 def element(
@@ -161,11 +159,14 @@ def element(
     :param kwargs: pydantic field arguments. See :py:class:`pydantic.Field`
     """
 
-    return XmlEntityInfo(
-        EntityLocation.ELEMENT,
-        path=tag, ns=ns, nsmap=nsmap, nillable=nillable, default=default, default_factory=default_factory,
-        **kwargs,
+    kwargs = prepare_field_kwargs(kwargs)
+
+    field_info = pd.fields.FieldInfo(default=default, default_factory=default_factory, **kwargs)
+    field_info.metadata.append(
+        XmlEntityInfo(EntityLocation.ELEMENT, path=tag, ns=ns, nsmap=nsmap, nillable=nillable),
     )
+
+    return field_info
 
 
 def wrapped(
@@ -190,11 +191,21 @@ def wrapped(
     :param kwargs: pydantic field arguments. See :py:class:`pydantic.Field`
     """
 
-    return XmlEntityInfo(
-        EntityLocation.WRAPPED,
-        path=path, ns=ns, nsmap=nsmap, wrapped=entity, default=default, default_factory=default_factory,
-        **kwargs,
+    if entity is None:
+        wrapped_entity_info = None
+        field_info = pd.fields.FieldInfo(default=default, default_factory=default_factory, **kwargs)
+    else:
+        wrapped_entity_info = extract_field_xml_entity_info(entity)
+        field_info = compat.merge_field_infos(
+            pd.fields.FieldInfo(default=default, default_factory=default_factory, **kwargs),
+            entity,
+        )
+
+    field_info.metadata.append(
+        XmlEntityInfo(EntityLocation.WRAPPED, path=path, ns=ns, nsmap=nsmap, wrapped=wrapped_entity_info),
     )
+
+    return field_info
 
 
 @dc.dataclass
@@ -293,7 +304,7 @@ def computed_element(
 
 
 def xml_field_validator(
-    field: str, /, *fields: str
+    field: str, /, *fields: str,
 ) -> 'Callable[[model.ValidatorFuncT[model.ModelT]], model.ValidatorFuncT[model.ModelT]]':
     """
     Marks the method as a field xml validator.
@@ -312,7 +323,7 @@ def xml_field_validator(
 
 
 def xml_field_serializer(
-    field: str, /, *fields: str
+    field: str, /, *fields: str,
 ) -> 'Callable[[model.SerializerFuncT[model.ModelT]], model.SerializerFuncT[model.ModelT]]':
     """
     Marks the method as a field xml serializer.
