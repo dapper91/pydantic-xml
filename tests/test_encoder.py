@@ -282,9 +282,9 @@ def test_model_validator():
             }
 
         @model_validator(mode='after')
-        def validate_model_after(cls, obj: 'TestModel') -> 'TestModel':
-            obj.field1 = obj.field1.replace(tzinfo=dt.timezone.utc)
-            return obj
+        def validate_model_after(self) -> 'TestModel':
+            self.field1 = self.field1.replace(tzinfo=dt.timezone.utc)
+            return self
 
         @model_validator(mode='wrap')
         def validate_model_wrap(cls, obj: 'TestModel', handler: Callable) -> 'TestModel':
