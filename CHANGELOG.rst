@@ -2,11 +2,16 @@ Changelog
 =========
 
 
+2.18.0 (2025-10-11)
+-------------------
+
+- fix: pydantic 2.12 compatibility problems fixed.
+
+
 2.17.3 (2025-07-13)
 -------------------
 
 - fix: xml_field_validator/serializer type annotations fixed. See https://github.com/dapper91/pydantic-xml/pull/277
-
 
 
 2.17.2 (2025-06-21)

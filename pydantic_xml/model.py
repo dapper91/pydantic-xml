@@ -5,10 +5,9 @@ import pydantic as pd
 import pydantic_core as pdc
 import typing_extensions as te
 from pydantic import BaseModel, RootModel
-from pydantic._internal._model_construction import ModelMetaclass  # noqa
-from pydantic.root_model import _RootModelMetaclass as RootModelMetaclass  # noqa
 
 from . import config, errors, utils
+from .compat import ModelMetaclass, RootModelMetaclass
 from .element import SearchMode, XmlElementReader, XmlElementWriter
 from .element.native import ElementT, XmlElement, etree
 from .fields import XmlEntityInfo, XmlFieldSerializer, XmlFieldValidator, attr, element, wrapped
