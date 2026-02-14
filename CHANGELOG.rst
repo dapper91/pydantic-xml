@@ -1,6 +1,12 @@
 Changelog
 =========
 
+2.19.0 (2026-02-14)
+-------------------
+
+- feat: python 3.14 support added.
+- fix: wrapped does not inherit ns, nsmap from inner entity.
+
 
 2.18.0 (2025-10-11)
 -------------------
