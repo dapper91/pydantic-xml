@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pydantic-xml"
-version = "2.18.0"
+version = "2.19.0"
 description = "pydantic xml extension"
 authors = ["Dmitry Pershin <dapper1291@gmail.com>"]
 license = "Unlicense"
@@ -29,6 +29,7 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Typing :: Typed",
 ]
 
@@ -54,7 +55,7 @@ mypy = "^1.4.1"
 pre-commit = "~3.2.0"
 pytest = "^7.4.0"
 pytest-cov = "^4.1.0"
-xmldiff = "2.5"
+xmldiff = "^2.7.0"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

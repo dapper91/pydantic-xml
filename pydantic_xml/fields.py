@@ -1,3 +1,4 @@
+import copy
 import dataclasses as dc
 import typing
 from typing import Any, Callable, Dict, Optional, Union
@@ -196,9 +197,13 @@ def wrapped(
         field_info = pd.fields.FieldInfo(default=default, default_factory=default_factory, **kwargs)
     else:
         wrapped_entity_info = extract_field_xml_entity_info(entity)
+        field_info = copy.deepcopy(entity)
+        # wrapped must not inherit ns, nsmap from inner entity
+        field_info.metadata = [item for item in field_info.metadata if not isinstance(item, XmlEntityInfo)]
+
         field_info = compat.merge_field_infos(
             pd.fields.FieldInfo(default=default, default_factory=default_factory, **kwargs),
-            entity,
+            field_info,
         )
 
     field_info.metadata.append(
