@@ -345,7 +345,7 @@ def test_model_inheritance_params_redefinition():
         pass
 
     xml1 = '''
-    <tst:model xmlns:tst="http://test1.org" attr1="1">
+    <tst:model xmlns:bs="http://base.org" xmlns:tst="http://test1.org" attr1="1">
         <tst:element1>value</tst:element1>
     </tst:model>
     '''
