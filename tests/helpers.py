@@ -14,6 +14,7 @@ def assert_xml_equal(
         right: Union[str, bytes],
         *,
         ignore_comments: bool = True,
+        ignore_namespace: bool = True,
         pretty: bool = True,
         **kwargs,
 ):
@@ -21,6 +22,9 @@ def assert_xml_equal(
 
     if ignore_comments:
         diffs = list(filter(lambda diff: not isinstance(diff, xmldiff.actions.InsertComment), diffs))
+    if ignore_namespace:
+        ns_actions = (xmldiff.actions.InsertNamespace, xmldiff.actions.DeleteNamespace)
+        diffs = list(filter(lambda diff: not isinstance(diff, ns_actions), diffs))
 
     if diffs:
         if pretty:
