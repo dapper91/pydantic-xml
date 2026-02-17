@@ -9,9 +9,11 @@ from pydantic_core import core_schema as pcs
 import pydantic_xml as pxml
 from pydantic_xml import errors, utils
 from pydantic_xml.element import XmlElementReader, XmlElementWriter, is_element_nill, make_element_nill
+from pydantic_xml.element.native import ElementT
 from pydantic_xml.fields import ComputedXmlEntityInfo, XmlEntityInfoP, extract_field_xml_entity_info
 from pydantic_xml.serializers.factories.primitive import AttributeSerializer
 from pydantic_xml.serializers.serializer import SearchMode, Serializer
+from pydantic_xml.serializers.factories.raw import ElementSerializer as RawElementSerializer
 from pydantic_xml.typedefs import EntityLocation, Location, NsMap
 from pydantic_xml.utils import QName, merge_nsmaps, select_ns
 
@@ -52,17 +54,26 @@ class BaseModelSerializer(Serializer, abc.ABC):
         if line_errors:
             raise pd.ValidationError.from_exception_data(title=error_title, line_errors=line_errors)
 
-    @classmethod
-    def _keep_extra(cls, element: XmlElementReader) -> Dict:
+    def _keep_extra(self, element: XmlElementReader) -> Dict:
+        """Get a struct of extra (=unmapped) data from the XML.
+
+        Attributes are put in key-value pairs directly.
+        Child elements are put in as native Elements.
+        """
         result = {}
-        for path, attr, value in element.get_unbound():
-            if path:
-                first_tag = path[0].tag
-                # result_section = result.setdefault(first_tag, [])
-                # result_section.append(path)
-                result[first_tag] = []
-            elif attr:
-                result[attr] = value
+
+        # Extract un-mapped attributes:
+        if attrs := element._state.attrib:
+            for name, value in attrs.items():
+                if name not in self._field_serializers:
+                    result[name] = value
+
+        # `get_unbound` returns paths of leaf-level elements of type `XmlElement`, while
+        # we want to produce the same result of a raw-element, which is `ElemenT`
+        # So manually find un-mapped elements and get the native element back:
+        for sub_element in element._state.elements:
+            if (tag := sub_element.tag) not in self._field_serializers:
+                result[tag] = sub_element.to_native()
 
         return result
 
@@ -185,7 +196,15 @@ class ModelSerializer(BaseModelSerializer):
         for field_name in all_fields:
             field_serializer = self._field_serializers.get(field_name, None)
             if field_serializer is None:  # Probably from an `extra` field
-                field_serializer = AttributeSerializer(field_name, ns=None, nsmap=None, computed=False)
+                if encoded[field_name] is None:
+                    field_serializer = RawElementSerializer(field_name, ns=None,
+                                                            nsmap=None,
+                                                            search_mode=SearchMode.ORDERED,
+                                                            computed=False)
+                else:
+                    field_serializer = AttributeSerializer(field_name, ns=None,
+                                                           nsmap=None, computed=False)
+
 
             if field_name in self._fields_serialization_exclude:
                 continue
