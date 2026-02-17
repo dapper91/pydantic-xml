@@ -304,12 +304,13 @@ class BaseXmlModel(BaseModel, __xml_abstract__=True, metaclass=XmlModelMeta):
         assert self.__xml_serializer__ is not None, f"model {type(self).__name__} is partially initialized"
 
         root = XmlElement(tag=self.__xml_serializer__.element_name, nsmap=self.__xml_serializer__.nsmap)
+        encoded = pdc.to_jsonable_python(
+            self,
+            by_alias=False,
+            fallback=lambda obj: obj if not isinstance(obj, ElementT) else None,  # for raw fields support
+        )
         self.__xml_serializer__.serialize(
-            root, self, pdc.to_jsonable_python(
-                self,
-                by_alias=False,
-                fallback=lambda obj: obj if not isinstance(obj, ElementT) else None,  # for raw fields support
-            ),
+            root, self, encoded,
             skip_empty=skip_empty,
             exclude_none=exclude_none,
             exclude_unset=exclude_unset,
