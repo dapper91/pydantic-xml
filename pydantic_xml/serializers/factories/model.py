@@ -10,6 +10,7 @@ import pydantic_xml as pxml
 from pydantic_xml import errors, utils
 from pydantic_xml.element import XmlElementReader, XmlElementWriter, is_element_nill, make_element_nill
 from pydantic_xml.fields import ComputedXmlEntityInfo, XmlEntityInfoP, extract_field_xml_entity_info
+from pydantic_xml.serializers.factories.primitive import AttributeSerializer
 from pydantic_xml.serializers.serializer import SearchMode, Serializer
 from pydantic_xml.typedefs import EntityLocation, Location, NsMap
 from pydantic_xml.utils import QName, merge_nsmaps, select_ns
@@ -50,6 +51,20 @@ class BaseModelSerializer(Serializer, abc.ABC):
 
         if line_errors:
             raise pd.ValidationError.from_exception_data(title=error_title, line_errors=line_errors)
+
+    @classmethod
+    def _keep_extra(cls, element: XmlElementReader) -> Dict:
+        result = {}
+        for path, attr, value in element.get_unbound():
+            if path:
+                first_tag = path[0].tag
+                # result_section = result.setdefault(first_tag, [])
+                # result_section.append(path)
+                result[first_tag] = []
+            elif attr:
+                result[attr] = value
+
+        return result
 
 
 class ModelSerializer(BaseModelSerializer):
@@ -163,7 +178,15 @@ class ModelSerializer(BaseModelSerializer):
         if self._model.__xml_skip_empty__ is not None:
             skip_empty = self._model.__xml_skip_empty__
 
-        for field_name, field_serializer in self._field_serializers.items():
+        all_fields = list(self._field_serializers.keys())
+        all_fields += [k for k in encoded.keys() if k not in all_fields]
+        # ^ avoid sets to preserve order of fields
+
+        for field_name in all_fields:
+            field_serializer = self._field_serializers.get(field_name, None)
+            if field_serializer is None:  # Probably from an `extra` field
+                field_serializer = AttributeSerializer(field_name, ns=None, nsmap=None, computed=False)
+
             if field_name in self._fields_serialization_exclude:
                 continue
             if exclude_unset and field_name not in value.__pydantic_fields_set__:
@@ -212,8 +235,13 @@ class ModelSerializer(BaseModelSerializer):
         if field_errors:
             raise utils.into_validation_error(title=self._model.__name__, errors_map=field_errors)
 
-        if self._model.model_config.get('extra', 'ignore') == 'forbid':
+        config_extra = self._model.model_config.get('extra', 'ignore')
+        if config_extra == 'forbid':
             self._check_extra(self._model.__name__, element)
+        elif config_extra == 'allow':
+            result.update(
+                self._keep_extra(element)
+            )
 
         try:
             return self._model.model_validate(result, strict=False, context=context)

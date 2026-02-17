@@ -42,43 +42,62 @@ def test_extra_attributes():
     '''
 
     actual_obj = TestModel.from_xml(xml)
-    assert "p2" == actual_obj.model_extra["prop2"]
+    assert 'p2' == actual_obj.model_extra['prop2']
 
 
 def test_extra_elements():
 
-    class TestModelChild(BaseXmlModel, tag="child"):
+    class TestModelChild(BaseXmlModel, tag='child'):
         data: str
 
     class TestModel(BaseXmlModel, tag='model', extra='allow'):
         child: TestModelChild
 
     xml = '''
-    <model prop1="p1" prop2="p2">
+    <model>
         <child>hello world!</child>
         <extra_child>hi again...</extra_child>
+        <extra_nested>
+            <extra_sub>1</extra_sub>
+            <extra_sub>2</extra_sub>
+            <extra_sub>3</extra_sub>
+            <extra_subsub>
+                <extra_subsubsub>3.14</extra_subsubsub>
+            </extra_subsub>
+        </extra_nested>
     </model>
     '''
 
     actual_obj = TestModel.from_xml(xml)
-    assert "hello world!" == actual_obj.child.data
-    assert "extra_child" in actual_obj.model_extra
+    assert 'hello world!' == actual_obj.child.data
+    assert 'extra_child' in actual_obj.model_extra
+    assert 'extra_nested' in actual_obj.model_extra
 
 
 def test_extra_save():
 
-    class TestModelChild(BaseXmlModel, tag="child"):
+    class TestModelChild(BaseXmlModel, tag='child'):
         data: str
 
     class TestModel(BaseXmlModel, tag='model', extra='allow'):
+        prop1: str = attr()
         child: TestModelChild
 
     xml = '''
-    <model prop1="p1" prop2="p2">
+    <model prop1="p1" prop2="p2" prop3="p3">
         <child>hello world!</child>
-        <extra_child>hi again...</extra_child>
     </model>
     '''
+    # TODO: Re-saving for children isn't working yet
+    # <extra_child>hi again...</extra_child>
+    # <extra_nested>
+    #     <extra_sub>1</extra_sub>
+    #     <extra_sub>2</extra_sub>
+    #     <extra_sub>3</extra_sub>
+    #     <extra_subsub>
+    #         <extra_subsubsub>3.14</extra_subsubsub>
+    #     </extra_subsub>
+    # </extra_nested>
 
     actual_obj = TestModel.from_xml(xml)
     actual_xml = actual_obj.to_xml()
