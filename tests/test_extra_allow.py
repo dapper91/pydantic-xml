@@ -126,3 +126,23 @@ def test_extra_save():
     actual_obj = TestModel.from_xml(xml)
     actual_xml = actual_obj.to_xml()
     assert_xml_equal(actual_xml, xml)
+
+
+def test_extra_save_order():
+
+    class TestModelChild(BaseXmlModel, tag='child'):
+        data: str
+
+    class TestModel(BaseXmlModel, tag='model', extra='allow', search_mode='ordered'):
+        child: TestModelChild
+
+    xml = '''
+    <model>
+        <other_child>Hi there</other_child>
+        <child>Hello world!</child>
+    </model>
+    '''
+
+    actual_obj = TestModel.from_xml(xml)
+    actual_xml = actual_obj.to_xml()
+    assert_xml_equal(actual_xml, xml)
