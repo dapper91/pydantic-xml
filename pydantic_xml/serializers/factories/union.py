@@ -16,7 +16,8 @@ class PrimitiveTypeSerializer(Serializer):
     def from_core_schema(cls, schema: pcs.UnionSchema, ctx: Serializer.Context) -> 'PrimitiveTypeSerializer':
         computed = ctx.field_computed
         inner_serializers: List[Serializer] = []
-        for choice_schema in schema['choices']:
+        choice_schemas = _flatten_choice_schemas(schema['choices'])
+        for choice_schema in choice_schemas:
             if isinstance(choice_schema, tuple):
                 choice_schema, label = choice_schema
 
@@ -68,7 +69,8 @@ class ModelSerializer(Serializer):
         model_name = ctx.model_name
         computed = ctx.field_computed
         inner_serializers: List[ModelProxySerializer] = []
-        for choice_schema in schema['choices']:
+        choice_schemas = _flatten_choice_schemas(schema['choices'])
+        for choice_schema in choice_schemas:
             if isinstance(choice_schema, tuple):
                 choice_schema, label = choice_schema
 
@@ -143,7 +145,8 @@ class ModelSerializer(Serializer):
 
 def from_core_schema(schema: pcs.UnionSchema, ctx: Serializer.Context) -> Serializer:
     choice_families: Set[SchemaTypeFamily] = set()
-    for choice_schema in schema['choices']:
+    choice_schemas = _flatten_choice_schemas(schema['choices'])
+    for choice_schema in choice_schemas:
         if isinstance(choice_schema, tuple):
             choice_schema, label = choice_schema
 
@@ -168,3 +171,25 @@ def from_core_schema(schema: pcs.UnionSchema, ctx: Serializer.Context) -> Serial
         return PrimitiveTypeSerializer.from_core_schema(schema, ctx)
     else:
         raise AssertionError("unreachable")
+
+
+def _flatten_choice_schemas(choice_schemas):
+    """
+    Flatten nested union choice_schemas into their components, leave others as they are
+    """
+    schemas = choice_schemas[:]
+    flattened_schemas = []
+    seen_refs = set()
+    while schemas:
+        choice_schema = original_schema = schemas.pop()
+        if isinstance(choice_schema, tuple):
+            choice_schema, label = choice_schema
+        if 'ref' in choice_schema:
+            if choice_schema['ref'] in seen_refs:
+                continue
+            seen_refs.add(choice_schema['ref'])
+        if choice_schema['type'] == 'union':
+            schemas.extend(choice_schema['choices'])
+        else:
+            flattened_schemas.append(original_schema)
+    return flattened_schemas
