@@ -1,3 +1,4 @@
+import re
 import sys
 from typing import Dict, List, Optional, Tuple, Union
 
@@ -412,3 +413,31 @@ def test_get_type_hints():
 
     hints = get_type_hints(TestModel)
     assert isinstance(hints, dict)
+
+
+@pytest.mark.parametrize('model_hide_input, input_in_error_hidden', [(None, False), (False, False), (True, True)])
+def test_error_input_hiding(model_hide_input: bool, input_in_error_hidden: bool):
+    class TestSubModel(BaseXmlModel):
+        val: int
+
+    class TestModel(BaseXmlModel, tag="model"):
+        if model_hide_input is not None:
+            model_config = pd.ConfigDict(hide_input_in_errors=model_hide_input)
+
+        submodel: TestSubModel
+
+    xml = '''
+        <model>
+            <submodel>a</submodel>
+        </model>
+    '''
+
+    with pytest.raises(pd.ValidationError) as e:
+        TestModel.from_xml(xml)
+
+    error_str = str(e.value)
+    error_value_input = re.search("input_value='a'", error_str)
+    if input_in_error_hidden:
+        assert not error_value_input, error_str
+    else:
+        assert error_value_input, error_str

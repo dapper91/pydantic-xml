@@ -20,10 +20,18 @@ class ElementSerializer(Serializer):
             param_schema = argument_schema['schema']
             inner_serializers.append(Serializer.parse_core_schema(param_schema, ctx))
 
-        return cls(model_name, computed, tuple(inner_serializers))
+        return cls(model_name, computed, tuple(inner_serializers), ctx.hide_input_in_errors)
 
-    def __init__(self, model_name: str, computed: bool, inner_serializers: Tuple[Serializer, ...]):
-        self._inner_serializer = heterogeneous.ElementSerializer(model_name, computed, inner_serializers)
+    def __init__(
+            self,
+            model_name: str,
+            computed: bool,
+            inner_serializers: Tuple[Serializer, ...],
+            hide_input_in_errors: bool,
+    ):
+        self._inner_serializer = heterogeneous.ElementSerializer(
+            model_name, computed, inner_serializers, hide_input_in_errors,
+        )
 
     def serialize(
             self,

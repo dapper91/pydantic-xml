@@ -108,6 +108,7 @@ def select_ns(*nss: Optional[str]) -> Optional[str]:
 def into_validation_error(
         title: str,
         errors_map: Dict[Union[None, str, int], pd.ValidationError],
+        hide_input: bool,
 ) -> pd.ValidationError:
     line_errors: List[pdc.InitErrorDetails] = []
     for location in list(errors_map):
@@ -125,10 +126,15 @@ def into_validation_error(
         title=title,
         input_type='json',
         line_errors=line_errors,
+        hide_input=hide_input,
     )
 
 
-def set_validation_error_sourceline(err: pd.ValidationError, sourcemap: Dict[Location, int]) -> pd.ValidationError:
+def set_validation_error_sourceline(
+        err: pd.ValidationError,
+        sourcemap: Dict[Location, int],
+        hide_input: bool,
+) -> pd.ValidationError:
     line_errors: List[pdc.InitErrorDetails] = []
     for error in err.errors():
         loc, sourceline = error['loc'], -1
@@ -150,4 +156,5 @@ def set_validation_error_sourceline(err: pd.ValidationError, sourcemap: Dict[Loc
     return pd.ValidationError.from_exception_data(
         err.title,
         line_errors=line_errors,
+        hide_input=hide_input,
     )

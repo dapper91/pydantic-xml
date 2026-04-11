@@ -29,7 +29,7 @@ class BaseModelSerializer(Serializer, abc.ABC):
     def nsmap(self) -> Optional[NsMap]: ...
 
     @classmethod
-    def _check_extra(cls, error_title: str, element: XmlElementReader) -> None:
+    def _check_extra(cls, error_title: str, element: XmlElementReader, hide_input_in_errors: bool) -> None:
         line_errors: List[pdc.InitErrorDetails] = []
 
         for path, attr, value in element.get_unbound():
@@ -49,7 +49,11 @@ class BaseModelSerializer(Serializer, abc.ABC):
             )
 
         if line_errors:
-            raise pd.ValidationError.from_exception_data(title=error_title, line_errors=line_errors)
+            raise pd.ValidationError.from_exception_data(
+                title=error_title,
+                line_errors=line_errors,
+                hide_input=hide_input_in_errors,
+            )
 
 
 class ModelSerializer(BaseModelSerializer):
@@ -64,6 +68,8 @@ class ModelSerializer(BaseModelSerializer):
         assert issubclass(model_cls, pxml.BaseXmlModel), "model class must be a BaseXmlModel subclass"
         assert fields_schema['type'] == 'model-fields', f"unexpected schema type: {fields_schema['type']}"
         fields_schema = typing.cast(pcs.ModelFieldsSchema, fields_schema)
+
+        hide_input_in_errors = model_cls.model_config.get('hide_input_in_errors', ctx.hide_input_in_errors)
 
         entity_info: Optional[XmlEntityInfoP]
         fields_serialization_exclude: Set[str] = set()
@@ -83,6 +89,7 @@ class ModelSerializer(BaseModelSerializer):
                 field_name=field_name,
                 field_alias=field_alias,
                 entity_info=extract_field_xml_entity_info(field_info),
+                hide_input_in_errors=hide_input_in_errors,
             )
             fields_serializers[field_name] = Serializer.parse_core_schema(model_field['schema'], field_ctx)
 
@@ -101,6 +108,7 @@ class ModelSerializer(BaseModelSerializer):
                 field_alias=field_alias,
                 field_computed=True,
                 entity_info=entity_info,
+                hide_input_in_errors=hide_input_in_errors,
             )
             fields_serializers[field_name] = Serializer.parse_core_schema(model_field['return_schema'], field_ctx)
 
@@ -111,6 +119,7 @@ class ModelSerializer(BaseModelSerializer):
         return cls(
             model_cls, name, ns, nsmap,
             fields_serializers, fields_validation_aliases, fields_serialization_exclude,
+            hide_input_in_errors,
         )
 
     def __init__(
@@ -122,6 +131,7 @@ class ModelSerializer(BaseModelSerializer):
             field_serializers: Dict[str, Serializer],
             fields_validation_aliases: Dict[str, str],
             fields_serialization_exclude: Set[str],
+            hide_input_in_errors: bool,
     ):
 
         self._model = model
@@ -130,6 +140,7 @@ class ModelSerializer(BaseModelSerializer):
         self._nsmap = nsmap
         self._fields_validation_aliases = fields_validation_aliases
         self._fields_serialization_exclude = fields_serialization_exclude
+        self._hide_input_in_errors = hide_input_in_errors
 
     @property
     def model(self) -> Type['pxml.BaseXmlModel']:
@@ -210,15 +221,19 @@ class ModelSerializer(BaseModelSerializer):
                 field_errors[field_name] = err
 
         if field_errors:
-            raise utils.into_validation_error(title=self._model.__name__, errors_map=field_errors)
+            raise utils.into_validation_error(
+                title=self._model.__name__,
+                errors_map=field_errors,
+                hide_input=self._hide_input_in_errors,
+            )
 
         if self._model.model_config.get('extra', 'ignore') == 'forbid':
-            self._check_extra(self._model.__name__, element)
+            self._check_extra(self._model.__name__, element, self._hide_input_in_errors)
 
         try:
             return self._model.model_validate(result, strict=False, context=context)
         except pd.ValidationError as err:
-            raise utils.set_validation_error_sourceline(err, sourcemap)
+            raise utils.set_validation_error_sourceline(err, sourcemap, hide_input=self._hide_input_in_errors)
 
 
 class RootModelSerializer(BaseModelSerializer):
@@ -229,10 +244,13 @@ class RootModelSerializer(BaseModelSerializer):
 
         assert issubclass(model_cls, pxml.BaseXmlModel), "model class must be a BaseXmlModel subclass"
 
+        hide_input_in_errors = model_cls.model_config.get('hide_input_in_errors', ctx.hide_input_in_errors)
+
         field_info = model_cls.model_fields['root']
         field_ctx = ctx.child(
             field_name=None,
             entity_info=extract_field_xml_entity_info(field_info),
+            hide_input_in_errors=hide_input_in_errors,
         )
         root_serializer = Serializer.parse_core_schema(root_schema, field_ctx)
 
@@ -240,7 +258,7 @@ class RootModelSerializer(BaseModelSerializer):
         ns = model_cls.__xml_ns__
         nsmap = model_cls.__xml_nsmap__
 
-        return cls(model_cls, name, ns, nsmap, root_serializer)
+        return cls(model_cls, name, ns, nsmap, root_serializer, hide_input_in_errors)
 
     def __init__(
             self,
@@ -249,12 +267,14 @@ class RootModelSerializer(BaseModelSerializer):
             ns: Optional[str],
             nsmap: Optional[NsMap],
             root_serializer: Serializer,
+            hide_input_in_errors: bool,
     ):
 
         self._model = model
         self._root_serializer = root_serializer
         self._element_name = QName.from_alias(tag=name, ns=ns, nsmap=nsmap).uri
         self._nsmap = nsmap
+        self._hide_input_in_errors = hide_input_in_errors
 
     @property
     def model(self) -> Type['pxml.BaseXmlModel']:
@@ -312,15 +332,19 @@ class RootModelSerializer(BaseModelSerializer):
             if result is None:
                 result = pdc.PydanticUndefined
         except pd.ValidationError as err:
-            raise utils.into_validation_error(title=self._model.__name__, errors_map={None: err})
+            raise utils.into_validation_error(
+                title=self._model.__name__,
+                errors_map={None: err},
+                hide_input=self._hide_input_in_errors,
+            )
 
         if self._model.model_config.get('extra', 'ignore') == 'forbid':
-            self._check_extra(self._model.__name__, element)
+            self._check_extra(self._model.__name__, element, self._hide_input_in_errors)
 
         try:
             return self._model.model_validate(result, strict=False, context=context)
         except pd.ValidationError as err:
-            raise utils.set_validation_error_sourceline(err, sourcemap)
+            raise utils.set_validation_error_sourceline(err, sourcemap, hide_input=self._hide_input_in_errors)
 
 
 class ModelProxySerializer(BaseModelSerializer):
