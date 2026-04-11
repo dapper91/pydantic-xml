@@ -110,6 +110,8 @@ class Serializer(abc.ABC):
         has_default: bool = False
         definitions: Dict[str, pcs.CoreSchema] = dc.field(default_factory=dict)
 
+        hide_input_in_errors: bool = False
+
         parent_ctx: Optional['Serializer.Context'] = None
 
         @property

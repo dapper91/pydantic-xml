@@ -18,12 +18,19 @@ class ElementSerializer(Serializer):
         for item_schema in schema['items_schema']:
             inner_serializers.append(Serializer.parse_core_schema(item_schema, ctx))
 
-        return cls(model_name, computed, tuple(inner_serializers))
+        return cls(model_name, computed, tuple(inner_serializers), ctx.hide_input_in_errors)
 
-    def __init__(self, model_name: str, computed: bool, inner_serializers: Tuple[Serializer, ...]):
+    def __init__(
+            self,
+            model_name: str,
+            computed: bool,
+            inner_serializers: Tuple[Serializer, ...],
+            hide_input_in_errors: bool,
+    ):
         self._model_name = model_name
         self._computed = computed
         self._inner_serializers = inner_serializers
+        self._hide_input_in_errors = hide_input_in_errors
 
     def serialize(
             self,
@@ -74,7 +81,11 @@ class ElementSerializer(Serializer):
                 item_errors[idx] = err
 
         if item_errors:
-            raise utils.into_validation_error(title=self._model_name, errors_map=item_errors)
+            raise utils.into_validation_error(
+                title=self._model_name,
+                errors_map=item_errors,
+                hide_input=self._hide_input_in_errors,
+            )
 
         if all((value is None for value in result)):
             return None
