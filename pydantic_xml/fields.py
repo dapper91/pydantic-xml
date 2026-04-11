@@ -1,7 +1,7 @@
 import copy
 import dataclasses as dc
 import typing
-from typing import Any, Callable, Dict, Optional, Union
+from typing import Any, Callable, Dict, Optional, Union, overload
 
 import pydantic as pd
 import pydantic_core as pdc
@@ -266,6 +266,21 @@ def computed_entity(
         return decorator(prop)
 
 
+@overload
+def computed_attr(
+        *,
+        name: Optional[str] = None,
+        ns: Optional[str] = None,
+        **kwargs: Any,
+) -> Callable[[PropertyT], PropertyT]:
+    ...
+
+
+@overload
+def computed_attr(prop: PropertyT) -> PropertyT:
+    ...
+
+
 def computed_attr(
         prop: Optional[PropertyT] = None,
         *,
@@ -283,6 +298,23 @@ def computed_attr(
     """
 
     return computed_entity(EntityLocation.ATTRIBUTE, prop, path=name, ns=ns, **kwargs)
+
+
+@overload
+def computed_element(
+        *,
+        tag: Optional[str] = None,
+        ns: Optional[str] = None,
+        nsmap: Optional[NsMap] = None,
+        nillable: Optional[bool] = None,
+        **kwargs: Any,
+) -> Callable[[PropertyT], PropertyT]:
+    ...
+
+
+@overload
+def computed_element(prop: PropertyT) -> PropertyT:
+    ...
 
 
 def computed_element(
