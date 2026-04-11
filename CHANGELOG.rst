@@ -1,6 +1,13 @@
 Changelog
 =========
 
+2.20.0 (2026-04-12)
+-------------------
+
+- feat: hide_input_in_errors model config flag support added.
+- fix: computed_attr and computed_element decorators typing fixed.
+
+
 2.19.0 (2026-02-14)
 -------------------
 
