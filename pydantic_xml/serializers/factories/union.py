@@ -1,3 +1,4 @@
+from copy import deepcopy
 from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
 import pydantic as pd
@@ -16,8 +17,7 @@ class PrimitiveTypeSerializer(Serializer):
     def from_core_schema(cls, schema: pcs.UnionSchema, ctx: Serializer.Context) -> 'PrimitiveTypeSerializer':
         computed = ctx.field_computed
         inner_serializers: List[Serializer] = []
-        choice_schemas = _flatten_choice_schemas(schema['choices'])
-        for choice_schema in choice_schemas:
+        for choice_schema in schema['choices']:
             if isinstance(choice_schema, tuple):
                 choice_schema, label = choice_schema
 
@@ -69,8 +69,7 @@ class ModelSerializer(Serializer):
         model_name = ctx.model_name
         computed = ctx.field_computed
         inner_serializers: List[ModelProxySerializer] = []
-        choice_schemas = _flatten_choice_schemas(schema['choices'])
-        for choice_schema in choice_schemas:
+        for choice_schema in schema['choices']:
             if isinstance(choice_schema, tuple):
                 choice_schema, label = choice_schema
 
@@ -145,8 +144,8 @@ class ModelSerializer(Serializer):
 
 def from_core_schema(schema: pcs.UnionSchema, ctx: Serializer.Context) -> Serializer:
     choice_families: Set[SchemaTypeFamily] = set()
-    choice_schemas = _flatten_choice_schemas(schema['choices'])
-    for choice_schema in choice_schemas:
+    flattened_schema = _flatten_choice_schemas(deepcopy(schema), ctx)
+    for choice_schema in flattened_schema['choices']:
         if isinstance(choice_schema, tuple):
             choice_schema, label = choice_schema
 
@@ -166,30 +165,35 @@ def from_core_schema(schema: pcs.UnionSchema, ctx: Serializer.Context) -> Serial
 
     choice_family = choice_families.pop()
     if choice_family is SchemaTypeFamily.MODEL:
-        return ModelSerializer.from_core_schema(schema, ctx)
+        return ModelSerializer.from_core_schema(flattened_schema, ctx)
     elif choice_family is SchemaTypeFamily.PRIMITIVE:
-        return PrimitiveTypeSerializer.from_core_schema(schema, ctx)
+        return PrimitiveTypeSerializer.from_core_schema(flattened_schema, ctx)
     else:
         raise AssertionError("unreachable")
 
 
-def _flatten_choice_schemas(choice_schemas):
+def _flatten_choice_schemas(schema: pcs.UnionSchema, ctx: Serializer.Context) -> pcs.UnionSchema:
     """
     Flatten nested union choice_schemas into their components, leave others as they are
     """
-    schemas = choice_schemas[:]
+    choice_schemas = schema['choices']
     flattened_schemas = []
     seen_refs = set()
-    while schemas:
-        choice_schema = original_schema = schemas.pop()
+    while choice_schemas:
+        choice_schema = original_schema = choice_schemas.pop()
         if isinstance(choice_schema, tuple):
             choice_schema, label = choice_schema
-        if 'ref' in choice_schema:
-            if choice_schema['ref'] in seen_refs:
-                continue
-            seen_refs.add(choice_schema['ref'])
+        ref = choice_schema.get('schema_ref', choice_schema.get('ref'))
+        if ref in seen_refs:
+            continue
+        if ref:
+            seen_refs.add(ref)
+
+        if choice_schema['type'] == 'definition-ref':
+            choice_schema = ctx.definitions.get(choice_schema['schema_ref'])
         if choice_schema['type'] == 'union':
-            schemas.extend(choice_schema['choices'])
+            choice_schemas.extend(choice_schema['choices'])
         else:
             flattened_schemas.append(original_schema)
-    return flattened_schemas
+    schema['choices'] = flattened_schemas
+    return schema

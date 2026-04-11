@@ -460,10 +460,11 @@ type Literals2 = Literal[5, 6]
 type Literals3 = Literal[0]
 type LiteralUnion1 = Literals1 | Literals2
 type LiteralUnion2 = LiteralUnion1 | Literals3
+type LiteralUnion3 = LiteralUnion2 | LiteralUnion1
 
 def test_nested_primitive_union():
     class Model(BaseXmlModel, tag='model'):
-        element1: Annotated[LiteralUnion2, BeforeValidator(int)] = element(tag='testLiteral')
+        element1: Annotated[LiteralUnion3, BeforeValidator(int)] = element(tag='testLiteral')
 
     xml = '''
     <model>
