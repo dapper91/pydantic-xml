@@ -359,6 +359,47 @@ def test_model_inheritance_params_redefinition():
     assert_xml_equal(actual_xml, xml1)
 
 
+def test_subclass_nsmap_does_not_mutate_parent():
+    # defining a subclass with a different nsmap must not modify the parent's
+    # (or any shared module-level) namespace map.
+    nsmap_v1 = {"hq": "http://www.company.com/hq/v1", "pd": "http://www.company.com/prod"}
+    nsmap = {"hq": "http://www.company.com/hq", "pd": "http://www.company.com/prod"}
+    original_nsmap = dict(nsmap)
+
+    class Headquarters(BaseXmlModel, ns="hq", nsmap=nsmap):
+        country: str = element()
+        state: str = element()
+        city: str = element()
+
+    class HeadquartersV1(Headquarters, ns="hq", nsmap=nsmap_v1):
+        pass
+
+    class Company(BaseXmlModel, tag="Company", nsmap=nsmap):
+        trade_name: str = attr(name="trade-name")
+        headquarters: Headquarters
+
+    assert nsmap == original_nsmap, "parent nsmap must not be mutated by subclass definition"
+    assert Headquarters.__xml_nsmap__ == original_nsmap
+    assert HeadquartersV1.__xml_nsmap__ == {**original_nsmap, **nsmap_v1}
+
+    xml = """
+    <Company trade-name="Beboop" xmlns:pd="http://www.company.com/prod">
+        <hq:headquarters xmlns:hq="http://www.company.com/hq">
+            <hq:country>US</hq:country>
+            <hq:state>West Virginia</hq:state>
+            <hq:city>Almost Heaven</hq:city>
+        </hq:headquarters>
+    </Company>
+    """
+
+    actual_obj = Company.from_xml(xml)
+    expected_obj = Company(
+        trade_name="Beboop",
+        headquarters=Headquarters(country="US", state="West Virginia", city="Almost Heaven"),
+    )
+    assert actual_obj == expected_obj
+
+
 def test_submodel_namespaces_default_namespace_inheritance():
     class TestSubModel(BaseXmlModel, tag='submodel', ns='', nsmap={'': 'http://test2.org'}):
         attr1: int = attr()

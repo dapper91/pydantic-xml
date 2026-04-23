@@ -193,8 +193,7 @@ class BaseXmlModel(BaseModel, __xml_abstract__=True, metaclass=XmlModelMeta):
             else getattr(cls, '__xml_search_mode__', SearchMode.STRICT)
 
         if parent_nsmap := getattr(cls, '__xml_nsmap__', None):
-            parent_nsmap.update(nsmap or {})
-            cls.__xml_nsmap__ = parent_nsmap
+            cls.__xml_nsmap__ = parent_nsmap | (nsmap or {})
         else:
             cls.__xml_nsmap__ = nsmap
 
