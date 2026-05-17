@@ -1,3 +1,4 @@
+import datetime as dt
 from typing import Any, Dict, List
 
 import pydantic as pd
@@ -105,3 +106,20 @@ def test_pydantic_model_validator():
     with pytest.raises(ValueError) as err:
         TestModel.from_xml(xml)
     assert err.value.errors()[0]['ctx']['orig'] == 'Value error, text'
+
+
+def test_plain_validator():
+    class TestModel(BaseXmlModel, tag='model1'):
+        element1: dt.date = element()
+
+        @pd.field_validator('element1', mode='plain')
+        def validate_element1(cls, value: Any) -> Any:
+            return dt.datetime.strptime(value, '%Y%m%d').date()
+
+    xml = '<model1><element1>20260517</element1></model1>'
+    model = TestModel.from_xml(xml)
+    assert model.element1 == dt.date(2026, 5, 17)
+
+    with pytest.raises(ValueError) as err:
+        xml = '<model1><element1>aabb</element1></model1>'
+        TestModel.from_xml(xml)
