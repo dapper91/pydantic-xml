@@ -314,12 +314,18 @@ def test_mapping_wrapper_namespace_inheritance():
 
 
 def test_model_inheritance():
-    class BaseTestModel(BaseXmlModel, tag='model', ns='tst', nsmap={'tst': 'http://test1.org'}):
+    base_nsmap = {'tst': 'http://test.org'}
+    nsmap = {'tst': 'http://test1.org'}
+
+    class BaseTestModel(BaseXmlModel, tag='model', ns='tst', nsmap=base_nsmap):
         attr1: int = attr()
         element1: str = element()
 
-    class TestModel(BaseTestModel):
+    class TestModel(BaseTestModel, nsmap=nsmap):
         pass
+
+    assert BaseTestModel.__xml_nsmap__ == base_nsmap
+    assert TestModel.__xml_nsmap__ == nsmap
 
     xml1 = '''
     <tst:model xmlns:tst="http://test1.org" attr1="1">
