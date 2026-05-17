@@ -9,7 +9,7 @@ from pydantic_core import core_schema as pcs
 import pydantic_xml as pxml
 from pydantic_xml import errors, utils
 from pydantic_xml.element import XmlElementReader, XmlElementWriter, is_element_nill, make_element_nill
-from pydantic_xml.fields import ComputedXmlEntityInfo, XmlEntityInfoP, extract_field_xml_entity_info
+from pydantic_xml.fields import ComputedXmlEntityInfo, NoXml, XmlEntityInfoP, extract_field_xml_entity_info
 from pydantic_xml.serializers.serializer import SearchMode, Serializer
 from pydantic_xml.typedefs import EntityLocation, Location, NsMap
 from pydantic_xml.utils import QName, merge_nsmaps, select_ns
@@ -76,6 +76,10 @@ class ModelSerializer(BaseModelSerializer):
         fields_validation_aliases: Dict[str, str] = {}
         fields_serializers: Dict[str, Serializer] = {}
         for field_name, model_field in fields_schema['fields'].items():
+            field_info = model_cls.model_fields[field_name]
+            if NoXml in field_info.metadata:
+                continue
+
             if model_field.get('serialization_exclude', False):
                 fields_serialization_exclude.add(field_name)
 
@@ -84,7 +88,6 @@ class ModelSerializer(BaseModelSerializer):
                 if isinstance(validation_alias, str):
                     fields_validation_aliases[field_name] = validation_alias
 
-            field_info = model_cls.model_fields[field_name]
             field_ctx = ctx.child(
                 field_name=field_name,
                 field_alias=field_alias,
@@ -199,6 +202,7 @@ class ModelSerializer(BaseModelSerializer):
             context: Optional[Dict[str, Any]],
             sourcemap: Dict[Location, int],
             loc: Location,
+            empty_as_string: bool,
     ) -> Optional['pxml.BaseXmlModel']:
         if element is None:
             return None
@@ -212,7 +216,9 @@ class ModelSerializer(BaseModelSerializer):
                 if custom_field_validator := self._model.__xml_field_validators__.get(field_name):
                     field_value = custom_field_validator(self._model, element, field_name)
                 else:
-                    field_value = field_serializer.deserialize(element, context=context, sourcemap=sourcemap, loc=loc)
+                    field_value = field_serializer.deserialize(
+                        element, context=context, sourcemap=sourcemap, loc=loc, empty_as_string=empty_as_string,
+                    )
 
                 if field_value is not None:
                     field_name = self._fields_validation_aliases.get(field_name, field_name)
@@ -323,12 +329,15 @@ class RootModelSerializer(BaseModelSerializer):
             context: Optional[Dict[str, Any]],
             sourcemap: Dict[Location, int],
             loc: Location,
+            empty_as_string: bool,
     ) -> Optional['pxml.BaseXmlModel']:
         if element is None:
             return None
 
         try:
-            result = self._root_serializer.deserialize(element, context=context, sourcemap=sourcemap, loc=loc)
+            result = self._root_serializer.deserialize(
+                element, context=context, sourcemap=sourcemap, loc=loc, empty_as_string=empty_as_string,
+            )
             if result is None:
                 result = pdc.PydanticUndefined
         except pd.ValidationError as err:
@@ -436,6 +445,7 @@ class ModelProxySerializer(BaseModelSerializer):
             context: Optional[Dict[str, Any]],
             sourcemap: Dict[Location, int],
             loc: Location,
+            empty_as_string: bool,
     ) -> Optional['pxml.BaseXmlModel']:
         assert self._model.__xml_serializer__ is not None, f"model {self._model.__name__} is partially initialized"
 
@@ -451,7 +461,7 @@ class ModelProxySerializer(BaseModelSerializer):
                 return None
             else:
                 return self._model.__xml_serializer__.deserialize(
-                    sub_element, context=context, sourcemap=sourcemap, loc=loc,
+                    sub_element, context=context, sourcemap=sourcemap, loc=loc, empty_as_string=empty_as_string,
                 )
         else:
             return None

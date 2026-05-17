@@ -55,11 +55,14 @@ class PrimitiveTypeSerializer(Serializer):
             context: Optional[Dict[str, Any]],
             sourcemap: Dict[Location, int],
             loc: Location,
+            empty_as_string: bool,
     ) -> Optional[str]:
         if self._computed:
             return None
 
-        return self._inner_serializer.deserialize(element, context=context, sourcemap=sourcemap, loc=loc)
+        return self._inner_serializer.deserialize(
+            element, context=context, sourcemap=sourcemap, loc=loc, empty_as_string=empty_as_string,
+        )
 
 
 class ModelSerializer(Serializer):
@@ -121,6 +124,7 @@ class ModelSerializer(Serializer):
             context: Optional[Dict[str, Any]],
             sourcemap: Dict[Location, int],
             loc: Location,
+            empty_as_string: bool,
     ) -> Optional['pxml.BaseXmlModel']:
         if self._computed:
             return None
@@ -133,7 +137,11 @@ class ModelSerializer(Serializer):
         for serializer in self._inner_serializers:
             snapshot = element.create_snapshot()
             try:
-                if (result := serializer.deserialize(snapshot, context=context, sourcemap=sourcemap, loc=loc)) is None:
+                if (
+                    result := serializer.deserialize(
+                        snapshot, context=context, sourcemap=sourcemap, loc=loc, empty_as_string=empty_as_string,
+                    )
+                ) is None:
                     continue
                 else:
                     element.apply_snapshot(snapshot)

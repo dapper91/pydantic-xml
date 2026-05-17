@@ -90,6 +90,7 @@ class ModelSerializer(Serializer):
             context: Optional[Dict[str, Any]],
             sourcemap: Dict[Location, int],
             loc: Location,
+            empty_as_string: bool,
     ) -> Optional['pxml.BaseXmlModel']:
         if self._computed:
             return None
@@ -106,7 +107,9 @@ class ModelSerializer(Serializer):
             )
             if sub_element is not None and sub_element.get_attrib(self._discriminating_attr_name) == tag:
                 sourcemap[loc] = sub_element.get_sourceline()
-                return serializer.deserialize(element, context=context, sourcemap=sourcemap, loc=loc)
+                return serializer.deserialize(
+                    element, context=context, sourcemap=sourcemap, loc=loc, empty_as_string=empty_as_string,
+                )
 
         return None
 

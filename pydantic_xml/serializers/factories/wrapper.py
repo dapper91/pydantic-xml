@@ -71,6 +71,7 @@ class ElementPathSerializer(Serializer):
             context: Optional[Dict[str, Any]],
             sourcemap: Dict[Location, int],
             loc: Location,
+            empty_as_string: bool,
     ) -> Optional[Any]:
         if self._computed:
             return None
@@ -82,7 +83,9 @@ class ElementPathSerializer(Serializer):
             sub_element = sub_elements[-1]
             if len(sub_elements) == len(self._path):
                 sourcemap[loc] = sub_element.get_sourceline()
-                return self._inner_serializer.deserialize(sub_element, context=context, sourcemap=sourcemap, loc=loc)
+                return self._inner_serializer.deserialize(
+                    sub_element, context=context, sourcemap=sourcemap, loc=loc, empty_as_string=empty_as_string,
+                )
             else:
                 return None
         else:

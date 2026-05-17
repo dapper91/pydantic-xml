@@ -54,8 +54,11 @@ class ElementSerializer(Serializer):
             context: Optional[Dict[str, Any]],
             sourcemap: Dict[Location, int],
             loc: Location,
+            empty_as_string: bool,
     ) -> Optional[List[Any]]:
-        return self._inner_serializer.deserialize(element, context=context, sourcemap=sourcemap, loc=loc)
+        return self._inner_serializer.deserialize(
+            element, context=context, sourcemap=sourcemap, loc=loc, empty_as_string=empty_as_string,
+        )
 
 
 def from_core_schema(schema: pcs.CallSchema, ctx: Serializer.Context) -> Serializer:

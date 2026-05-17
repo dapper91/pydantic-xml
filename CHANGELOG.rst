@@ -1,6 +1,16 @@
 Changelog
 =========
 
+2.21.0 (2026-05-17)
+-------------------
+
+- feat: plain validator support added.
+- feat: json only fields support added.
+- feat: option to deserialize empty xml elements data as empty strings not Nones.
+- fix: base model nsmap override bug fixed.
+- fix: pydantic beta versions (e.g. 2.13.0b1) compatibility added.
+
+
 2.20.0 (2026-04-12)
 -------------------
 

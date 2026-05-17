@@ -193,8 +193,7 @@ class BaseXmlModel(BaseModel, __xml_abstract__=True, metaclass=XmlModelMeta):
             else getattr(cls, '__xml_search_mode__', SearchMode.STRICT)
 
         if parent_nsmap := getattr(cls, '__xml_nsmap__', None):
-            parent_nsmap.update(nsmap or {})
-            cls.__xml_nsmap__ = parent_nsmap
+            cls.__xml_nsmap__ = dict(parent_nsmap, **(nsmap or {}))
         else:
             cls.__xml_nsmap__ = nsmap
 
@@ -248,12 +247,18 @@ class BaseXmlModel(BaseModel, __xml_abstract__=True, metaclass=XmlModelMeta):
             cls.__build_serializer__()
 
     @classmethod
-    def from_xml_tree(cls: Type[ModelT], root: etree.Element, context: Optional[Dict[str, Any]] = None) -> ModelT:
+    def from_xml_tree(
+            cls: Type[ModelT],
+            root: etree.Element,
+            context: Optional[Dict[str, Any]] = None,
+            empty_as_string: bool = False,
+    ) -> ModelT:
         """
         Deserializes an xml element tree to an object of `cls` type.
 
         :param root: xml element to deserialize the object from
         :param context: pydantic validation context
+        :param empty_as_string: deserialize empty element data as empty string not None
         :return: deserialized object
         """
 
@@ -266,6 +271,7 @@ class BaseXmlModel(BaseModel, __xml_abstract__=True, metaclass=XmlModelMeta):
                     context=context,
                     sourcemap={},
                     loc=(),
+                    empty_as_string=empty_as_string,
                 ),
             )
             return obj
@@ -276,18 +282,27 @@ class BaseXmlModel(BaseModel, __xml_abstract__=True, metaclass=XmlModelMeta):
 
     @classmethod
     def from_xml(
-            cls: Type[ModelT], source: Union[str, bytes], context: Optional[Dict[str, Any]] = None, **kwargs: Any,
+            cls: Type[ModelT],
+            source: Union[str, bytes],
+            context: Optional[Dict[str, Any]] = None,
+            empty_as_string: bool = False,
+            **kwargs: Any,
     ) -> ModelT:
         """
         Deserializes an xml string to an object of `cls` type.
 
         :param source: xml string
         :param context: pydantic validation context
+        :param empty_as_string: deserialize empty element data as empty string not None
         :param kwargs: additional xml deserialization arguments
         :return: deserialized object
         """
 
-        return cls.from_xml_tree(etree.fromstring(source, **kwargs), context=context)
+        return cls.from_xml_tree(
+            etree.fromstring(source, **kwargs),
+            empty_as_string=empty_as_string,
+            context=context,
+        )
 
     def to_xml_tree(
             self, *, skip_empty: bool = False, exclude_none: bool = False, exclude_unset: bool = False,

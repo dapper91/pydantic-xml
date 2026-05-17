@@ -71,6 +71,7 @@ class ElementSerializer(Serializer):
             context: Optional[Dict[str, Any]],
             sourcemap: Dict[Location, int],
             loc: Location,
+            empty_as_string: bool,
     ) -> Optional[List[Any]]:
         if self._computed:
             return None
@@ -83,7 +84,9 @@ class ElementSerializer(Serializer):
         item_errors: Dict[Union[None, str, int], pd.ValidationError] = {}
         for idx in it.count():
             try:
-                value = serializer.deserialize(element, context=context, sourcemap=sourcemap, loc=loc + (idx,))
+                value = serializer.deserialize(
+                    element, context=context, sourcemap=sourcemap, loc=loc + (idx,), empty_as_string=empty_as_string,
+                )
                 if value is None:
                     break
             except pd.ValidationError as err:

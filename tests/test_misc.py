@@ -6,7 +6,7 @@ import pydantic as pd
 import pytest
 from helpers import assert_xml_equal
 
-from pydantic_xml import BaseXmlModel, RootXmlModel, attr, element, errors, wrapped
+from pydantic_xml import BaseXmlModel, NoXml, RootXmlModel, attr, element, errors, wrapped
 
 
 def test_xml_declaration():
@@ -186,6 +186,26 @@ def test_exclude_unset_root_model():
 
     actual_xml = obj.to_xml(exclude_unset=True)
     assert_xml_equal(actual_xml, xml.encode())
+
+
+def test_empty_as_string():
+    class TestSubModel(BaseXmlModel, tag='sub-model'):
+        text: str
+
+    class TestModel(BaseXmlModel, tag='model'):
+        text: str
+        model: TestSubModel
+
+    xml = '''
+    <model><sub-model/></model>
+    '''
+
+    actual_obj = TestModel.from_xml(xml, empty_as_string=True)
+    expected_obj = TestModel(
+        text='',
+        model=TestSubModel(text=''),
+    )
+    assert actual_obj == expected_obj
 
 
 def test_self_ref_models():
@@ -441,3 +461,27 @@ def test_error_input_hiding(model_hide_input: bool, input_in_error_hidden: bool)
         assert not error_value_input, error_str
     else:
         assert error_value_input, error_str
+
+
+@pytest.mark.skipif(sys.version_info < (3, 9), reason="requires python 3.9 and above")
+def test_no_xml_annotation():
+    from typing import Annotated
+
+    class TestModel(BaseXmlModel, tag="model"):
+        field1: str = element()
+        field2: Annotated[Optional[str], NoXml] = element(default=None)
+
+    expected_xml = '<model><field1>data1</field1></model>'
+    actual_obj = TestModel.from_xml(expected_xml)
+    expected_obj = TestModel(field1='data1')
+
+    assert actual_obj == expected_obj
+    actual_xml = actual_obj.to_xml(skip_empty=True)
+    assert_xml_equal(actual_xml, expected_xml.encode())
+
+    expected_json = {'field1': 'data1', 'field2': 'data2'}
+    actual_obj = TestModel.model_validate(expected_json)
+    expected_obj = TestModel(field1='data1', field2='data2')
+    assert actual_obj == expected_obj
+
+    assert actual_obj.model_dump() == expected_json

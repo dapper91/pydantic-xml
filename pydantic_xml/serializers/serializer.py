@@ -189,7 +189,11 @@ class Serializer(abc.ABC):
             elif schema_type == 'nullable':
                 ctx = ctx.replace(optional=True)
 
-            inner_schema = schema['schema']
+            if schema_type == 'function-plain':
+                inner_schema = schema['serialization']
+            else:
+                inner_schema = schema['schema']
+
             return cls.preprocess_schema(inner_schema, ctx)
 
         elif type_family is SchemaTypeFamily.JSON_OR_PYTHON:
@@ -300,6 +304,7 @@ class Serializer(abc.ABC):
             context: Optional[Dict[str, Any]],
             sourcemap: Dict[Location, int],
             loc: Location,
+            empty_as_string: bool,
     ) -> Optional[Any]:
         """
         Deserializes a value from the xml element.
@@ -308,5 +313,6 @@ class Serializer(abc.ABC):
         :param context: pydantic validation context
         :param sourcemap: source-to-element mapping
         :param loc: entity location
+        :param empty_as_string: deserialize empty element data as empty string not None
         :return: deserialized value
         """
