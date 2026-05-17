@@ -189,7 +189,11 @@ class Serializer(abc.ABC):
             elif schema_type == 'nullable':
                 ctx = ctx.replace(optional=True)
 
-            inner_schema = schema['schema']
+            if schema_type == 'function-plain':
+                inner_schema = schema['serialization']
+            else:
+                inner_schema = schema['schema']
+
             return cls.preprocess_schema(inner_schema, ctx)
 
         elif type_family is SchemaTypeFamily.JSON_OR_PYTHON:
