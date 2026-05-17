@@ -188,6 +188,26 @@ def test_exclude_unset_root_model():
     assert_xml_equal(actual_xml, xml.encode())
 
 
+def test_empty_as_string():
+    class TestSubModel(BaseXmlModel, tag='sub-model'):
+        text: str
+
+    class TestModel(BaseXmlModel, tag='model'):
+        text: str
+        model: TestSubModel
+
+    xml = '''
+    <model><sub-model/></model>
+    '''
+
+    actual_obj = TestModel.from_xml(xml, empty_as_string=True)
+    expected_obj = TestModel(
+        text='',
+        model=TestSubModel(text=''),
+    )
+    assert actual_obj == expected_obj
+
+
 def test_self_ref_models():
     class TestModel(BaseXmlModel, tag='model'):
         attr1: int = attr()

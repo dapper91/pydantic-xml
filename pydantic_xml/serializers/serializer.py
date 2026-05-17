@@ -304,6 +304,7 @@ class Serializer(abc.ABC):
             context: Optional[Dict[str, Any]],
             sourcemap: Dict[Location, int],
             loc: Location,
+            empty_as_string: bool,
     ) -> Optional[Any]:
         """
         Deserializes a value from the xml element.
@@ -312,5 +313,6 @@ class Serializer(abc.ABC):
         :param context: pydantic validation context
         :param sourcemap: source-to-element mapping
         :param loc: entity location
+        :param empty_as_string: deserialize empty element data as empty string not None
         :return: deserialized value
         """
