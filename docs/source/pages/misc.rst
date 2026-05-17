@@ -71,6 +71,16 @@ The following example illustrate how to serialize ``xs:list`` element:
     :language: python
 
 
+JSON only field
+~~~~~~~~~~~~~~~
+
+To prevent a field from serialization/deserialization only for xml format
+mark it with :py:class:`pydantic_xml.NoXml` annotation:
+
+.. literalinclude:: ../../../examples/snippets/py3.9/noxml.py
+  :language: python
+
+
 Optional type encoding
 ~~~~~~~~~~~~~~~~~~~~~~
 

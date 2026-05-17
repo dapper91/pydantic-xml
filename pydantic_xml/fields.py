@@ -21,11 +21,18 @@ __all__ = (
     'xml_field_serializer',
     'xml_field_validator',
     'ComputedXmlEntityInfo',
+    'NoXml',
     'XmlEntityInfo',
     'XmlEntityInfoP',
     'XmlFieldSerializer',
     'XmlFieldValidator',
 )
+
+
+class NoXml:
+    """
+    Annotation to prevent field encoding or decoding for xml format only.
+    """
 
 
 class XmlEntityInfoP(typing.Protocol):
