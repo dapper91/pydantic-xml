@@ -202,6 +202,7 @@ class ModelSerializer(BaseModelSerializer):
             context: Optional[Dict[str, Any]],
             sourcemap: Dict[Location, int],
             loc: Location,
+            empty_as_string: bool,
     ) -> Optional['pxml.BaseXmlModel']:
         if element is None:
             return None
@@ -215,7 +216,9 @@ class ModelSerializer(BaseModelSerializer):
                 if custom_field_validator := self._model.__xml_field_validators__.get(field_name):
                     field_value = custom_field_validator(self._model, element, field_name)
                 else:
-                    field_value = field_serializer.deserialize(element, context=context, sourcemap=sourcemap, loc=loc)
+                    field_value = field_serializer.deserialize(
+                        element, context=context, sourcemap=sourcemap, loc=loc, empty_as_string=empty_as_string,
+                    )
 
                 if field_value is not None:
                     field_name = self._fields_validation_aliases.get(field_name, field_name)
@@ -326,12 +329,15 @@ class RootModelSerializer(BaseModelSerializer):
             context: Optional[Dict[str, Any]],
             sourcemap: Dict[Location, int],
             loc: Location,
+            empty_as_string: bool,
     ) -> Optional['pxml.BaseXmlModel']:
         if element is None:
             return None
 
         try:
-            result = self._root_serializer.deserialize(element, context=context, sourcemap=sourcemap, loc=loc)
+            result = self._root_serializer.deserialize(
+                element, context=context, sourcemap=sourcemap, loc=loc, empty_as_string=empty_as_string,
+            )
             if result is None:
                 result = pdc.PydanticUndefined
         except pd.ValidationError as err:
@@ -439,6 +445,7 @@ class ModelProxySerializer(BaseModelSerializer):
             context: Optional[Dict[str, Any]],
             sourcemap: Dict[Location, int],
             loc: Location,
+            empty_as_string: bool,
     ) -> Optional['pxml.BaseXmlModel']:
         assert self._model.__xml_serializer__ is not None, f"model {self._model.__name__} is partially initialized"
 
@@ -454,7 +461,7 @@ class ModelProxySerializer(BaseModelSerializer):
                 return None
             else:
                 return self._model.__xml_serializer__.deserialize(
-                    sub_element, context=context, sourcemap=sourcemap, loc=loc,
+                    sub_element, context=context, sourcemap=sourcemap, loc=loc, empty_as_string=empty_as_string,
                 )
         else:
             return None
