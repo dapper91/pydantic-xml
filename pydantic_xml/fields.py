@@ -239,6 +239,15 @@ class ComputedXmlEntityInfo(pd.fields.ComputedFieldInfo, XmlEntityInfoP):
         if config.REGISTER_NS_PREFIXES and self.nsmap:
             utils.register_nsmap(self.nsmap)
 
+    def __copy__(self) -> 'ComputedXmlEntityInfo':
+        return dc.replace(
+            self,
+            examples=self.examples.copy() if isinstance(self.examples, list) else self.examples,
+            json_schema_extra=self.json_schema_extra.copy()
+            if isinstance(self.json_schema_extra, dict)
+            else self.json_schema_extra,
+        )
+
 
 PropertyT = typing.TypeVar('PropertyT')
 
