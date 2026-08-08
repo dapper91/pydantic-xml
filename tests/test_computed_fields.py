@@ -42,6 +42,22 @@ def test_computed_attributes():
     assert_xml_equal(actual_xml, xml)
 
 
+def test_inherited_computed_attr():
+    class BaseModel(BaseXmlModel):
+        @computed_attr
+        def attr(self) -> str:
+            return 'text'
+
+    class TestModel(BaseModel, tag='model'):
+        pass
+
+    xml = '''
+    <model attr="text" />
+    '''
+
+    assert_xml_equal(TestModel().to_xml(), xml)
+
+
 def test_computed_elements():
     class TestModel(BaseXmlModel, tag='model'):
         @computed_element(tag='element1')
@@ -63,6 +79,24 @@ def test_computed_elements():
 
     actual_xml = actual_obj.to_xml()
     assert_xml_equal(actual_xml, xml)
+
+
+def test_inherited_computed_element():
+    class BaseModel(BaseXmlModel):
+        @computed_element
+        def element(self) -> str:
+            return 'text'
+
+    class TestModel(BaseModel, tag='model'):
+        pass
+
+    xml = '''
+    <model>
+        <element>text</element>
+    </model>
+    '''
+
+    assert_xml_equal(TestModel().to_xml(), xml)
 
 
 def test_computed_nillable_elements():
