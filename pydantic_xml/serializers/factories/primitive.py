@@ -68,9 +68,6 @@ class TextSerializer(Serializer):
             loc: Location,
             empty_as_string: bool,
     ) -> Optional[str]:
-        if self._computed:
-            return None
-
         if element is None:
             return None
 
@@ -135,9 +132,6 @@ class AttributeSerializer(Serializer):
             loc: Location,
             empty_as_string: bool,
     ) -> Optional[str]:
-        if self._computed:
-            return None
-
         if element is None:
             return None
 
@@ -206,9 +200,6 @@ class ElementSerializer(TextSerializer):
             loc: Location,
             empty_as_string: bool,
     ) -> Optional[str]:
-        if self._computed:
-            return None
-
         if element is None:
             return None
 
