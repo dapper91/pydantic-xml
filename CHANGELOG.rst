@@ -1,6 +1,12 @@
 Changelog
 =========
 
+2.21.1 (2026-08-08)
+-------------------
+
+- fix: computed field inheritance with pydantic 2.13
+
+
 2.21.0 (2026-05-17)
 -------------------
 
