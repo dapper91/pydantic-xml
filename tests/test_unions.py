@@ -1,9 +1,9 @@
 import sys
-from typing import List, Literal, Tuple, Union
+from typing import List, Literal, Tuple, Union, Annotated
 
 import pytest
 from helpers import assert_xml_equal
-from pydantic import Field
+from pydantic import Field, BeforeValidator
 
 from pydantic_xml import BaseXmlModel, RootXmlModel, attr, element
 
@@ -453,3 +453,77 @@ def test_union_snapshot():
 
     actual_xml = actual_obj.to_xml()
     assert_xml_equal(actual_xml, xml)
+
+
+type Literals1 = Literal[1, 2]
+type Literals2 = Literal[5, 6]
+type Literals3 = Literal[0]
+type LiteralUnion1 = Literals1 | Literals2
+type LiteralUnion2 = LiteralUnion1 | Literals3
+type LiteralUnion3 = LiteralUnion2 | LiteralUnion1
+
+def test_nested_primitive_union():
+    class Model(BaseXmlModel, tag='model'):
+        element1: Annotated[LiteralUnion3, BeforeValidator(int)] = element(tag='testLiteral')
+
+    xml = '''
+    <model>
+        <testLiteral>5</testLiteral>
+    </model>
+    '''
+
+    actual = Model.from_xml(xml)
+    expected = Model(element1=5)
+    assert actual == expected
+
+    actual_xml = actual.to_xml()
+    assert_xml_equal(actual_xml, xml)
+
+
+class UnionTestModel1(BaseXmlModel, tag='model1'):
+    element1: int = element(tag='element1')
+
+class UnionTestModel2(BaseXmlModel, tag='model2'):
+    element2: str = element(tag='element2')
+
+type UnionTestModelUnion = UnionTestModel1 | UnionTestModel2
+
+def test_nested_model_union():
+    class UnionTestModel3(BaseXmlModel, tag='model3'):
+        element3: str = element(tag='element3')
+
+    class TopLevelModel(BaseXmlModel, tag='topLevel'):
+        top_element1: UnionTestModel3 | UnionTestModelUnion = element()
+
+    xml_1 = """
+    <topLevel>
+        <model1><element1>1</element1></model1>
+    </topLevel>
+    """
+    actual_1 = TopLevelModel.from_xml(xml_1)
+    expected_1 = TopLevelModel(top_element1=UnionTestModel1(element1=1))
+    assert actual_1 == expected_1
+    actual_1_xml = actual_1.to_xml()
+    assert_xml_equal(actual_1_xml, xml_1)
+
+    xml_2 = """
+    <topLevel>
+        <model2><element2>element 2</element2></model2>
+    </topLevel>
+    """
+    actual_2 = TopLevelModel.from_xml(xml_2)
+    expected_2 = TopLevelModel(top_element1=UnionTestModel2(element2='element 2'))
+    assert actual_2 == expected_2
+    actual_2_xml = actual_2.to_xml()
+    assert_xml_equal(actual_2_xml, xml_2)
+
+    xml_3 = """
+    <topLevel>
+        <model3><element3>element 3</element3></model3>
+    </topLevel>
+    """
+    actual_3 = TopLevelModel.from_xml(xml_3)
+    expected_3 = TopLevelModel(top_element1=UnionTestModel3(element3='element 3'))
+    assert actual_3 == expected_3
+    actual_3_xml = actual_3.to_xml()
+    assert_xml_equal(actual_3_xml, xml_3)

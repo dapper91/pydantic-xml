@@ -1,3 +1,4 @@
+from copy import deepcopy
 from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
 import pydantic as pd
@@ -160,7 +161,8 @@ class ModelSerializer(Serializer):
 
 def from_core_schema(schema: pcs.UnionSchema, ctx: Serializer.Context) -> Serializer:
     choice_families: Set[SchemaTypeFamily] = set()
-    for choice_schema in schema['choices']:
+    flattened_schema = _flatten_choice_schemas(deepcopy(schema), ctx)
+    for choice_schema in flattened_schema['choices']:
         if isinstance(choice_schema, tuple):
             choice_schema, label = choice_schema
 
@@ -180,8 +182,35 @@ def from_core_schema(schema: pcs.UnionSchema, ctx: Serializer.Context) -> Serial
 
     choice_family = choice_families.pop()
     if choice_family is SchemaTypeFamily.MODEL:
-        return ModelSerializer.from_core_schema(schema, ctx)
+        return ModelSerializer.from_core_schema(flattened_schema, ctx)
     elif choice_family is SchemaTypeFamily.PRIMITIVE:
-        return PrimitiveTypeSerializer.from_core_schema(schema, ctx)
+        return PrimitiveTypeSerializer.from_core_schema(flattened_schema, ctx)
     else:
         raise AssertionError("unreachable")
+
+
+def _flatten_choice_schemas(schema: pcs.UnionSchema, ctx: Serializer.Context) -> pcs.UnionSchema:
+    """
+    Flatten nested union choice_schemas into their components, leave others as they are
+    """
+    choice_schemas = schema['choices']
+    flattened_schemas = []
+    seen_refs = set()
+    while choice_schemas:
+        choice_schema = original_schema = choice_schemas.pop()
+        if isinstance(choice_schema, tuple):
+            choice_schema, label = choice_schema
+        ref = choice_schema.get('schema_ref', choice_schema.get('ref'))
+        if ref in seen_refs:
+            continue
+        if ref:
+            seen_refs.add(ref)
+
+        if choice_schema['type'] == 'definition-ref':
+            choice_schema = ctx.definitions.get(choice_schema['schema_ref'])
+        if choice_schema['type'] == 'union':
+            choice_schemas.extend(choice_schema['choices'])
+        else:
+            flattened_schemas.append(original_schema)
+    schema['choices'] = flattened_schemas
+    return schema
