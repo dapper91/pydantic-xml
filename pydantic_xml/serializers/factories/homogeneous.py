@@ -123,6 +123,7 @@ def from_core_schema(schema: HomogeneousCollectionTypeSchema, ctx: Serializer.Co
         SchemaTypeFamily.IS_INSTANCE,
         SchemaTypeFamily.CALL,
         SchemaTypeFamily.TUPLE,
+        SchemaTypeFamily.NAMED_TUPLE,
     ):
         raise errors.ModelFieldError(
             ctx.model_name, ctx.field_name, "collection item must be of primitive, model, mapping, union or tuple type",
@@ -133,6 +134,7 @@ def from_core_schema(schema: HomogeneousCollectionTypeSchema, ctx: Serializer.Co
             SchemaTypeFamily.UNION,
             SchemaTypeFamily.TAGGED_UNION,
             SchemaTypeFamily.TUPLE,
+            SchemaTypeFamily.NAMED_TUPLE,
             SchemaTypeFamily.CALL,
     ) and ctx.entity_location is None:
         raise errors.ModelFieldError(ctx.model_name, ctx.field_name, "entity name is not provided")

@@ -41,6 +41,7 @@ class SchemaTypeFamily(IntEnum):
     JSON_OR_PYTHON = 11
     IS_INSTANCE = 12
     CALL = 13
+    NAMED_TUPLE = 14
 
 
 TYPE_FAMILY = {
@@ -68,6 +69,7 @@ TYPE_FAMILY = {
     'model':            SchemaTypeFamily.MODEL,
 
     'tuple':            SchemaTypeFamily.TUPLE,
+    'named-tuple':      SchemaTypeFamily.NAMED_TUPLE,
     'list':             SchemaTypeFamily.HOMOGENEOUS_COLLECTION,
     'set':              SchemaTypeFamily.HOMOGENEOUS_COLLECTION,
     'frozenset':        SchemaTypeFamily.HOMOGENEOUS_COLLECTION,
@@ -245,6 +247,10 @@ class Serializer(abc.ABC):
         elif type_family is SchemaTypeFamily.TUPLE:
             schema = typing.cast(pcs.TupleSchema, schema)
             return factories.tuple.from_core_schema(schema, ctx)
+
+        elif type_family is SchemaTypeFamily.NAMED_TUPLE:
+            schema = typing.cast(pcs.NamedTupleSchema, schema)
+            return factories.named_tuple.from_core_schema(schema, ctx)
 
         elif type_family is SchemaTypeFamily.MAPPING:
             schema = typing.cast(pcs.DictSchema, schema)
