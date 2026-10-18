@@ -213,7 +213,7 @@ Since ``pydantic`` supports json serialization ``pydantic-xml`` can be used as x
     company = Company.from_xml(xml_doc)
 
     json_doc = pathlib.Path('./doc.json')
-    json_doc.write_text(company.json(indent=4))
+    json_doc.write_text(company.model_dump_json(indent=4))
 
 *doc.json:*
 
