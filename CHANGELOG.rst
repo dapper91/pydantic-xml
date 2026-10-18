@@ -1,6 +1,15 @@
 Changelog
 =========
 
+2.22.0 (2026-10-18)
+-------------------
+
+- fix: added named-tuple core schema support (added in pydantic 2.14 release).
+- python 3.8 / 3.9 support dropped.
+- python 3.15 support added.
+- tests: importlib replaced by runpy for testing examples.
+
+
 2.21.1 (2026-08-08)
 -------------------
 

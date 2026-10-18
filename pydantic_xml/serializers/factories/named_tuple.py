@@ -1,4 +1,3 @@
-import typing
 from typing import Any, Dict, List, Optional, Tuple
 
 from pydantic_core import core_schema as pcs
@@ -12,11 +11,11 @@ from pydantic_xml.typedefs import EntityLocation, Location
 
 class ElementSerializer(Serializer):
     @classmethod
-    def from_core_schema(cls, schema: pcs.ArgumentsSchema, ctx: Serializer.Context) -> 'ElementSerializer':
+    def from_core_schema(cls, schema: pcs.NamedTupleSchema, ctx: Serializer.Context) -> 'ElementSerializer':
         model_name = ctx.model_name
         computed = ctx.field_computed
         inner_serializers: List[Serializer] = []
-        for argument_schema in schema['arguments_schema']:
+        for argument_schema in schema['fields']:
             param_schema = argument_schema['schema']
             inner_serializers.append(Serializer.parse_core_schema(param_schema, ctx))
 
@@ -61,10 +60,10 @@ class ElementSerializer(Serializer):
         )
 
 
-def from_core_schema(schema: pcs.CallSchema, ctx: Serializer.Context) -> Serializer:
-    arguments_schema = typing.cast(pcs.ArgumentsSchema, schema['arguments_schema'])
-    for argument_schema in arguments_schema['arguments_schema']:
-        param_schema = argument_schema['schema']
+def from_core_schema(schema: pcs.NamedTupleSchema, ctx: Serializer.Context) -> Serializer:
+    print(schema)
+    for field_schema in schema['fields']:
+        param_schema = field_schema['schema']
         param_schema, ctx = Serializer.preprocess_schema(param_schema, ctx)
 
         param_type_family = TYPE_FAMILY.get(param_schema['type'])
@@ -86,9 +85,9 @@ def from_core_schema(schema: pcs.CallSchema, ctx: Serializer.Context) -> Seriali
             raise errors.ModelFieldError(ctx.model_name, ctx.field_name, "entity name is not provided")
 
     if ctx.entity_location is EntityLocation.ELEMENT:
-        return ElementSerializer.from_core_schema(arguments_schema, ctx)
+        return ElementSerializer.from_core_schema(schema, ctx)
     elif ctx.entity_location is None:
-        return ElementSerializer.from_core_schema(arguments_schema, ctx)
+        return ElementSerializer.from_core_schema(schema, ctx)
     elif ctx.entity_location is EntityLocation.ATTRIBUTE:
         raise errors.ModelFieldError(ctx.model_name, ctx.field_name, "attributes of tuple types are not supported")
     else:
